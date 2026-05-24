@@ -1,0 +1,37 @@
+#!/bin/bash
+
+if [ "$#" -eq 0 ]; then
+    echo "Usage: img2webp [-q quality] <file1.jpg> [file2.png ...]"
+    echo "Example: img2webp -q 80 image1.jpg image2.png"
+    exit 1
+fi
+
+QUALITY=85
+FILES=()
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    -q|--quality) QUALITY="$2"; shift ;;
+    *) FILES+=("$1") ;;
+  esac
+  shift
+done
+
+TOTAL=${#FILES[@]}
+CURRENT=1
+
+for INPUT_FILE in "${FILES[@]}"; do
+    OUTPUT_FILE="${INPUT_FILE%.*}.webp"
+    echo "▶️  [$CURRENT/$TOTAL] Converting '$INPUT_FILE' to '$OUTPUT_FILE' (Quality: $QUALITY)..."
+    
+    cwebp -q "$QUALITY" -quiet "$INPUT_FILE" -o "$OUTPUT_FILE"
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Success: $OUTPUT_FILE"
+    else
+        echo "❌ Error converting $INPUT_FILE"
+    fi
+    CURRENT=$((CURRENT + 1))
+done
+
+osascript -e "display notification \"Converted $TOTAL image(s) to WebP.\" with title \"img2webp Complete\""

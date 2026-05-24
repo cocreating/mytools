@@ -1,0 +1,2 @@
+#compdef wav2mp3
+_arguments '*:audio file:_files -g "*.wav *.aiff *.flac *.m4a(-.)"'

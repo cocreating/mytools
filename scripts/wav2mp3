@@ -1,0 +1,25 @@
+#!/bin/bash
+
+if [ "$#" -eq 0 ]; then
+    echo "Usage: wav2mp3 <file1.wav> [file2.wav ...]"
+    exit 1
+fi
+
+TOTAL=$#
+CURRENT=1
+
+for INPUT_FILE in "$@"; do
+    OUTPUT_FILE="${INPUT_FILE%.*}.mp3"
+    echo "▶️  [$CURRENT/$TOTAL] Converting '$INPUT_FILE' to '$OUTPUT_FILE'..."
+    
+    ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -codec:a libmp3lame -b:a 192k "$OUTPUT_FILE"
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Success: $OUTPUT_FILE"
+    else
+        echo "❌ Error converting $INPUT_FILE"
+    fi
+    CURRENT=$((CURRENT + 1))
+done
+
+osascript -e "display notification \"Converted $TOTAL audio file(s) to MP3.\" with title \"wav2mp3 Complete\""

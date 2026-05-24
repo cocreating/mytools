@@ -1,0 +1,3 @@
+#compdef img2webp
+_arguments '-q[Quality]:quality:' \
+           '*:image file:_files -g "*.jpg *.jpeg *.png *.tiff *.bmp *.gif(-.)"'

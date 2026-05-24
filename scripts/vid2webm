@@ -1,0 +1,25 @@
+#!/bin/bash
+
+if [ "$#" -eq 0 ]; then
+    echo "Usage: vid2webm <file1.mp4> [file2.mp4 ...]"
+    exit 1
+fi
+
+TOTAL=$#
+CURRENT=1
+
+for INPUT_FILE in "$@"; do
+    OUTPUT_FILE="${INPUT_FILE%.*}.webm"
+    echo "▶️  [$CURRENT/$TOTAL] Converting '$INPUT_FILE' to '$OUTPUT_FILE'..."
+    
+    ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis "$OUTPUT_FILE"
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Success: $OUTPUT_FILE"
+    else
+        echo "❌ Error converting $INPUT_FILE"
+    fi
+    CURRENT=$((CURRENT + 1))
+done
+
+osascript -e "display notification \"Converted $TOTAL video(s) to WebM.\" with title \"vid2webm Complete\""

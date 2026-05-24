@@ -1,0 +1,33 @@
+#!/bin/bash
+
+if ! command -v fzf &> /dev/null; then
+    echo "🧰 Jasubal's Custom Terminal Tools:"
+    echo "-----------------------------------"
+    echo "🎵 wav2mp3   - Convert WAV files to MP3 format."
+    echo "🖼️  img2webp  - Convert and resize images to WebP format."
+    echo "🎬 vid2webm  - Compress and convert MP4 video to WebM."
+    echo ""
+    echo "💡 Install fzf to enable interactive menus: brew install fzf"
+    exit 0
+fi
+
+echo "🧰 Jasubal's Custom Terminal Tools"
+TOOL=$(printf "vid2webm (MP4/MOV -> WebM)\nwav2mp3 (WAV -> MP3)\nimg2webp (JPG/PNG -> WebP)" | fzf --prompt="Select tool > " --height=40% --layout=reverse --border | awk '{print $1}')
+
+if [ -z "$TOOL" ]; then
+    exit 0
+fi
+
+echo "You selected $TOOL. Select file(s) (Tab to multi-select, Enter to confirm):"
+FILES=$(fzf -m --prompt="Select files > " --height=60% --layout=reverse --border)
+
+if [ -z "$FILES" ]; then
+    echo "Canceled."
+    exit 0
+fi
+
+# Read multiline fzf output into array safely
+IFS=$'\n' read -r -d '' -a FILE_ARRAY <<< "$FILES"$'\0'
+
+echo "Executing: $TOOL on ${#FILE_ARRAY[@]} file(s)..."
+"$TOOL" "${FILE_ARRAY[@]}"
