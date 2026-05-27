@@ -1,0 +1,63 @@
+#!/bin/bash
+set -euo pipefail
+
+TARGET_PATH="${1:-$PWD}"
+FORCE=0
+TIMEOUT_SECONDS="${SETWEBLOCTHUMB_TIMEOUT_SECONDS:-90}"
+
+usage() {
+    echo "Usage: thumloc [--force] [--timeout seconds] [path]"
+    echo "Adds Finder thumbnails to .webloc files under path, recursively."
+    echo "When path is omitted, the current directory is used."
+}
+
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -f|--force)
+            FORCE=1
+            shift
+            ;;
+        --timeout)
+            if [[ "${2:-}" == "" ]]; then
+                echo "error: --timeout requires seconds" >&2
+                exit 1
+            fi
+            TIMEOUT_SECONDS="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            TARGET_PATH="$1"
+            shift
+            ;;
+    esac
+done
+
+if [[ ! -d "$TARGET_PATH" ]]; then
+    echo "error: path does not exist or is not a directory: $TARGET_PATH" >&2
+    exit 1
+fi
+
+if [[ ! -x /opt/homebrew/bin/setWeblocThumb ]]; then
+    echo "error: /opt/homebrew/bin/setWeblocThumb is not installed or executable" >&2
+    echo "Install it with: brew install setweblocthumb" >&2
+    exit 1
+fi
+
+THUMBLOC_RUNNER="$HOME/Library/Application Support/setWeblocThumb/bin/thumbnail-weblocs-recursive.sh"
+if [[ ! -x "$THUMBLOC_RUNNER" ]]; then
+    echo "error: recursive Webloc runner not found: $THUMBLOC_RUNNER" >&2
+    echo "Run the setWeblocThumb repair script first." >&2
+    exit 1
+fi
+
+STATE_DIR="$HOME/Library/Application Support/setWeblocThumb/state/manual-cache"
+
+echo "Running thumloc on: $TARGET_PATH"
+SETWEBLOCTHUMB_FORCE="$FORCE" \
+SETWEBLOCTHUMB_TIMEOUT_SECONDS="$TIMEOUT_SECONDS" \
+SETWEBLOCTHUMB_STATE_DIR="$STATE_DIR" \
+"$THUMBLOC_RUNNER" "$TARGET_PATH"

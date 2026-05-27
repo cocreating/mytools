@@ -22,6 +22,7 @@ cd ~/AllMyCoding/mytools
 - `vid2webm`: Converts MP4/MOV videos to WebM (libvpx, crf 10).
 - `wav2mp3`: Converts WAV audio to MP3 (libmp3lame, 192k).
 - `img2webp`: Converts and resizes images to WebP.
+- `thumloc`: Adds Finder thumbnails to `.webloc` files under the current directory, recursively.
 
 ## macOS Quick Actions
 

@@ -1,0 +1,7 @@
+#compdef thumloc
+
+_arguments \
+  '(-f --force)'{-f,--force}'[force thumbnail regeneration]' \
+  '--timeout[per-file timeout in seconds]:seconds:' \
+  '(-h --help)'{-h,--help}'[show help]' \
+  '1:directory:_files -/'
