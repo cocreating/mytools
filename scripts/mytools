@@ -1,8 +1,81 @@
 #!/bin/bash
 
-if ! command -v fzf &> /dev/null; then
-    echo "🧰 Jasubal's Custom Terminal Tools:"
+show_help() {
+    echo "🧰 Jasubal's Custom Terminal Tools"
     echo "-----------------------------------"
+    echo ""
+    echo "Run 'mytools' to open the interactive picker."
+    echo ""
+    echo "Direct command examples:"
+    echo "  img2webp -q 80 photo.jpg"
+    echo "  img2webp --width 1200 photo.jpg"
+    echo "  img2webp --height 800 photo.jpg"
+    echo "  img2webp --resize 1200x800 photo.jpg"
+    echo "  vid2webm clip.mov"
+    echo "  wav2mp3 recording.wav"
+    echo "  thumloc ~/Desktop/bookmarks"
+    echo ""
+    echo "img2webp resize notes:"
+    echo "  --width keeps aspect ratio when height is omitted."
+    echo "  --height keeps aspect ratio when width is omitted."
+    echo "  --resize WIDTHxHEIGHT sets both dimensions."
+    echo "  Resizing uses down_only mode, so smaller images are not enlarged."
+    echo ""
+    echo "Interactive file picker shortcuts:"
+    echo "  Tab selects or unselects one file."
+    echo "  Ctrl-A selects all visible files."
+    echo "  Ctrl-D clears the current selection."
+    echo "  Enter confirms the selected files."
+}
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ] || [ "$1" = "help" ]; then
+    show_help
+    exit 0
+fi
+
+select_img2webp_options() {
+    local CHOICE
+    local CUSTOM_OPTIONS
+
+    CHOICE=$(printf "Default (quality 85, no resize)\nQuality 80\nReduce width to 1200px\nReduce width to 1920px\nResize to 1200x800\nCustom options\nShow img2webp help" | fzf --prompt="img2webp options > " --height=40% --layout=reverse --border)
+
+    case "$CHOICE" in
+        "Default (quality 85, no resize)")
+            IMG2WEBP_OPTIONS=()
+            ;;
+        "Quality 80")
+            IMG2WEBP_OPTIONS=(-q 80)
+            ;;
+        "Reduce width to 1200px")
+            IMG2WEBP_OPTIONS=(--width 1200)
+            ;;
+        "Reduce width to 1920px")
+            IMG2WEBP_OPTIONS=(--width 1920)
+            ;;
+        "Resize to 1200x800")
+            IMG2WEBP_OPTIONS=(--resize 1200x800)
+            ;;
+        "Custom options")
+            echo "Enter img2webp options, for example: -q 80 --width 1200"
+            read -r -p "Options > " CUSTOM_OPTIONS
+            read -r -a IMG2WEBP_OPTIONS <<< "$CUSTOM_OPTIONS"
+            ;;
+        "Show img2webp help")
+            img2webp --help
+            echo ""
+            read -r -p "Press Enter to continue..."
+            select_img2webp_options
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+if ! command -v fzf &> /dev/null; then
+    show_help
+    echo ""
+    echo "Available tools:"
     echo "🎵 wav2mp3   - Convert WAV files to MP3 format."
     echo "🖼️  img2webp  - Convert and resize images to WebP format."
     echo "🎬 vid2webm  - Compress and convert MP4 video to WebM."
@@ -13,9 +86,14 @@ if ! command -v fzf &> /dev/null; then
 fi
 
 echo "🧰 Jasubal's Custom Terminal Tools"
-TOOL=$(printf "vid2webm (MP4/MOV -> WebM)\nwav2mp3 (WAV -> MP3)\nimg2webp (JPG/PNG -> WebP)\nthumloc (.webloc thumbnails in current folder)" | fzf --prompt="Select tool > " --height=40% --layout=reverse --border | awk '{print $1}')
+TOOL=$(printf "vid2webm (MP4/MOV -> WebM)\nwav2mp3 (WAV -> MP3)\nimg2webp (JPG/PNG -> WebP)\nthumloc (.webloc thumbnails in current folder)\nhelp (usage examples)" | fzf --prompt="Select tool > " --height=40% --layout=reverse --border | awk '{print $1}')
 
 if [ -z "$TOOL" ]; then
+    exit 0
+fi
+
+if [ "$TOOL" = "help" ]; then
+    show_help
     exit 0
 fi
 
@@ -25,8 +103,18 @@ if [ "$TOOL" = "thumloc" ]; then
     exit $?
 fi
 
-echo "You selected $TOOL. Select file(s) (Tab to multi-select, Enter to confirm):"
-FILES=$(fzf -m --prompt="Select files > " --height=60% --layout=reverse --border)
+TOOL_OPTIONS=()
+
+if [ "$TOOL" = "img2webp" ]; then
+    if ! select_img2webp_options; then
+        echo "Canceled."
+        exit 0
+    fi
+    TOOL_OPTIONS=("${IMG2WEBP_OPTIONS[@]}")
+fi
+
+echo "You selected $TOOL. Select file(s): Tab toggles, Ctrl-A selects all visible, Ctrl-D clears, Enter confirms."
+FILES=$(fzf -m --prompt="Select files > " --height=60% --layout=reverse --border --header="Tab: toggle | Ctrl-A: select all visible | Ctrl-D: clear | Enter: confirm" --bind="ctrl-a:select-all,ctrl-d:deselect-all")
 
 if [ -z "$FILES" ]; then
     echo "Canceled."
@@ -36,5 +124,5 @@ fi
 # Read multiline fzf output into array safely
 IFS=$'\n' read -r -d '' -a FILE_ARRAY <<< "$FILES"$'\0'
 
-echo "Executing: $TOOL on ${#FILE_ARRAY[@]} file(s)..."
-"$TOOL" "${FILE_ARRAY[@]}"
+echo "Executing: $TOOL ${TOOL_OPTIONS[*]} on ${#FILE_ARRAY[@]} file(s)..."
+"$TOOL" "${TOOL_OPTIONS[@]}" "${FILE_ARRAY[@]}"

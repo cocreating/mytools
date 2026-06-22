@@ -1,30 +1,119 @@
 #!/bin/bash
 
+usage() {
+    echo "Usage: img2webp [-q quality] [-w width] [-H height] [-r WIDTHxHEIGHT] <file1.jpg> [file2.png ...]"
+    echo "Examples:"
+    echo "  img2webp -q 80 image1.jpg image2.png"
+    echo "  img2webp --width 1200 image.jpg"
+    echo "  img2webp --resize 1200x800 image.jpg"
+}
+
+QUALITY=85
+WIDTH=0
+HEIGHT=0
+FILES=()
+
 if [ "$#" -eq 0 ]; then
-    echo "Usage: img2webp [-q quality] <file1.jpg> [file2.png ...]"
-    echo "Example: img2webp -q 80 image1.jpg image2.png"
+    usage
     exit 1
 fi
 
-QUALITY=85
-FILES=()
-
 while [[ "$#" -gt 0 ]]; do
   case $1 in
-    -q|--quality) QUALITY="$2"; shift ;;
+    -q|--quality)
+      if [ -z "$2" ]; then
+        echo "Error: $1 requires a quality value"
+        exit 1
+      fi
+      QUALITY="$2"
+      shift
+      ;;
+    -w|--width)
+      if [ -z "$2" ]; then
+        echo "Error: $1 requires a width value"
+        exit 1
+      fi
+      WIDTH="$2"
+      shift
+      ;;
+    -H|--height)
+      if [ -z "$2" ]; then
+        echo "Error: $1 requires a height value"
+        exit 1
+      fi
+      HEIGHT="$2"
+      shift
+      ;;
+    -r|--resize)
+      if [ -z "$2" ]; then
+        echo "Error: $1 requires WIDTHxHEIGHT"
+        exit 1
+      fi
+      if [[ "$2" =~ ^([0-9]+)x([0-9]+)$ ]]; then
+        WIDTH="${BASH_REMATCH[1]}"
+        HEIGHT="${BASH_REMATCH[2]}"
+      else
+        echo "Error: resize must use WIDTHxHEIGHT, for example 1200x800"
+        exit 1
+      fi
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -*)
+      echo "Error: unknown option $1"
+      usage
+      exit 1
+      ;;
     *) FILES+=("$1") ;;
   esac
   shift
 done
 
+if ! [[ "$QUALITY" =~ ^[0-9]+$ ]] || [ "$QUALITY" -lt 0 ] || [ "$QUALITY" -gt 100 ]; then
+    echo "Error: quality must be a number from 0 to 100"
+    exit 1
+fi
+
+if ! [[ "$WIDTH" =~ ^[0-9]+$ ]] || ! [[ "$HEIGHT" =~ ^[0-9]+$ ]]; then
+    echo "Error: width and height must be positive numbers"
+    exit 1
+fi
+
+if [ "$WIDTH" -eq 0 ] && [ "$HEIGHT" -eq 0 ]; then
+    :
+elif [ "$WIDTH" -eq 0 ] && [ "$HEIGHT" -gt 0 ]; then
+    :
+elif [ "$HEIGHT" -eq 0 ] && [ "$WIDTH" -gt 0 ]; then
+    :
+elif [ "$WIDTH" -eq 0 ] || [ "$HEIGHT" -eq 0 ]; then
+    echo "Error: width and height must be greater than zero"
+    exit 1
+fi
+
+if [ "$WIDTH" -eq 0 ] && [ "$HEIGHT" -eq 0 ]; then
+    RESIZE_ARGS=()
+    RESIZE_LABEL=""
+else
+    RESIZE_ARGS=(-resize "$WIDTH" "$HEIGHT" -resize_mode down_only)
+    RESIZE_LABEL=", Resize: ${WIDTH}x${HEIGHT}"
+fi
+
 TOTAL=${#FILES[@]}
 CURRENT=1
 
+if [ "$TOTAL" -eq 0 ]; then
+    usage
+    exit 1
+fi
+
 for INPUT_FILE in "${FILES[@]}"; do
     OUTPUT_FILE="${INPUT_FILE%.*}.webp"
-    echo "▶️  [$CURRENT/$TOTAL] Converting '$INPUT_FILE' to '$OUTPUT_FILE' (Quality: $QUALITY)..."
+    echo "▶️  [$CURRENT/$TOTAL] Converting '$INPUT_FILE' to '$OUTPUT_FILE' (Quality: $QUALITY$RESIZE_LABEL)..."
     
-    cwebp -q "$QUALITY" -quiet "$INPUT_FILE" -o "$OUTPUT_FILE"
+    cwebp -q "$QUALITY" "${RESIZE_ARGS[@]}" -quiet "$INPUT_FILE" -o "$OUTPUT_FILE"
     
     if [ $? -eq 0 ]; then
         echo "✅ Success: $OUTPUT_FILE"

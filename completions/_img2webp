@@ -1,3 +1,12 @@
 #compdef img2webp
 _arguments '-q[Quality]:quality:' \
+           '--quality[Quality]:quality:' \
+           '-w[Resize to width, preserving aspect ratio if height is omitted]:width:' \
+           '--width[Resize to width, preserving aspect ratio if height is omitted]:width:' \
+           '-H[Resize to height, preserving aspect ratio if width is omitted]:height:' \
+           '--height[Resize to height, preserving aspect ratio if width is omitted]:height:' \
+           '-r[Resize to WIDTHxHEIGHT without upscaling]:dimensions:' \
+           '--resize[Resize to WIDTHxHEIGHT without upscaling]:dimensions:' \
+           '-h[Show help]' \
+           '--help[Show help]' \
            '*:image file:_files -g "*.jpg *.jpeg *.png *.tiff *.bmp *.gif(-.)"'
