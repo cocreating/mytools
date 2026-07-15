@@ -38,7 +38,7 @@ for INPUT_FILE in "${FILES[@]}"; do
     OUTPUT_FILE="${INPUT_FILE%.*}.webm"
     echo "▶️  [$CURRENT/$TOTAL] Converting '$INPUT_FILE' to '$OUTPUT_FILE'..."
     
-    ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis -y "$OUTPUT_FILE"
+    ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -c:v libvpx -crf 10 -b:v 1M -c:a libopus -y "$OUTPUT_FILE"
     
     if [ $? -eq 0 ]; then
         echo "✅ Success: $OUTPUT_FILE"
