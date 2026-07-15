@@ -1,126 +1,318 @@
 #!/bin/bash
+set -euo pipefail
 
-usage() {
-    echo "Usage: img2webp [-q quality] [-w width] [-H height] [-r WIDTHxHEIGHT] <file1.jpg> [file2.png ...]"
-    echo "Examples:"
-    echo "  img2webp -q 80 image1.jpg image2.png"
-    echo "  img2webp --width 1200 image.jpg"
-    echo "  img2webp --resize 1200x800 image.jpg"
-}
+# ───────────────────────────────────────────────
+# img2webp — Convert images to WebP format
+# ───────────────────────────────────────────────
 
+CONFIG_DIR="${HOME}/.config/mytools"
+CONFIG_FILE="${CONFIG_DIR}/config"
+
+# Defaults
 QUALITY=85
 WIDTH=0
 HEIGHT=0
+LOSSLESS=0
+FORCE=0
+OUTPUT_DIR=""
+RECURSIVE=0
+DRY_RUN=0
+JOBS=1
+DELETE_ORIGINAL=0
+VERBOSE=0
+
+IMAGE_EXTENSIONS=(jpg jpeg png gif bmp tiff tif heic heif webp)
+
+load_config() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        while IFS='=' read -r key value || [[ -n "$key" ]]; do
+            [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+            [[ "$value" =~ ^[0-9]+$ ]] || continue
+            case "$key" in
+                default_quality) QUALITY="$value" ;;
+                default_width) WIDTH="$value" ;;
+                default_height) HEIGHT="$value" ;;
+                default_jobs) JOBS="$value" ;;
+            esac
+        done < <(grep -E '^[A-Za-z_][A-Za-z0-9_]*=[0-9]+$' "$CONFIG_FILE" 2>/dev/null || true)
+    fi
+}
+
+usage() {
+    cat <<EOF
+Usage: img2webp [options] <file1.jpg> [file2.png ...]
+
+Options:
+  -q, --quality <n>     Quality 0-100 (default: $QUALITY)
+  -w, --width <px>      Resize width (keeps aspect ratio)
+  -H, --height <px>     Resize height (keeps aspect ratio)
+  -r, --resize WxH      Exact resize dimensions
+  -l, --lossless        Lossless encoding (ignores quality)
+  -o, --output-dir <d>  Write output to this directory
+  -R, --recursive       Recursively process directories
+  -j, --jobs <n>        Parallel jobs (default: $JOBS)
+  -f, --force           Overwrite existing output files
+  -n, --dry-run         Show what would be done without converting
+  -d, --delete-original Remove original files after successful conversion
+  -v, --verbose         Show detailed cwebp output
+  -h, --help            Show this help
+
+Examples:
+  img2webp -q 80 photo.jpg
+  img2webp --width 1200 --output-dir ./converted/ *.png
+  img2webp -R -j 4 -f ~/Pictures/Vacation/
+  img2webp -q 90 -d -o ./webp/ photo.heic
+
+Config file: ~/.config/mytools/config
+EOF
+}
+
+check_dependencies() {
+    local missing=()
+    if ! command -v cwebp &>/dev/null; then
+        missing+=("cwebp (libwebp)")
+    fi
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo "❌ Missing dependencies:" >&2
+        for dep in "${missing[@]}"; do echo "   - $dep" >&2; done
+        echo "" >&2
+        echo "💡 Install with: brew install webp" >&2
+        exit 1
+    fi
+}
+
+validate_numeric() {
+    local val="$1" name="$2"
+    if ! [[ "$val" =~ ^[0-9]+$ ]]; then
+        echo "❌ Error: $name must be a positive number" >&2
+        exit 1
+    fi
+}
+
+# ─── Parse arguments ───────────────────────────
 FILES=()
-
-if [ "$#" -eq 0 ]; then
-    usage
-    exit 1
-fi
-
 while [[ "$#" -gt 0 ]]; do
-  case $1 in
-    -q|--quality)
-      if [ -z "$2" ]; then
-        echo "Error: $1 requires a quality value"
-        exit 1
-      fi
-      QUALITY="$2"
-      shift
-      ;;
-    -w|--width)
-      if [ -z "$2" ]; then
-        echo "Error: $1 requires a width value"
-        exit 1
-      fi
-      WIDTH="$2"
-      shift
-      ;;
-    -H|--height)
-      if [ -z "$2" ]; then
-        echo "Error: $1 requires a height value"
-        exit 1
-      fi
-      HEIGHT="$2"
-      shift
-      ;;
-    -r|--resize)
-      if [ -z "$2" ]; then
-        echo "Error: $1 requires WIDTHxHEIGHT"
-        exit 1
-      fi
-      if [[ "$2" =~ ^([0-9]+)x([0-9]+)$ ]]; then
-        WIDTH="${BASH_REMATCH[1]}"
-        HEIGHT="${BASH_REMATCH[2]}"
-      else
-        echo "Error: resize must use WIDTHxHEIGHT, for example 1200x800"
-        exit 1
-      fi
-      shift
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    -*)
-      echo "Error: unknown option $1"
-      usage
-      exit 1
-      ;;
-    *) FILES+=("$1") ;;
-  esac
-  shift
+    case "$1" in
+        -q|--quality)  [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a value" >&2; exit 1; }; QUALITY="$2"; shift 2 ;;
+        -w|--width)    [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a value" >&2; exit 1; }; WIDTH="$2"; shift 2 ;;
+        -H|--height)   [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a value" >&2; exit 1; }; HEIGHT="$2"; shift 2 ;;
+        -r|--resize)
+            [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires WIDTHxHEIGHT" >&2; exit 1; }
+            if [[ "$2" =~ ^([0-9]+)x([0-9]+)$ ]]; then
+                WIDTH="${BASH_REMATCH[1]}"; HEIGHT="${BASH_REMATCH[2]}"
+            else
+                echo "❌ Error: resize must use WIDTHxHEIGHT, e.g. 1200x800" >&2; exit 1
+            fi
+            shift 2 ;;
+        -l|--lossless) LOSSLESS=1; shift ;;
+        -o|--output-dir)
+            [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a directory" >&2; exit 1; }
+            OUTPUT_DIR="$2"; shift 2 ;;
+        -R|--recursive) RECURSIVE=1; shift ;;
+        -j|--jobs)
+            [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a number" >&2; exit 1; }
+            JOBS="$2"; shift 2 ;;
+        -f|--force) FORCE=1; shift ;;
+        -n|--dry-run) DRY_RUN=1; shift ;;
+        -d|--delete-original) DELETE_ORIGINAL=1; shift ;;
+        -v|--verbose) VERBOSE=1; shift ;;
+        -h|--help) usage; exit 0 ;;
+        -*)
+            echo "❌ Error: unknown option $1" >&2
+            usage >&2; exit 1 ;;
+        *) FILES+=("$1"); shift ;;
+    esac
 done
 
+load_config
+
 if ! [[ "$QUALITY" =~ ^[0-9]+$ ]] || [ "$QUALITY" -lt 0 ] || [ "$QUALITY" -gt 100 ]; then
-    echo "Error: quality must be a number from 0 to 100"
-    exit 1
+    echo "❌ Error: quality must be a number from 0 to 100" >&2; exit 1
+fi
+validate_numeric "$WIDTH" width
+validate_numeric "$HEIGHT" height
+validate_numeric "$JOBS" jobs
+
+if [ "${#FILES[@]}" -eq 0 ]; then usage >&2; exit 1; fi
+
+# ─── Resolve output dir ────────────────────────
+if [[ -n "$OUTPUT_DIR" ]]; then
+    OUTPUT_DIR="$(cd "$(dirname "$OUTPUT_DIR")" 2>/dev/null && pwd)/$(basename "$OUTPUT_DIR")"
+    if [ "$DRY_RUN" -eq 0 ] && [ ! -d "$OUTPUT_DIR" ]; then
+        echo "📁 Creating output directory: $OUTPUT_DIR"
+        mkdir -p "$OUTPUT_DIR"
+    fi
 fi
 
-if ! [[ "$WIDTH" =~ ^[0-9]+$ ]] || ! [[ "$HEIGHT" =~ ^[0-9]+$ ]]; then
-    echo "Error: width and height must be positive numbers"
-    exit 1
-fi
-
-if [ "$WIDTH" -eq 0 ] && [ "$HEIGHT" -eq 0 ]; then
-    :
-elif [ "$WIDTH" -eq 0 ] && [ "$HEIGHT" -gt 0 ]; then
-    :
-elif [ "$HEIGHT" -eq 0 ] && [ "$WIDTH" -gt 0 ]; then
-    :
-elif [ "$WIDTH" -eq 0 ] || [ "$HEIGHT" -eq 0 ]; then
-    echo "Error: width and height must be greater than zero"
-    exit 1
-fi
-
-if [ "$WIDTH" -eq 0 ] && [ "$HEIGHT" -eq 0 ]; then
-    RESIZE_ARGS=()
-    RESIZE_LABEL=""
-else
-    RESIZE_ARGS=(-resize "$WIDTH" "$HEIGHT" -resize_mode down_only)
-    RESIZE_LABEL=", Resize: ${WIDTH}x${HEIGHT}"
-fi
-
-TOTAL=${#FILES[@]}
-CURRENT=1
-
-if [ "$TOTAL" -eq 0 ]; then
-    usage
-    exit 1
-fi
-
-for INPUT_FILE in "${FILES[@]}"; do
-    OUTPUT_FILE="${INPUT_FILE%.*}.webp"
-    echo "▶️  [$CURRENT/$TOTAL] Converting '$INPUT_FILE' to '$OUTPUT_FILE' (Quality: $QUALITY$RESIZE_LABEL)..."
-    
-    cwebp -q "$QUALITY" "${RESIZE_ARGS[@]}" -quiet "$INPUT_FILE" -o "$OUTPUT_FILE"
-    
-    if [ $? -eq 0 ]; then
-        echo "✅ Success: $OUTPUT_FILE"
+# ─── Collect all input files ───────────────────
+ALL_INPUTS=()
+for item in "${FILES[@]}"; do
+    if [ -d "$item" ]; then
+        if [ "$RECURSIVE" -eq 0 ]; then
+            echo "⚠️  '$item' is a directory. Use -R/--recursive." >&2
+            continue
+        fi
+        for ext in "${IMAGE_EXTENSIONS[@]}"; do
+            while IFS= read -r -d '' file; do
+                ALL_INPUTS+=("$file")
+            done < <(find "$item" -type f -iname "*.${ext}" -print0 2>/dev/null || true)
+        done
+    elif [ -f "$item" ]; then
+        ALL_INPUTS+=("$item")
     else
-        echo "❌ Error converting $INPUT_FILE"
+        echo "⚠️  File not found: $item" >&2
+    fi
+done
+
+if [ "${#ALL_INPUTS[@]}" -eq 0 ]; then
+    echo "❌ No valid image files found." >&2; exit 1
+fi
+
+check_dependencies
+
+# ─── Build cwebp args ──────────────────────────
+if [ "$WIDTH" -eq 0 ] && [ "$HEIGHT" -eq 0 ]; then
+    RESIZE_ARGS=(); RESIZE_LABEL=""
+elif [ "$WIDTH" -gt 0 ] && [ "$HEIGHT" -gt 0 ]; then
+    RESIZE_ARGS=(-resize "$WIDTH" "$HEIGHT" -resize_mode down_only)
+    RESIZE_LABEL=" | Resize: ${WIDTH}x${HEIGHT}"
+elif [ "$WIDTH" -gt 0 ]; then
+    RESIZE_ARGS=(-resize "$WIDTH" 0 -resize_mode down_only)
+    RESIZE_LABEL=" | Resize: width ${WIDTH}px"
+else
+    RESIZE_ARGS=(-resize 0 "$HEIGHT" -resize_mode down_only)
+    RESIZE_LABEL=" | Resize: height ${HEIGHT}px"
+fi
+
+if [ "$LOSSLESS" -eq 1 ]; then
+    QUALITY_ARGS=(-lossless); QUALITY_LABEL="lossless"
+else
+    QUALITY_ARGS=(-q "$QUALITY"); QUALITY_LABEL="quality $QUALITY"
+fi
+
+[ "$VERBOSE" -eq 0 ] && QUIET_ARGS=(-quiet) || QUIET_ARGS=()
+
+# ─── Helper functions ──────────────────────────
+get_output_path() {
+    local input="$1"
+    local bn="$(basename "${input%.*}")"
+    if [[ -n "$OUTPUT_DIR" ]]; then
+        echo "${OUTPUT_DIR}/${bn}.webp"
+    else
+        echo "$(dirname "$input")/${bn}.webp"
+    fi
+}
+
+convert_heic() {
+    local input="$1"
+    local ext="${input##*.}"
+    if [[ "${ext,,}" =~ ^(heic|heif)$ ]]; then
+        local tmpfile="$(mktemp -t img2webp_heic_XXXXXX).png"
+        if command -v heif-convert &>/dev/null; then
+            heif-convert "$input" "$tmpfile" >/dev/null 2>&1 || { rm -f "$tmpfile"; return 1; }
+        elif command -v sips &>/dev/null; then
+            sips -s format png "$input" --out "$tmpfile" >/dev/null 2>&1 || { rm -f "$tmpfile"; return 1; }
+        else
+            return 1
+        fi
+        echo "$tmpfile"
+        return 0
+    fi
+    echo "$input"
+    return 0
+}
+
+process_file_job() {
+    local INPUT_FILE="$1"
+    local CURRENT="$2"
+    local TOTAL="$3"
+    local RESULT_DIR="$4"
+    local OUTPUT_FILE
+    OUTPUT_FILE="$(get_output_path "$INPUT_FILE")"
+
+    # Overwrite check
+    if [ -f "$OUTPUT_FILE" ] && [ "$FORCE" -eq 0 ] && [ "$DRY_RUN" -eq 0 ]; then
+        echo "   ⚠️  [$CURRENT/$TOTAL] Skipped (exists): $OUTPUT_FILE"
+        echo "skipped" > "${RESULT_DIR}/${CURRENT}"
+        return 0
+    fi
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo "   📝 [$CURRENT/$TOTAL] Would convert: $INPUT_FILE → $OUTPUT_FILE"
+        echo "success" > "${RESULT_DIR}/${CURRENT}"
+        return 0
+    fi
+
+    # Handle HEIC
+    local TMPFILE=""
+    local ACTUAL_INPUT
+    ACTUAL_INPUT="$(convert_heic "$INPUT_FILE")"
+    if [ "$ACTUAL_INPUT" != "$INPUT_FILE" ]; then
+        TMPFILE="$ACTUAL_INPUT"
+    fi
+
+    if cwebp "${QUALITY_ARGS[@]}" "${RESIZE_ARGS[@]}" "${QUIET_ARGS[@]}" "$ACTUAL_INPUT" -o "$OUTPUT_FILE" 2>/dev/null; then
+        echo "   ✅ [$CURRENT/$TOTAL] $OUTPUT_FILE"
+        [[ -n "$TMPFILE" && -f "$TMPFILE" ]] && rm -f "$TMPFILE"
+        if [ "$DELETE_ORIGINAL" -eq 1 ]; then
+            rm -f "$INPUT_FILE"
+            echo "      🗑️  Original deleted: $INPUT_FILE"
+        fi
+        echo "success" > "${RESULT_DIR}/${CURRENT}"
+    else
+        echo "   ❌ [$CURRENT/$TOTAL] Failed: $INPUT_FILE"
+        [[ -n "$TMPFILE" && -f "$TMPFILE" ]] && rm -f "$TMPFILE"
+        echo "failed" > "${RESULT_DIR}/${CURRENT}"
+    fi
+}
+
+# ─── Process files ─────────────────────────────
+TOTAL="${#ALL_INPUTS[@]}"
+
+echo "🖼️  img2webp — $TOTAL file(s) | $QUALITY_LABEL$RESIZE_LABEL | Jobs: $JOBS"
+[[ -n "$OUTPUT_DIR" ]] && echo "   Output dir: $OUTPUT_DIR"
+[ "$DRY_RUN" -eq 1 ] && echo "   ⚠️  DRY RUN — no files will be modified"
+echo ""
+
+# Create temp dir for tracking results in subshells
+RESULT_DIR="$(mktemp -d -t img2webp_results_XXXXXX)"
+trap 'rm -rf "$RESULT_DIR"' EXIT
+
+CURRENT=1
+for INPUT_FILE in "${ALL_INPUTS[@]}"; do
+    if [ "$JOBS" -gt 1 ]; then
+        # Limit running background jobs (Bash 3.2 compatible)
+        while [ "$(jobs -p | wc -l)" -ge "$JOBS" ]; do
+            sleep 0.1
+        done
+        process_file_job "$INPUT_FILE" "$CURRENT" "$TOTAL" "$RESULT_DIR" &
+    else
+        process_file_job "$INPUT_FILE" "$CURRENT" "$TOTAL" "$RESULT_DIR"
     fi
     CURRENT=$((CURRENT + 1))
 done
 
-osascript -e "display notification \"Converted $TOTAL image(s) to WebP.\" with title \"img2webp Complete\""
+# Wait for all background tasks
+wait
+
+# Read results
+SUCCESS_COUNT=0
+FAILED_COUNT=0
+SKIPPED_COUNT=0
+
+if [ -d "$RESULT_DIR" ]; then
+    SUCCESS_COUNT=$(find "$RESULT_DIR" -type f -exec grep -l '^success$' {} + 2>/dev/null | wc -l | xargs)
+    FAILED_COUNT=$(find "$RESULT_DIR" -type f -exec grep -l '^failed$' {} + 2>/dev/null | wc -l | xargs)
+    SKIPPED_COUNT=$(find "$RESULT_DIR" -type f -exec grep -l '^skipped$' {} + 2>/dev/null | wc -l | xargs)
+fi
+
+# ─── Summary ───────────────────────────────────
+echo ""
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo "📝 Dry run complete. $TOTAL file(s) would be processed."
+else
+    echo "✅ Done: $SUCCESS_COUNT converted, $FAILED_COUNT failed, $SKIPPED_COUNT skipped"
+    osascript -e "display notification \"Converted $SUCCESS_COUNT image(s) to WebP.\" with title \"img2webp Complete\"" 2>/dev/null || true
+fi
+
+exit "$FAILED_COUNT"
