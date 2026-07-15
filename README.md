@@ -5,96 +5,147 @@ A collection of personal custom terminal scripts for audio, video, and image pro
 ## Installation
 
 ```bash
-git clone <repository_url> ~/AllMyCoding/mytools
+git clone https://github.com/cocreating/mytools.git ~/AllMyCoding/mytools
 cd ~/AllMyCoding/mytools
 ./install.sh
 ```
 
 ## Features
 
-- **Interactive Menu**: Run `mytools` to get a visual menu (powered by `fzf`) to select and run your tools. The menu includes a help screen and guided `img2webp` options.
-- **Batch Processing**: All tools accept multiple files at once.
+- **Interactive Menu**: Run `mytools` to get a visual menu (powered by `fzf`) to select and run your tools. The menu includes a help screen and guided options.
+- **Batch Processing**: Almost all tools accept multiple files at once.
 - **Zsh Auto-completion**: Hitting `<TAB>` after a command intelligently filters valid file extensions.
 - **macOS Notifications**: Get a desktop notification when a long process finishes.
 
 ## Interactive Usage
 
+Simply run the main command to open the picker:
 ```bash
 mytools
 ```
 
-Print guided examples without opening the picker:
-
+Or print the help menu and guided examples directly in the console without opening the picker:
 ```bash
 mytools --help
 ```
 
-From the menu, choose:
+---
 
-- `help` to print examples for every tool.
-- `img2webp` to select WebP conversion options before picking files.
-- `thumloc` to run thumbnail generation in the current folder.
+## 🚀 Ready-to-Use Examples
 
-In the file picker:
+### 🎬 vid2webm
+Converts video files (MP4, MOV, etc.) to highly compressed WebM format using `libvpx` and `libopus`.
+*   **Convert a single video:**
+    ```bash
+    vid2webm vacation.mp4
+    ```
+*   **Convert multiple videos in batch:**
+    ```bash
+    vid2webm intro.mov tutorial.mp4 outro.mov
+    ```
 
-- `Tab` selects or unselects one file.
-- `Ctrl-A` selects all visible files.
-- `Ctrl-D` clears the current selection.
-- `Enter` confirms the selected files.
+### 🎵 wav2mp3
+Converts high-quality WAV audio files to standard compressed MP3 files (192kbps).
+*   **Convert a single track:**
+    ```bash
+    wav2mp3 recording.wav
+    ```
+*   **Convert all WAV files in the current folder:**
+    ```bash
+    wav2mp3 *.wav
+    ```
 
-When `img2webp` is selected in the interactive menu, choose one of the guided options:
+### 🔊 vid2audio
+Extracts the audio track from video files as WAV or MP3 files.
+*   **Extract as high-quality WAV (default):**
+    ```bash
+    vid2audio music_video.mp4
+    ```
+*   **Extract as MP3:**
+    ```bash
+    vid2audio -f mp3 movie_trailer.mov
+    ```
+*   **Extract multiple files to a specific folder:**
+    ```bash
+    vid2audio -f mp3 -o ~/Music/Samples clip1.mp4 clip2.mov
+    ```
 
-- Default conversion at quality `85`.
-- Quality `80`.
-- Reduce width to `1200px`.
-- Reduce width to `1920px`.
-- Resize to `1200x800`.
-- Custom options, such as `-q 80 --width 1200`.
+### 👾 vid2gif
+Converts a video file into an optimized, high-quality animated GIF (using double-pass palette mapping), perfect for GitHub or Slack.
+*   **Convert with default settings (800px width, 15 FPS):**
+    ```bash
+    vid2gif screen_recording.mov
+    ```
+*   **Resize to 480px width at 10 FPS for a tiny file size:**
+    ```bash
+    vid2gif -w 480 -r 10 demo.mp4
+    ```
+*   **Save with a custom name:**
+    ```bash
+    vid2gif -o optimized_demo.gif demo.mov
+    ```
 
-## Tools Included
+### 🖼️ img2webp
+Converts and resizes images to WebP format. Supports batching, recursion, and parallel execution.
+*   **Basic conversion (85% quality):**
+    ```bash
+    img2webp photo.jpg
+    ```
+*   **Convert all JPG/PNG images in the current folder at 80% quality:**
+    ```bash
+    img2webp -q 80 *.jpg *.png
+    ```
+*   **Resize image to 1200px width (maintaining aspect ratio):**
+    ```bash
+    img2webp --width 1200 banner.png
+    ```
+*   **Resize images to exact dimensions:**
+    ```bash
+    img2webp --resize 1200x800 thumb1.png thumb2.png
+    ```
+*   **Convert recursively inside a folder using 4 CPU cores (parallel jobs):**
+    ```bash
+    img2webp -R -j 4 ~/Pictures/Vacation/
+    ```
+*   **Delete original files after successful conversion:**
+    ```bash
+    img2webp -d logo.png
+    ```
 
-- `vid2webm`: Converts MP4/MOV videos to WebM (libvpx, crf 10).
-- `wav2mp3`: Converts WAV audio to MP3 (libmp3lame, 192k).
-- `img2webp`: Converts images to WebP. Supports quality, lossless, resize, output-dir, recursive, and multi-job parallel processing options.
-- `thumloc`: Recursively adds Finder thumbnails to `.webloc` files under the specified directory (or current directory by default). Requires `setweblocthumb` to be installed.
-- `vid2audio`: Extracts audio tracks from video files into WAV or MP3 format.
-- `vid2gif`: Converts a video file into an optimized high-quality animated GIF (palette-based) for GitHub/Slack.
-- `webloc2md`: Searches for `.webloc` files recursively and compiles them into a structured Markdown index grouped by directories.
-- `ytdl`: Fully interactive CLI downloader for video/audio URLs (utilizing yt-dlp and fzf).
+### 🌐 thumloc
+Recursively generates Finder thumbnails for macOS `.webloc` internet bookmarks.
+*   **Scan and add thumbnails in current folder:**
+    ```bash
+    thumloc
+    ```
+*   **Force-regenerate all thumbnails in a specific directory:**
+    ```bash
+    thumloc -f ~/Downloads/Bookmarks
+    ```
 
-## Direct Command Examples
+### 📝 webloc2md
+Compiles all recursive `.webloc` files inside a directory into a single, clean Markdown bookmarks list grouped by folder hierarchy.
+*   **Generate `bookmarks.md` for the current folder:**
+    ```bash
+    webloc2md
+    ```
+*   **Scan a specific directory and write to a custom file name:**
+    ```bash
+    webloc2md ~/Downloads links.md
+    ```
 
-```bash
-# Convert one image with default quality.
-img2webp photo.jpg
+### 📥 ytdl
+Fully interactive CLI downloader for video/audio URLs utilizing `yt-dlp` and `fzf`.
+*   **Launch interactive download wizard:**
+    ```bash
+    ytdl
+    ```
+*   **Download a specific URL directly:**
+    ```bash
+    ytdl "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    ```
 
-# Convert multiple images at quality 80.
-img2webp -q 80 photo.jpg banner.png
-
-# Reduce image width and keep aspect ratio.
-img2webp --width 1200 photo.jpg
-
-# Reduce image height and keep aspect ratio.
-img2webp --height 800 photo.jpg
-
-# Resize to exact dimensions.
-img2webp --resize 1200x800 photo.jpg
-
-# Convert video and audio files.
-vid2webm clip.mov
-wav2mp3 recording.wav
-vid2audio -f mp3 lecture.mp4
-vid2gif demo.mov
-
-# Add thumbnails to .webloc files in the current directory.
-thumloc
-
-# Compile all .webloc files recursively into a bookmarks.md file
-webloc2md ~/Downloads links.md
-
-# Download media interactively
-ytdl
-```
+---
 
 ## macOS Quick Actions
 
