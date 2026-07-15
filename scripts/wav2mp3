@@ -1,18 +1,44 @@
 #!/bin/bash
 
-if [ "$#" -eq 0 ]; then
-    echo "Usage: wav2mp3 <file1.wav> [file2.wav ...]"
+usage() {
+    cat <<EOF
+Usage: wav2mp3 [options] <file1.wav> [file2.wav ...]
+
+Converts high-quality WAV files into standard MP3 format (192kbps).
+
+Options:
+  -h, --help    Show this help message
+
+Examples:
+  wav2mp3 track.wav
+  wav2mp3 sound1.wav sound2.wav
+EOF
+}
+
+# Parse arguments
+FILES=()
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -h|--help) usage; exit 0 ;;
+        -*) echo "❌ Error: unknown option $1" >&2; usage >&2; exit 1 ;;
+        *) FILES+=("$1"); shift ;;
+    esac
+done
+
+if [ "${#FILES[@]}" -eq 0 ]; then
+    echo "❌ Error: No input audio files specified." >&2
+    usage >&2
     exit 1
 fi
 
-TOTAL=$#
+TOTAL=${#FILES[@]}
 CURRENT=1
 
-for INPUT_FILE in "$@"; do
+for INPUT_FILE in "${FILES[@]}"; do
     OUTPUT_FILE="${INPUT_FILE%.*}.mp3"
     echo "▶️  [$CURRENT/$TOTAL] Converting '$INPUT_FILE' to '$OUTPUT_FILE'..."
     
-    ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -codec:a libmp3lame -b:a 192k "$OUTPUT_FILE"
+    ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -codec:a libmp3lame -b:a 192k -y "$OUTPUT_FILE"
     
     if [ $? -eq 0 ]; then
         echo "✅ Success: $OUTPUT_FILE"
@@ -22,4 +48,4 @@ for INPUT_FILE in "$@"; do
     CURRENT=$((CURRENT + 1))
 done
 
-osascript -e "display notification \"Converted $TOTAL audio file(s) to MP3.\" with title \"wav2mp3 Complete\""
+osascript -e "display notification \"Converted $TOTAL audio file(s) to MP3.\" with title \"wav2mp3 Complete\"" 2>/dev/null || true

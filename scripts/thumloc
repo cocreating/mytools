@@ -1,14 +1,26 @@
 #!/bin/bash
 set -euo pipefail
 
-TARGET_PATH="${1:-$PWD}"
+TARGET_PATH=""
 FORCE=0
 TIMEOUT_SECONDS="${SETWEBLOCTHUMB_TIMEOUT_SECONDS:-90}"
 
 usage() {
-    echo "Usage: thumloc [--force] [--timeout seconds] [path]"
-    echo "Adds Finder thumbnails to .webloc files under path, recursively."
-    echo "When path is omitted, the current directory is used."
+    cat <<EOF
+Usage: thumloc [options] [path]
+
+Recursively generates Finder thumbnails for macOS .webloc internet bookmarks.
+
+Options:
+  -f, --force            Regenerate all thumbnails, even if they already exist
+  --timeout <seconds>    Set process timeout (default: 90)
+  -h, --help             Show this help message
+
+Examples:
+  thumloc
+  thumloc -f
+  thumloc ~/Downloads
+EOF
 }
 
 while [[ "$#" -gt 0 ]]; do
@@ -29,12 +41,24 @@ while [[ "$#" -gt 0 ]]; do
             usage
             exit 0
             ;;
+        -*)
+            echo "error: unknown option $1" >&2
+            usage >&2
+            exit 1
+            ;;
         *)
+            if [ -n "$TARGET_PATH" ]; then
+                echo "error: only one path can be provided." >&2
+                exit 1
+            fi
             TARGET_PATH="$1"
             shift
             ;;
     esac
 done
+
+# Default to current directory
+TARGET_PATH="${TARGET_PATH:-$PWD}"
 
 if [[ ! -d "$TARGET_PATH" ]]; then
     echo "error: path does not exist or is not a directory: $TARGET_PATH" >&2

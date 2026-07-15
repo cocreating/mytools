@@ -14,6 +14,11 @@ show_help_menu() {
     echo ""
 }
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    show_help_menu
+    exit 0
+fi
+
 if ! command -v fzf &> /dev/null; then
     show_help_menu
     echo "💡 Install fzf to enable interactive menus: brew install fzf"

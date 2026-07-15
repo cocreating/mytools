@@ -5,6 +5,36 @@ set -euo pipefail
 # ytdl — Interactive media downloader using yt-dlp
 # ───────────────────────────────────────────────
 
+usage() {
+    cat <<EOF
+Usage: ytdl [options] [url]
+
+Interactively downloads video and audio from YouTube and other video sites using yt-dlp and fzf.
+
+Options:
+  -h, --help    Show this help message
+
+Examples:
+  ytdl
+  ytdl "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+EOF
+}
+
+URL=""
+# Parse arguments
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -h|--help) usage; exit 0 ;;
+        -*) echo "❌ Error: unknown option $1" >&2; usage >&2; exit 1 ;;
+        *)
+            if [ -n "$URL" ]; then
+                echo "❌ Error: Only one URL can be specified." >&2; exit 1
+            fi
+            URL="$1"
+            shift ;;
+    esac
+done
+
 # Ensure dependencies are available
 check_dependencies() {
     local missing=()
@@ -96,18 +126,19 @@ select_destination() {
 check_dependencies
 DOWNLOADER=$(get_downloader)
 
-# 1. Grab URL from clipboard or input
-CLIP_CONTENT=""
-if command -v pbpaste &>/dev/null; then
-    CLIP_CONTENT=$(pbpaste)
-fi
+# Grab URL from clipboard if not passed as an argument
+if [ -z "$URL" ]; then
+    CLIP_CONTENT=""
+    if command -v pbpaste &>/dev/null; then
+        CLIP_CONTENT=$(pbpaste)
+    fi
 
-URL=""
-if [[ "$CLIP_CONTENT" =~ ^https?:// ]]; then
-    read -r -p "Download from clipboard URL: $CLIP_CONTENT? [Y/n]: " use_clip
-    use_clip=${use_clip:-"y"}
-    if [[ "$use_clip" =~ ^[Yy]$ ]]; then
-        URL="$CLIP_CONTENT"
+    if [[ "$CLIP_CONTENT" =~ ^https?:// ]]; then
+        read -r -p "Download from clipboard URL: $CLIP_CONTENT? [Y/n]: " use_clip
+        use_clip=${use_clip:-"y"}
+        if [[ "$use_clip" =~ ^[Yy]$ ]]; then
+            URL="$CLIP_CONTENT"
+        fi
     fi
 fi
 
@@ -151,7 +182,6 @@ case "$FORMAT_SEL" in
         $DOWNLOADER -f "mp4" --merge-output-format mp4 "$URL"
         ;;
     *WebM*)
-        # Download best WebM structure or let downloader merge to webm
         $DOWNLOADER --merge-output-format webm "$URL"
         ;;
     *WAV*)

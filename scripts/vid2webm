@@ -1,18 +1,44 @@
 #!/bin/bash
 
-if [ "$#" -eq 0 ]; then
-    echo "Usage: vid2webm <file1.mp4> [file2.mp4 ...]"
+usage() {
+    cat <<EOF
+Usage: vid2webm [options] <file1.mp4> [file2.mp4 ...]
+
+Converts MP4/MOV or other video formats to optimized WebM using libvpx.
+
+Options:
+  -h, --help    Show this help message
+
+Examples:
+  vid2webm clip.mov
+  vid2webm recording.mp4 tutorial.mov
+EOF
+}
+
+# Parse arguments
+FILES=()
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -h|--help) usage; exit 0 ;;
+        -*) echo "❌ Error: unknown option $1" >&2; usage >&2; exit 1 ;;
+        *) FILES+=("$1"); shift ;;
+    esac
+done
+
+if [ "${#FILES[@]}" -eq 0 ]; then
+    echo "❌ Error: No input video files specified." >&2
+    usage >&2
     exit 1
 fi
 
-TOTAL=$#
+TOTAL=${#FILES[@]}
 CURRENT=1
 
-for INPUT_FILE in "$@"; do
+for INPUT_FILE in "${FILES[@]}"; do
     OUTPUT_FILE="${INPUT_FILE%.*}.webm"
     echo "▶️  [$CURRENT/$TOTAL] Converting '$INPUT_FILE' to '$OUTPUT_FILE'..."
     
-    ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis "$OUTPUT_FILE"
+    ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis -y "$OUTPUT_FILE"
     
     if [ $? -eq 0 ]; then
         echo "✅ Success: $OUTPUT_FILE"
@@ -22,4 +48,4 @@ for INPUT_FILE in "$@"; do
     CURRENT=$((CURRENT + 1))
 done
 
-osascript -e "display notification \"Converted $TOTAL video(s) to WebM.\" with title \"vid2webm Complete\""
+osascript -e "display notification \"Converted $TOTAL video(s) to WebM.\" with title \"vid2webm Complete\"" 2>/dev/null || true
