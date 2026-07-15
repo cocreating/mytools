@@ -65,8 +65,8 @@ if [[ ! -d "$TARGET_PATH" ]]; then
     exit 1
 fi
 
-if [[ ! -x /opt/homebrew/bin/setWeblocThumb ]]; then
-    echo "error: /opt/homebrew/bin/setWeblocThumb is not installed or executable" >&2
+if ! command -v setWeblocThumb &>/dev/null; then
+    echo "error: setWeblocThumb is not installed or available in PATH" >&2
     echo "Install it with: brew install setweblocthumb" >&2
     exit 1
 fi

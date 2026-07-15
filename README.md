@@ -5,8 +5,8 @@ A collection of personal custom terminal scripts for audio, video, and image pro
 ## Installation
 
 ```bash
-git clone https://github.com/cocreating/mytools.git ~/AllMyCoding/mytools
-cd ~/AllMyCoding/mytools
+git clone https://github.com/cocreating/mytools.git
+cd mytools
 ./install.sh
 ```
 
