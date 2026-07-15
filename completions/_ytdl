@@ -1,0 +1,5 @@
+#compdef ytdl
+
+# ytdl is fully interactive, no complex arguments needed, but we can support URL autocomplete or help
+_arguments \
+  '(-h --help)'{-h,--help}'[Show help]'

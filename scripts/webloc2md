@@ -1,0 +1,100 @@
+#!/bin/bash
+set -euo pipefail
+
+# ───────────────────────────────────────────────
+# webloc2md — Convert .webloc files to Markdown list
+# ───────────────────────────────────────────────
+
+SEARCH_DIR="${1:-$PWD}"
+OUTPUT_FILE="${2:-bookmarks.md}"
+
+usage() {
+    cat <<EOF
+Usage: webloc2md [search_directory] [output_file.md]
+
+Finds all .webloc files recursively in the search directory
+and compiles them into a single clean Markdown file, grouped by folder.
+
+If directory is omitted, the current working directory is used.
+If output file is omitted, 'bookmarks.md' is created in the current directory.
+
+Examples:
+  webloc2md
+  webloc2md ~/Documents list_of_links.md
+EOF
+}
+
+if [[ "$SEARCH_DIR" == "-h" || "$SEARCH_DIR" == "--help" ]]; then
+    usage
+    exit 0
+fi
+
+if [ ! -d "$SEARCH_DIR" ]; then
+    echo "❌ Error: Search directory not found: $SEARCH_DIR" >&2
+    exit 1
+fi
+
+# Resolve absolute path for Search Directory
+ABS_SEARCH_DIR="$(cd "$SEARCH_DIR" && pwd)"
+
+# Temporary file to store parsed data (Path|Filename|URL)
+TEMP_FILE="$(mktemp -t webloc2md_XXXXXX)"
+trap 'rm -f "$TEMP_FILE"' EXIT
+
+echo "🔍 Searching for .webloc files in: $ABS_SEARCH_DIR..."
+
+# Find all .webloc files recursively (null terminated to handle spaces safely)
+FOUND_COUNT=0
+while IFS= read -r -d '' file; do
+    # Extract URL using plist util
+    if URL=$(plutil -extract URL raw "$file" 2>/dev/null); then
+        # Get directory name relative to SEARCH_DIR
+        rel_dir="$(dirname "${file#"$ABS_SEARCH_DIR"}")"
+        # If relative dir is empty or just '.', set to Root
+        if [[ -z "$rel_dir" || "$rel_dir" == "." || "$rel_dir" == "/" ]]; then
+            rel_dir="Root"
+        else
+            # Strip leading slash
+            rel_dir="${rel_dir#/}"
+        fi
+        
+        # Get filename without extension
+        filename="$(basename "$file" .webloc)"
+        
+        # Append to temp file (tab-separated)
+        printf "%s\t%s\t%s\n" "$rel_dir" "$filename" "$URL" >> "$TEMP_FILE"
+        ((FOUND_COUNT++)) || true
+    fi
+done < <(find "$ABS_SEARCH_DIR" -type f -name "*.webloc" -print0 2>/dev/null)
+
+if [ "$FOUND_COUNT" -eq 0 ]; then
+    echo "⚠️  No .webloc files found."
+    exit 0
+fi
+
+# Start writing output file
+echo "📝 Compiling $FOUND_COUNT bookmark(s) into $OUTPUT_FILE..."
+
+{
+    echo "# Web Bookmarks"
+    echo ""
+    echo "Generated on: $(date)"
+    echo "Source directory: \`$ABS_SEARCH_DIR\`"
+    echo ""
+} > "$OUTPUT_FILE"
+
+# Sort temp file by directory name so they process grouped
+# Then read and write grouped by directories
+LAST_DIR=""
+while IFS=$'\t' read -r rel_dir filename url; do
+    if [ "$rel_dir" != "$LAST_DIR" ]; then
+        echo "" >> "$OUTPUT_FILE"
+        echo "## 📁 $rel_dir" >> "$OUTPUT_FILE"
+        echo "" >> "$OUTPUT_FILE"
+        LAST_DIR="$rel_dir"
+    fi
+    echo "- [$filename]($url)" >> "$OUTPUT_FILE"
+done < <(sort -k1,1 -t$'\t' "$TEMP_FILE")
+
+echo "✅ File successfully compiled: $OUTPUT_FILE"
+osascript -e "display notification \"Compiled $FOUND_COUNT bookmark(s).\" with title \"webloc2md Complete\"" 2>/dev/null || true

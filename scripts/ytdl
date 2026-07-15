@@ -1,0 +1,179 @@
+#!/bin/bash
+set -euo pipefail
+
+# ───────────────────────────────────────────────
+# ytdl — Interactive media downloader using yt-dlp
+# ───────────────────────────────────────────────
+
+# Ensure dependencies are available
+check_dependencies() {
+    local missing=()
+    if ! command -v yt-dlp &>/dev/null && ! command -v youtube-dl &>/dev/null; then
+        missing+=("yt-dlp (or youtube-dl)")
+    fi
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo "❌ Error: Missing downloader tool." >&2
+        echo "💡 Install it with: brew install yt-dlp" >&2
+        exit 1
+    fi
+}
+
+get_downloader() {
+    if command -v yt-dlp &>/dev/null; then
+        echo "yt-dlp"
+    else
+        echo "youtube-dl"
+    fi
+}
+
+select_format() {
+    if command -v fzf &>/dev/null; then
+        printf "🎬 Video: MP4 (High quality compatibility)\n🎬 Video: WebM (Highly compressed)\n🎵 Audio: WAV (Uncompressed, for production)\n🎵 Audio: MP3 (192kbps compressed)" | \
+            fzf --prompt="Select format > " --height=40% --layout=reverse --border
+    else
+        echo "Select format:"
+        echo "1) Video: MP4"
+        echo "2) Video: WebM"
+        echo "3) Audio: WAV"
+        echo "4) Audio: MP3"
+        read -r -p "Choice (1-4): " choice
+        case "$choice" in
+            1) echo "🎬 Video: MP4" ;;
+            2) echo "🎬 Video: WebM" ;;
+            3) echo "🎵 Audio: WAV" ;;
+            4) echo "🎵 Audio: MP3" ;;
+            *) echo "Canceled."; exit 0 ;;
+        esac
+    fi
+}
+
+select_destination() {
+    local default_dest="$PWD"
+    local downloads_dir="${HOME}/Downloads"
+    local music_dir="${HOME}/DriveLocal/·drv·eMUSIC/SAMPLES-RANDOM"
+    
+    # Resolve directory paths if they exist
+    local opts=()
+    opts+=("📂 Current Folder ($default_dest)")
+    [ -d "$downloads_dir" ] && opts+=("📥 Downloads ($downloads_dir)")
+    [ -d "$music_dir" ] && opts+=("🎹 Music Samples ($music_dir)")
+    opts+=("✍️  Enter custom path...")
+
+    if command -v fzf &>/dev/null; then
+        local sel
+        sel=$(printf "%s\n" "${opts[@]}" | fzf --prompt="Save to > " --height=40% --layout=reverse --border)
+        case "$sel" in
+            *Current*) echo "$default_dest" ;;
+            *Downloads*) echo "$downloads_dir" ;;
+            *Music*) echo "$music_dir" ;;
+            *custom*)
+                read -r -p "Enter path: " custom_path
+                eval echo "$custom_path" # resolve tilde
+                ;;
+            *) echo "$default_dest" ;;
+        esac
+    else
+        echo "Save destination:"
+        echo "1) Current folder ($default_dest)"
+        [ -d "$downloads_dir" ] && echo "2) Downloads ($downloads_dir)"
+        [ -d "$music_dir" ] && echo "3) Music Samples ($music_dir)"
+        echo "4) Custom path"
+        read -r -p "Choice: " choice
+        case "$choice" in
+            1) echo "$default_dest" ;;
+            2) [ -d "$downloads_dir" ] && echo "$downloads_dir" || echo "$default_dest" ;;
+            3) [ -d "$music_dir" ] && echo "$music_dir" || echo "$default_dest" ;;
+            4)
+                read -r -p "Enter path: " custom_path
+                eval echo "$custom_path"
+                ;;
+            *) echo "$default_dest" ;;
+        esac
+    fi
+}
+
+# Main Execution Flow
+check_dependencies
+DOWNLOADER=$(get_downloader)
+
+# 1. Grab URL from clipboard or input
+CLIP_CONTENT=""
+if command -v pbpaste &>/dev/null; then
+    CLIP_CONTENT=$(pbpaste)
+fi
+
+URL=""
+if [[ "$CLIP_CONTENT" =~ ^https?:// ]]; then
+    read -r -p "Download from clipboard URL: $CLIP_CONTENT? [Y/n]: " use_clip
+    use_clip=${use_clip:-"y"}
+    if [[ "$use_clip" =~ ^[Yy]$ ]]; then
+        URL="$CLIP_CONTENT"
+    fi
+fi
+
+if [ -z "$URL" ]; then
+    read -r -p "Enter video/audio URL: " input_url
+    URL="$input_url"
+fi
+
+if [ -z "$URL" ]; then
+    echo "❌ Error: No URL provided." >&2
+    exit 1
+fi
+
+# 2. Select format
+FORMAT_SEL=$(select_format)
+if [ -z "$FORMAT_SEL" ]; then
+    echo "Canceled."
+    exit 0
+fi
+
+# 3. Select Destination
+DEST_DIR=$(select_destination)
+if [ -z "$DEST_DIR" ]; then
+    DEST_DIR="$PWD"
+fi
+
+mkdir -p "$DEST_DIR"
+cd "$DEST_DIR"
+
+echo ""
+echo "🚀 Downloading..."
+echo "   URL:    $URL"
+echo "   Folder: $DEST_DIR"
+echo "   Format: $FORMAT_SEL"
+echo ""
+
+# Download based on selection
+set +e
+case "$FORMAT_SEL" in
+    *MP4*)
+        $DOWNLOADER -f "mp4" --merge-output-format mp4 "$URL"
+        ;;
+    *WebM*)
+        # Download best WebM structure or let downloader merge to webm
+        $DOWNLOADER --merge-output-format webm "$URL"
+        ;;
+    *WAV*)
+        $DOWNLOADER -x --audio-format wav "$URL"
+        ;;
+    *MP3*)
+        $DOWNLOADER -x --audio-format mp3 --audio-quality 192k "$URL"
+        ;;
+    *)
+        echo "❌ Unknown format option" >&2
+        exit 1
+        ;;
+esac
+EXIT_CODE=$?
+set -e
+
+if [ $EXIT_CODE -eq 0 ]; then
+    echo ""
+    echo "✅ Download completed successfully!"
+    osascript -e "display notification \"Media downloaded successfully.\" with title \"ytdl Complete\"" 2>/dev/null || true
+else
+    echo ""
+    echo "❌ Download failed!" >&2
+    exit $EXIT_CODE
+fi

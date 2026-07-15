@@ -1,0 +1,6 @@
+#compdef webloc2md
+
+_arguments \
+  '(-h --help)'{-h,--help}'[Show help]' \
+  '1:search directory:_files -/' \
+  '2:output file:_files -g "*.md"'

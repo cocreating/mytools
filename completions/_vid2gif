@@ -1,0 +1,8 @@
+#compdef vid2gif
+
+_arguments \
+  '(-w --width)'{-w,--width}'[GIF width in pixels]:width (px)' \
+  '(-r --fps)'{-r,--fps}'[Frame rate (FPS)]:fps' \
+  '(-o --output)'{-o,--output}'[Custom output GIF file path]:output file:_files -g "*.gif"' \
+  '(-h --help)'{-h,--help}'[Show help]' \
+  '*:video file:_files -g "*.(mp4|mov|avi|mkv|flv|webm|mpeg|mpg|3gp)(-.)"'

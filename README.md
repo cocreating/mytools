@@ -55,11 +55,12 @@ When `img2webp` is selected in the interactive menu, choose one of the guided op
 
 - `vid2webm`: Converts MP4/MOV videos to WebM (libvpx, crf 10).
 - `wav2mp3`: Converts WAV audio to MP3 (libmp3lame, 192k).
-- `img2webp`: Converts images to WebP. Supports quality and resize options:
-  - `img2webp -q 80 image.jpg`
-  - `img2webp --width 1200 image.jpg`
-  - `img2webp --resize 1200x800 image.jpg`
+- `img2webp`: Converts images to WebP. Supports quality, lossless, resize, output-dir, recursive, and multi-job parallel processing options.
 - `thumloc`: Recursively adds Finder thumbnails to `.webloc` files under the specified directory (or current directory by default). Requires `setweblocthumb` to be installed.
+- `vid2audio`: Extracts audio tracks from video files into WAV or MP3 format.
+- `vid2gif`: Converts a video file into an optimized high-quality animated GIF (palette-based) for GitHub/Slack.
+- `webloc2md`: Searches for `.webloc` files recursively and compiles them into a structured Markdown index grouped by directories.
+- `ytdl`: Fully interactive CLI downloader for video/audio URLs (utilizing yt-dlp and fzf).
 
 ## Direct Command Examples
 
@@ -82,9 +83,17 @@ img2webp --resize 1200x800 photo.jpg
 # Convert video and audio files.
 vid2webm clip.mov
 wav2mp3 recording.wav
+vid2audio -f mp3 lecture.mp4
+vid2gif demo.mov
 
 # Add thumbnails to .webloc files in the current directory.
 thumloc
+
+# Compile all .webloc files recursively into a bookmarks.md file
+webloc2md ~/Downloads links.md
+
+# Download media interactively
+ytdl
 ```
 
 ## macOS Quick Actions

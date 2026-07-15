@@ -1,0 +1,7 @@
+#compdef vid2audio
+
+_arguments \
+  '(-f --format)'{-f,--format}'[Audio format output (wav|mp3)]:format:(wav mp3)' \
+  '(-o --output-dir)'{-o,--output-dir}'[Save output files to this directory]:output directory:_files -/' \
+  '(-h --help)'{-h,--help}'[Show help]' \
+  '*:video file:_files -g "*.(mp4|mov|avi|mkv|flv|webm|mpeg|mpg|3gp)(-.)"'
