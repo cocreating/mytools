@@ -206,7 +206,8 @@ get_output_path() {
 convert_heic() {
     local input="$1"
     local ext="${input##*.}"
-    if [[ "${ext,,}" =~ ^(heic|heif)$ ]]; then
+    ext="$(printf '%s' "$ext" | tr '[:upper:]' '[:lower:]')"
+    if [[ "$ext" =~ ^(heic|heif)$ ]]; then
         local tmpfile="$(mktemp -t img2webp_heic_XXXXXX).png"
         if command -v heif-convert &>/dev/null; then
             heif-convert "$input" "$tmpfile" >/dev/null 2>&1 || { rm -f "$tmpfile"; return 1; }
@@ -251,7 +252,13 @@ process_file_job() {
         TMPFILE="$ACTUAL_INPUT"
     fi
 
-    if cwebp "${QUALITY_ARGS[@]}" "${RESIZE_ARGS[@]}" "${QUIET_ARGS[@]}" "$ACTUAL_INPUT" -o "$OUTPUT_FILE" 2>/dev/null; then
+    CONVERT_OK=0
+    if [ "$WIDTH" -eq 0 ] && [ "$HEIGHT" -eq 0 ]; then
+        if cwebp "${QUALITY_ARGS[@]}" "${QUIET_ARGS[@]}" "$ACTUAL_INPUT" -o "$OUTPUT_FILE" 2>/dev/null; then CONVERT_OK=1; fi
+    else
+        if cwebp "${QUALITY_ARGS[@]}" "${RESIZE_ARGS[@]}" "${QUIET_ARGS[@]}" "$ACTUAL_INPUT" -o "$OUTPUT_FILE" 2>/dev/null; then CONVERT_OK=1; fi
+    fi
+    if [ "$CONVERT_OK" -eq 1 ]; then
         echo "   ✅ [$CURRENT/$TOTAL] $OUTPUT_FILE"
         [[ -n "$TMPFILE" && -f "$TMPFILE" ]] && rm -f "$TMPFILE"
         if [ "$DELETE_ORIGINAL" -eq 1 ]; then
@@ -301,9 +308,9 @@ FAILED_COUNT=0
 SKIPPED_COUNT=0
 
 if [ -d "$RESULT_DIR" ]; then
-    SUCCESS_COUNT=$(find "$RESULT_DIR" -type f -exec grep -l '^success$' {} + 2>/dev/null | wc -l | xargs)
-    FAILED_COUNT=$(find "$RESULT_DIR" -type f -exec grep -l '^failed$' {} + 2>/dev/null | wc -l | xargs)
-    SKIPPED_COUNT=$(find "$RESULT_DIR" -type f -exec grep -l '^skipped$' {} + 2>/dev/null | wc -l | xargs)
+    SUCCESS_COUNT=$( (find "$RESULT_DIR" -type f -exec grep -l '^success$' {} + 2>/dev/null || true) | wc -l | xargs)
+    FAILED_COUNT=$( (find "$RESULT_DIR" -type f -exec grep -l '^failed$' {} + 2>/dev/null || true) | wc -l | xargs)
+    SKIPPED_COUNT=$( (find "$RESULT_DIR" -type f -exec grep -l '^skipped$' {} + 2>/dev/null || true) | wc -l | xargs)
 fi
 
 # ─── Summary ───────────────────────────────────

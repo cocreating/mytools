@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+SOURCE_BPM=""; TARGET_BPM=""; OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; INPUT_FILE=""
+usage() { cat <<'EOF'
+Usage: wav2tempo [options] <file.wav>
+
+Detect a WAV file’s BPM, then create a pitch-preserving retimed WAV.
+
+  --bpm <number>          Skip BPM detection; set the source BPM
+  -t, --target-bpm <n>    Target BPM; prompts when omitted
+  -o, --output-dir <dir>  Write output to this directory
+  -f, --force             Overwrite an existing output
+  -n, --dry-run           Show the planned output only
+  -h, --help              Show help
+
+Examples:
+  wav2tempo loop.wav
+  wav2tempo -t 128 loop.wav
+  wav2tempo --bpm 95 --target-bpm 120 -o ./retimed loop.wav
+EOF
+}
+while [ "$#" -gt 0 ]; do case "$1" in
+  --bpm) SOURCE_BPM="${2:?--bpm requires a value}"; shift 2;;
+  -t|--target-bpm) TARGET_BPM="${2:?$1 requires a value}"; shift 2;;
+  -o|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;;
+  -f|--force) FORCE=1; shift;; -n|--dry-run) DRY_RUN=1; shift;;
+  -h|--help) usage; exit 0;; -*) echo "Unknown option: $1" >&2; usage >&2; exit 1;;
+  *) [ -z "$INPUT_FILE" ] || { echo 'Only one WAV file can be processed at a time.' >&2; exit 1; }; INPUT_FILE="$1"; shift;;
+esac; done
+[ -n "$INPUT_FILE" ] && [ -f "$INPUT_FILE" ] || { echo 'Provide an existing WAV file.' >&2; usage >&2; exit 1; }
+[[ "${INPUT_FILE##*.}" =~ ^([Ww][Aa][Vv])$ ]] || { echo 'Input must be a .wav file.' >&2; exit 1; }
+require_commands ffmpeg
+is_bpm() { awk -v value="$1" 'BEGIN { exit !(value > 0 && value < 1000) }'; }
+if [ -z "$SOURCE_BPM" ]; then
+  require_commands aubio
+  echo '🔎 Detecting BPM…'
+  SOURCE_BPM="$(aubio tempo "$INPUT_FILE" 2>/dev/null | awk '
+    match($0, /[0-9]+([.][0-9]+)?/) { print substr($0, RSTART, RLENGTH); exit }')"
+  [ -n "$SOURCE_BPM" ] || { echo '❌ BPM could not be detected. Try --bpm <source-bpm>.' >&2; exit 1; }
+fi
+is_bpm "$SOURCE_BPM" || { echo 'Source BPM must be a number between 0 and 1000.' >&2; exit 1; }
+echo "🎵 Detected/source BPM: $SOURCE_BPM"
+if [ -z "$TARGET_BPM" ]; then
+  read -r -p 'Target BPM: ' TARGET_BPM
+fi
+is_bpm "$TARGET_BPM" || { echo 'Target BPM must be a number between 0 and 1000.' >&2; exit 1; }
+SPEED="$(awk -v target="$TARGET_BPM" -v source="$SOURCE_BPM" 'BEGIN { printf "%.8f", target / source }')"
+FILTERS=""; REMAINING="$SPEED"
+while awk -v value="$REMAINING" 'BEGIN { exit !(value > 2) }'; do FILTERS="${FILTERS:+$FILTERS,}atempo=2"; REMAINING="$(awk -v value="$REMAINING" 'BEGIN { printf "%.8f", value / 2 }')"; done
+while awk -v value="$REMAINING" 'BEGIN { exit !(value < 0.5) }'; do FILTERS="${FILTERS:+$FILTERS,}atempo=0.5"; REMAINING="$(awk -v value="$REMAINING" 'BEGIN { printf "%.8f", value / 0.5 }')"; done
+FILTERS="${FILTERS:+$FILTERS,}atempo=$REMAINING"
+[ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+OUTPUT_FILE="${OUTPUT_DIR:-$(dirname "$INPUT_FILE")}/$(basename "${INPUT_FILE%.*}")-${SOURCE_BPM}to${TARGET_BPM}bpm.wav"
+if [ "$DRY_RUN" -eq 1 ]; then echo "📝 Would create: $OUTPUT_FILE (tempo factor: $SPEED)"; exit 0; fi
+output_is_safe "$OUTPUT_FILE" "$FORCE" || exit 0
+echo "▶️  Retiming $SOURCE_BPM BPM → $TARGET_BPM BPM (factor: $SPEED)"
+ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -filter:a "$FILTERS" -c:a pcm_s16le "$OUTPUT_FILE"
+echo "✅ Created: $OUTPUT_FILE"
+notify "Retimed to ${TARGET_BPM} BPM." 'wav2tempo'

@@ -1,0 +1,2 @@
+#compdef mytools-doctor
+_arguments '(-h --help)'{-h,--help}'[show help]' '--install[install missing Homebrew packages]'

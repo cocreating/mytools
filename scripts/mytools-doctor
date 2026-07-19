@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() { cat <<'EOF'
+Usage: mytools-doctor [--install] [--help]
+
+Checks the optional dependencies used by mytools. With --install, installs
+missing Homebrew packages after showing the exact plan.
+EOF
+}
+
+INSTALL=0
+case "${1:-}" in
+  --install) INSTALL=1 ;;
+  -h|--help) usage; exit 0 ;;
+  "") ;;
+  *) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
+esac
+
+declare -a NAMES=("ffmpeg" "cwebp" "aubio" "yt-dlp" "fzf" "setWeblocThumb")
+declare -a PACKAGES=("ffmpeg" "webp" "aubio" "yt-dlp" "fzf" "setweblocthumb")
+MISSING=()
+echo "🩺 mytools doctor"
+for i in "${!NAMES[@]}"; do
+  if command -v "${NAMES[$i]}" >/dev/null 2>&1; then
+    printf '  ✅ %-15s %s\n' "${NAMES[$i]}" "$(command -v "${NAMES[$i]}")"
+  else
+    printf '  ❌ %-15s brew install %s\n' "${NAMES[$i]}" "${PACKAGES[$i]}"
+    MISSING+=("${PACKAGES[$i]}")
+  fi
+done
+[ "${#MISSING[@]}" -eq 0 ] && { printf '\nEverything needed by the installed commands is available.\n'; exit 0; }
+if [ "$INSTALL" -eq 1 ]; then
+  command -v brew >/dev/null 2>&1 || { echo "Homebrew is required for --install." >&2; exit 1; }
+  printf '\nInstalling: %s\n' "${MISSING[*]}"
+  brew install "${MISSING[@]}"
+else
+  printf "\nRun 'mytools-doctor --install' to install the missing packages.\n"
+fi

@@ -1,113 +1,18 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
-
-# ───────────────────────────────────────────────
-# vid2audio — Extract audio from video files
-# ───────────────────────────────────────────────
-
-FORMAT="wav"
-OUTPUT_DIR=""
-FILES=()
-
-usage() {
-    cat <<EOF
-Usage: vid2audio [options] <video_file1> [video_file2 ...]
-
-Options:
-  -f, --format <wav|mp3>   Audio format output (default: wav)
-  -o, --output-dir <dir>   Save output files to this directory
-  -h, --help               Show this help
-
-Examples:
-  vid2audio movie.mp4
-  vid2audio -f mp3 -o ~/Music recording.mov
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+FORMAT=wav; BITRATE=192; OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; FILES=()
+usage() { cat <<EOF
+Usage: vid2audio [options] <video...>
+  -f, --format <wav|mp3>  Output format (default: wav)
+  -b, --bitrate <kbps>    MP3 bitrate (default: $BITRATE)
+  -o, --output-dir <dir>  Write files here
+  --force                 Overwrite existing files
+  -n, --dry-run           Show planned outputs only
 EOF
 }
-
-# Parse arguments
-while [[ "$#" -gt 0 ]]; do
-    case "$1" in
-        -f|--format)
-            if [[ "${2:-}" =~ ^(wav|mp3)$ ]]; then
-                FORMAT="$2"
-            else
-                echo "❌ Error: format must be 'wav' or 'mp3'" >&2
-                exit 1
-            fi
-            shift 2 ;;
-        -o|--output-dir)
-            [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a directory" >&2; exit 1; }
-            OUTPUT_DIR="$2"
-            shift 2 ;;
-        -h|--help) usage; exit 0 ;;
-        -*) echo "❌ Error: unknown option $1" >&2; usage >&2; exit 1 ;;
-        *) FILES+=("$1"); shift ;;
-    esac
-done
-
-if [ "${#FILES[@]}" -eq 0 ]; then
-    echo "❌ Error: No input video files specified." >&2
-    usage >&2
-    exit 1
-fi
-
-# Resolve output dir
-if [[ -n "$OUTPUT_DIR" ]]; then
-    if [ ! -d "$OUTPUT_DIR" ]; then
-        echo "📁 Creating output directory: $OUTPUT_DIR"
-        mkdir -p "$OUTPUT_DIR"
-    fi
-    OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd)"
-fi
-
-TOTAL=${#FILES[@]}
-CURRENT=1
-SUCCESS_COUNT=0
-FAILED_COUNT=0
-
-echo "🎵 Extracting audio from $TOTAL video(s) -> Format: $FORMAT"
-[[ -n "$OUTPUT_DIR" ]] && echo "   Output dir: $OUTPUT_DIR"
-echo ""
-
-for INPUT_FILE in "${FILES[@]}"; do
-    if [ ! -f "$INPUT_FILE" ]; then
-        echo "   ⚠️  [$CURRENT/$TOTAL] File not found: $INPUT_FILE" >&2
-        ((FAILED_COUNT++)) || true
-        CURRENT=$((CURRENT + 1))
-        continue
-    fi
-
-    # Determine output path
-    bn="$(basename "${INPUT_FILE%.*}")"
-    if [[ -n "$OUTPUT_DIR" ]]; then
-        OUTPUT_FILE="${OUTPUT_DIR}/${bn}.${FORMAT}"
-    else
-        OUTPUT_FILE="$(dirname "$INPUT_FILE")/${bn}.${FORMAT}"
-    fi
-
-    echo "   ▶️  [$CURRENT/$TOTAL] Extracting: $INPUT_FILE"
-
-    # Run ffmpeg with settings based on format
-    # WAV: 16-bit PCM 44.1kHz stereo
-    # MP3: LAME encoder 192k stereo
-    if [ "$FORMAT" = "wav" ]; then
-        ffmpeg -hide_banner -loglevel error -y -i "$INPUT_FILE" -vn -acodec pcm_s16le -ar 44100 -ac 2 "$OUTPUT_FILE"
-    else
-        ffmpeg -hide_banner -loglevel error -y -i "$INPUT_FILE" -vn -c:a libmp3lame -b:a 192k -ac 2 "$OUTPUT_FILE"
-    fi
-
-    if [ $? -eq 0 ]; then
-        echo "      ✅ Extracted: $OUTPUT_FILE"
-        ((SUCCESS_COUNT++)) || true
-    else
-        echo "      ❌ Extraction failed!" >&2
-        ((FAILED_COUNT++)) || true
-    fi
-    CURRENT=$((CURRENT + 1))
-done
-
-echo ""
-echo "✅ Done: $SUCCESS_COUNT succeeded, $FAILED_COUNT failed."
-osascript -e "display notification \"Extracted $SUCCESS_COUNT audio track(s).\" with title \"vid2audio Complete\"" 2>/dev/null || true
-
-exit "$FAILED_COUNT"
+while [ "$#" -gt 0 ]; do case "$1" in -f|--format) FORMAT="${2:?$1 requires a value}"; shift 2;; -b|--bitrate) BITRATE="${2:?$1 requires a value}"; shift 2;; -o|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;; --force) FORCE=1; shift;; -n|--dry-run) DRY_RUN=1; shift;; -h|--help) usage; exit 0;; -*) echo "Unknown option: $1" >&2; exit 1;; *) FILES+=("$1"); shift;; esac; done
+[[ "$FORMAT" =~ ^(wav|mp3)$ ]] || { echo "Format must be wav or mp3." >&2; exit 1; }; [ "${#FILES[@]}" -gt 0 ] || { usage >&2; exit 1; }; require_commands ffmpeg
+[ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+for input in "${FILES[@]}"; do [ -f "$input" ] || { echo "⚠️  Not a file: $input" >&2; continue; }; out="${OUTPUT_DIR:-$(dirname "$input")}/$(basename "${input%.*}").$FORMAT"; [ "$DRY_RUN" -eq 1 ] && { echo "📝 Would create: $out"; continue; }; output_is_safe "$out" "$FORCE" || continue; echo "▶️  $input → $out"; if [ "$FORMAT" = wav ]; then ffmpeg -hide_banner -loglevel error -stats -i "$input" -vn -c:a pcm_s16le -ar 44100 -ac 2 "$out"; else ffmpeg -hide_banner -loglevel error -stats -i "$input" -vn -c:a libmp3lame -b:a "${BITRATE}k" "$out"; fi; done
+notify "Audio extraction complete." "vid2audio"

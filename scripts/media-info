@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
+
+usage() { cat <<'EOF'
+Usage: media-info <file> [file...]
+
+Prints container, duration, size, video codec/resolution/bitrate and audio codec.
+EOF
+}
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then usage; exit 0; fi
+[ "$#" -gt 0 ] || { usage >&2; exit 1; }
+require_commands ffprobe
+for file in "$@"; do
+  [ -f "$file" ] || { echo "⚠️  Not a file: $file" >&2; continue; }
+  printf '\n🎞️  %s\n' "$file"
+  ffprobe -v error -show_entries format=format_name,duration,size,bit_rate \
+    -show_entries stream=codec_type,codec_name,width,height,bit_rate \
+    -of default=noprint_wrappers=1 "$file" | awk -F= '
+      /^format_name=/ { print "  Container: " $2 }
+      /^duration=/ { printf "  Duration: %.2fs\n", $2 }
+      /^size=/ { printf "  Size: %.2f MiB\n", $2 / 1048576 }
+      /^codec_name=/ { codec=$2 }
+      /^codec_type=/ { print "  " ($2 == "video" ? "Video" : "Audio") ": " codec }
+      /^width=/ { w=$2 }
+      /^height=/ { print "  Resolution: " w "x" $2 }
+      /^bit_rate=/ { if ($2 != "N/A") printf "  Bitrate: %.0f kb/s\n", $2 / 1000 }'
+done

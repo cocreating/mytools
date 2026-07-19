@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+CONFIG_DIR="${MYTOOLS_CONFIG_DIR:-$HOME/.config/mytools}"; CONFIG_FILE="$CONFIG_DIR/config"
+usage() { cat <<'EOF'
+Usage: mytools-config [--init|--path|--list]
+
+Creates and displays the optional configuration file. Presets are deliberately
+plain text so they can be edited in any editor.
+EOF
+}
+case "${1:-}" in -h|--help) usage; exit 0;; esac
+if [ "${1:-}" = "--path" ]; then echo "$CONFIG_FILE"; exit 0; fi
+if [ ! -f "$CONFIG_FILE" ]; then
+  mkdir -p "$CONFIG_DIR"
+  printf '%s\n' '# mytools user settings' 'default_quality=85' 'default_jobs=1' '' '# media-optimize preset overrides' '[web]' 'codec=libx264' 'crf=23' 'width=1920' '' '[social]' 'codec=libx264' 'crf=25' 'width=1280' '' '[archive]' 'codec=libx265' 'crf=26' 'width=0' > "$CONFIG_FILE"
+  echo "✅ Created $CONFIG_FILE"
+fi
+case "${1:-}" in --init|"") ;; --list) sed -n '/^\[/p' "$CONFIG_FILE";; *) echo "Unknown option: $1" >&2; usage >&2; exit 1;; esac
+[ "${1:-}" = "--list" ] || { echo "\nConfiguration: $CONFIG_FILE"; sed -n '1,160p' "$CONFIG_FILE"; }

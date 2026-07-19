@@ -6,13 +6,8 @@ set -e
 
 echo "📦 Installing mytools..."
 
-# Install dependencies
-if ! command -v fzf &> /dev/null; then
-    echo "⚙️  Installing fzf via Homebrew..."
-    brew install fzf
-else
-    echo "✅ fzf is already installed."
-fi
+# Dependency installation is explicit, because some commands do not need all
+# optional packages. `mytools-doctor --install` installs the complete set.
 
 # Create symlinks
 BIN_DIR="$HOME/.local/bin"
@@ -20,6 +15,7 @@ mkdir -p "$BIN_DIR"
 
 echo "🔗 Creating symlinks in $BIN_DIR..."
 for script in scripts/*; do
+    [ -f "$script" ] || continue
     script_name=$(basename "$script")
     ln -sf "$PWD/$script" "$BIN_DIR/$script_name"
     chmod +x "$PWD/$script"
@@ -44,3 +40,4 @@ if ! grep -q "fpath+=~/.zfunc" "$HOME/.zshrc"; then
 fi
 
 echo "🚀 Installation complete! Please restart your terminal or run 'source ~/.zshrc' to apply completions."
+echo "💡 Run 'mytools doctor' to check optional media dependencies."

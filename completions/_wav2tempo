@@ -1,0 +1,6 @@
+#compdef wav2tempo
+_arguments \
+  '--bpm[source BPM]:BPM' '(-t --target-bpm)'{-t,--target-bpm}'[target BPM]:BPM' \
+  '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \
+  '(-f --force)'{-f,--force}'[overwrite existing output]' '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+  '1:WAV file:_files -g "*.wav(-.)"'

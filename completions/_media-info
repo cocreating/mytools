@@ -1,0 +1,2 @@
+#compdef media-info
+_arguments '*:media file:_files -g "*.(mp4|mov|mkv|webm|mp3|wav|m4a|jpg|png)(-.)"'

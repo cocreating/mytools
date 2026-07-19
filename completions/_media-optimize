@@ -1,0 +1,7 @@
+#compdef media-optimize
+_arguments \
+  '(-p --preset)'{-p,--preset}'[optimization preset]:preset:(web social archive)' \
+  '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \
+  '(-f --force)'{-f,--force}'[overwrite existing output]' \
+  '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+  '*:video file:_files -g "*.(mp4|mov|avi|mkv|webm)(-.)"'

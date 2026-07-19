@@ -1,2 +1,2 @@
 #compdef wav2mp3
-_arguments '*:audio file:_files -g "*.wav *.aiff *.flac *.m4a(-.)"'
+_arguments '(-b --bitrate)'{-b,--bitrate}'[MP3 bitrate]:kbps' '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' '(-f --force)'{-f,--force}'[overwrite output]' '(-n --dry-run)'{-n,--dry-run}'[show planned output]' '*:audio file:_files -g "*.(wav|aiff|flac|m4a)(-.)"'

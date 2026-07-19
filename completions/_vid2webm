@@ -1,2 +1,5 @@
 #compdef vid2webm
-_arguments '*:video file:_files -g "*.mp4 *.mov *.avi *.mkv *.flv *.webm(-.)"'
+_arguments \
+ '(-q --quality)'{-q,--quality}'[VP9 CRF]:quality' '(-w --width)'{-w,--width}'[maximum width]:pixels' \
+ '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' '--from[start time]:time' '--to[end time]:time' \
+ '(-f --force)'{-f,--force}'[overwrite output]' '(-n --dry-run)'{-n,--dry-run}'[show planned output]' '*:video file:_files -g "*.(mp4|mov|avi|mkv|webm)(-.)"'

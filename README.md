@@ -1,152 +1,121 @@
 # mytools
 
-A collection of personal custom terminal scripts for audio, video, and image processing, designed for macOS.
+A macOS-first terminal toolbox for everyday media conversion and Finder bookmark work. Each command works directly in a shell; `mytools` adds a searchable `fzf` launcher.
 
-## Installation
+## Install and check dependencies
 
 ```bash
 git clone https://github.com/cocreating/mytools.git
 cd mytools
 ./install.sh
+mytools doctor
 ```
 
-## Features
+`mytools doctor --install` installs the optional Homebrew packages needed by all tools: `ffmpeg`, `webp`, `aubio`, `yt-dlp`, `fzf`, and `setweblocthumb`.
 
-- **Interactive Menu**: Run `mytools` to get a visual menu (powered by `fzf`) to select and run your tools. The menu includes a help screen and guided options.
-- **Batch Processing**: Almost all tools accept multiple files at once.
-- **Zsh Auto-completion**: Hitting `<TAB>` after a command intelligently filters valid file extensions.
-- **macOS Notifications**: Get a desktop notification when a long process finishes.
+## Start here
 
-## Interactive Usage
-
-Simply run the main command to open the picker:
 ```bash
-mytools
+mytools                 # interactive launcher
+mytools help            # command overview
+mytools doctor          # dependency and PATH check
+mytools config          # create/show ~/.config/mytools/config
 ```
 
-Or print the help menu and guided examples directly in the console without opening the picker:
+All conversion tools avoid overwriting an existing output by default. Use `--force` only when replacing it is intentional, and `--dry-run` to preview batch operations.
+`mytools config` creates editable overrides for the built-in `media-optimize` presets; change `codec`, `crf`, or `width` within a named preset section.
+
+## Media conversions
+
+### Images: `img2webp`
+
 ```bash
-mytools --help
+img2webp photo.jpg
+img2webp -q 80 --width 1200 photo.png
+img2webp -R -j 4 -n ~/Pictures/ToPublish       # preview a recursive batch
+img2webp -R -j 4 -o ./webp ~/Pictures/ToPublish
 ```
 
----
+Supports JPEG, PNG, GIF, TIFF, HEIC/HEIF and WebP; quality, lossless mode, size limits, folders, parallel jobs and optional deletion of successfully converted originals.
 
-## 🚀 Ready-to-Use Examples
+### Video to WebM: `vid2webm`
 
-### 🎬 vid2webm
-Converts video files (MP4, MOV, etc.) to highly compressed WebM format using `libvpx` and `libopus`.
-*   **Convert a single video:**
-    ```bash
-    vid2webm vacation.mp4
-    ```
-*   **Convert multiple videos in batch:**
-    ```bash
-    vid2webm intro.mov tutorial.mp4 outro.mov
-    ```
+```bash
+vid2webm clip.mov
+vid2webm -q 32 -w 1280 --from 00:00:10 --to 00:00:25 recording.mp4
+vid2webm -o ./web -n *.mov
+```
 
-### 🎵 wav2mp3
-Converts high-quality WAV audio files to standard compressed MP3 files (192kbps).
-*   **Convert a single track:**
-    ```bash
-    wav2mp3 recording.wav
-    ```
-*   **Convert all WAV files in the current folder:**
-    ```bash
-    wav2mp3 *.wav
-    ```
+Uses VP9 video and Opus audio. Lower `--quality` values produce higher-quality/larger files.
 
-### 🔊 vid2audio
-Extracts the audio track from video files as WAV or MP3 files.
-*   **Extract as high-quality WAV (default):**
-    ```bash
-    vid2audio music_video.mp4
-    ```
-*   **Extract as MP3:**
-    ```bash
-    vid2audio -f mp3 movie_trailer.mov
-    ```
-*   **Extract multiple files to a specific folder:**
-    ```bash
-    vid2audio -f mp3 -o ~/Music/Samples clip1.mp4 clip2.mov
-    ```
+### Video to GIF: `vid2gif`
 
-### 👾 vid2gif
-Converts a video file into an optimized, high-quality animated GIF (using double-pass palette mapping), perfect for GitHub or Slack.
-*   **Convert with default settings (800px width, 15 FPS):**
-    ```bash
-    vid2gif screen_recording.mov
-    ```
-*   **Resize to 480px width at 10 FPS for a tiny file size:**
-    ```bash
-    vid2gif -w 480 -r 10 demo.mp4
-    ```
-*   **Save with a custom name:**
-    ```bash
-    vid2gif -o optimized_demo.gif demo.mov
-    ```
+```bash
+vid2gif demo.mov
+vid2gif -w 480 -r 10 --from 00:00:03 --to 00:00:08 demo.mp4
+vid2gif -o ./gifs -f clip1.mp4 clip2.mp4
+```
 
-### 🖼️ img2webp
-Converts and resizes images to WebP format. Supports batching, recursion, and parallel execution.
-*   **Basic conversion (85% quality):**
-    ```bash
-    img2webp photo.jpg
-    ```
-*   **Convert all JPG/PNG images in the current folder at 80% quality:**
-    ```bash
-    img2webp -q 80 *.jpg *.png
-    ```
-*   **Resize image to 1200px width (maintaining aspect ratio):**
-    ```bash
-    img2webp --width 1200 banner.png
-    ```
-*   **Resize images to exact dimensions:**
-    ```bash
-    img2webp --resize 1200x800 thumb1.png thumb2.png
-    ```
-*   **Convert recursively inside a folder using 4 CPU cores (parallel jobs):**
-    ```bash
-    img2webp -R -j 4 ~/Pictures/Vacation/
-    ```
-*   **Delete original files after successful conversion:**
-    ```bash
-    img2webp -d logo.png
-    ```
+GIFs use palette generation for better quality and now support multiple videos.
 
-### 🌐 thumloc
-Recursively generates Finder thumbnails for macOS `.webloc` internet bookmarks.
-*   **Scan and add thumbnails in current folder:**
-    ```bash
-    thumloc
-    ```
-*   **Force-regenerate all thumbnails in a specific directory:**
-    ```bash
-    thumloc -f ~/Downloads/Bookmarks
-    ```
+### Extract or convert audio
 
-### 📝 webloc2md
-Compiles all recursive `.webloc` files inside a directory into a single, clean Markdown bookmarks list grouped by folder hierarchy.
-*   **Generate `bookmarks.md` for the current folder:**
-    ```bash
-    webloc2md
-    ```
-*   **Scan a specific directory and write to a custom file name:**
-    ```bash
-    webloc2md ~/Downloads links.md
-    ```
+```bash
+vid2audio trailer.mov                       # WAV by default
+vid2audio --format mp3 --bitrate 128 -o ./audio trailer.mov
+wav2mp3 --bitrate 256 interview.wav
+wav2mp3 -n -o ./mp3 *.wav                   # preview first
+```
 
-### 📥 ytdl
-Fully interactive CLI downloader for video/audio URLs utilizing `yt-dlp` and `fzf`.
-*   **Launch interactive download wizard:**
-    ```bash
-    ytdl
-    ```
-*   **Download a specific URL directly:**
-    ```bash
-    ytdl "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-    ```
+### Retime a WAV by BPM: `wav2tempo`
 
----
+```bash
+wav2tempo drum-loop.wav                       # detects BPM, then asks for a target
+wav2tempo --target-bpm 128 drum-loop.wav
+wav2tempo --bpm 92 -t 120 -o ./retimed song.wav
+```
 
-## macOS Quick Actions
+`wav2tempo` uses `aubio` to estimate the source BPM and FFmpeg’s pitch-preserving tempo filter to create a new WAV. Detection works best with a rhythmic loop or a track with a clear, steady beat. If detection is uncertain, use `--bpm` to enter the known source BPM yourself.
 
-Check the `quick-actions/` folder for AppleScripts that you can easily drop into macOS Automator to create "Right-Click -> Quick Actions" in Finder.
+### Inspect and optimize media
+
+```bash
+media-info recording.mov song.m4a
+media-optimize --preset web recording.mov
+media-optimize --preset social -o ./social *.mov
+media-optimize --preset archive --dry-run footage.mp4
+```
+
+`media-info` reports codecs, dimensions, duration, size, and bitrate. `media-optimize` writes a new MP4 using one of three presets:
+
+- `web`: H.264, CRF 23, capped to 1080p
+- `social`: H.264, CRF 25, capped to 720p
+- `archive`: H.265, CRF 26, source dimensions
+
+## Downloads: `ytdl`
+
+```bash
+ytdl 'https://example.com/video'
+ytdl --format mp3 --output-dir ~/Music 'https://example.com/video'
+ytdl --format mp4 --playlist --subtitles 'https://example.com/playlist'
+```
+
+If no URL is supplied, the command uses a URL in the clipboard or prompts for one. It defaults to a single item; pass `--playlist` explicitly to download a playlist.
+
+## Finder bookmarks
+
+```bash
+thumloc ~/Downloads/Bookmarks
+thumloc --force ~/Downloads/Bookmarks
+webloc2md ~/Downloads/Bookmarks bookmarks.md
+```
+
+`thumloc` populates Finder thumbnails for `.webloc` files. `webloc2md` creates a grouped Markdown index of bookmark URLs.
+
+## Finder Quick Actions
+
+The `quick-actions/` directory includes ready-to-paste AppleScript templates for WebM, WebP, MP3, GIF, and audio extraction. Create a Finder Quick Action in Automator, set its input to the matching media type, add **Run AppleScript**, and paste the template. See [quick-actions/README.md](quick-actions/README.md).
+
+## Shell completions
+
+Installation links zsh completion definitions to `~/.zfunc`. Restart the terminal or run `source ~/.zshrc` after installation.

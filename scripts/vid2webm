@@ -1,51 +1,30 @@
-#!/bin/bash
-
-usage() {
-    cat <<EOF
-Usage: vid2webm [options] <file1.mp4> [file2.mp4 ...]
-
-Converts MP4/MOV or other video formats to optimized WebM using libvpx.
-
-Options:
-  -h, --help    Show this help message
-
-Examples:
-  vid2webm clip.mov
-  vid2webm recording.mp4 tutorial.mov
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+QUALITY=30; WIDTH=0; OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; START=""; END=""; FILES=()
+usage() { cat <<EOF
+Usage: vid2webm [options] <video...>
+Convert videos to VP9/Opus WebM.
+  -q, --quality <0-63>  VP9 CRF (default: $QUALITY; lower is better)
+  -w, --width <px>      Downscale to this maximum width
+  -o, --output-dir <d>  Write files here
+  --from <time>         Start at HH:MM:SS or seconds
+  --to <time>           Stop at HH:MM:SS or seconds
+  -f, --force           Overwrite existing output
+  -n, --dry-run         Show planned outputs only
 EOF
 }
-
-# Parse arguments
-FILES=()
-while [[ "$#" -gt 0 ]]; do
-    case "$1" in
-        -h|--help) usage; exit 0 ;;
-        -*) echo "❌ Error: unknown option $1" >&2; usage >&2; exit 1 ;;
-        *) FILES+=("$1"); shift ;;
-    esac
+while [ "$#" -gt 0 ]; do case "$1" in
+ -q|--quality) QUALITY="${2:?$1 requires a value}"; shift 2;; -w|--width) WIDTH="${2:?$1 requires a value}"; shift 2;;
+ -o|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;; --from) START="${2:?$1 requires a value}"; shift 2;; --to) END="${2:?$1 requires a value}"; shift 2;;
+ -f|--force) FORCE=1; shift;; -n|--dry-run) DRY_RUN=1; shift;; -h|--help) usage; exit 0;; -*) echo "Unknown option: $1" >&2; exit 1;; *) FILES+=("$1"); shift;; esac; done
+[ "${#FILES[@]}" -gt 0 ] || { usage >&2; exit 1; }; [[ "$QUALITY" =~ ^[0-9]+$ ]] && [ "$QUALITY" -le 63 ] || { echo "Quality must be 0–63." >&2; exit 1; }
+require_commands ffmpeg; [ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+for input in "${FILES[@]}"; do
+ [ -f "$input" ] || { echo "⚠️  Not a file: $input" >&2; continue; }; out="${OUTPUT_DIR:-$(dirname "$input")}/$(basename "${input%.*}").webm"
+ [ "$DRY_RUN" -eq 1 ] && { echo "📝 Would create: $out"; continue; }; output_is_safe "$out" "$FORCE" || continue
+ args=(-hide_banner -loglevel error -stats); [ -n "$START" ] && args+=(-ss "$START"); args+=(-i "$input"); [ -n "$END" ] && args+=(-to "$END")
+ [ "$WIDTH" -gt 0 ] && args+=(-vf "scale='min($WIDTH,iw)':-2"); args+=(-c:v libvpx-vp9 -crf "$QUALITY" -b:v 0 -c:a libopus "$out")
+ echo "▶️  $input → $out"; ffmpeg "${args[@]}"
 done
-
-if [ "${#FILES[@]}" -eq 0 ]; then
-    echo "❌ Error: No input video files specified." >&2
-    usage >&2
-    exit 1
-fi
-
-TOTAL=${#FILES[@]}
-CURRENT=1
-
-for INPUT_FILE in "${FILES[@]}"; do
-    OUTPUT_FILE="${INPUT_FILE%.*}.webm"
-    echo "▶️  [$CURRENT/$TOTAL] Converting '$INPUT_FILE' to '$OUTPUT_FILE'..."
-    
-    ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -c:v libvpx -crf 10 -b:v 1M -c:a libopus -y "$OUTPUT_FILE"
-    
-    if [ $? -eq 0 ]; then
-        echo "✅ Success: $OUTPUT_FILE"
-    else
-        echo "❌ Error converting $INPUT_FILE"
-    fi
-    CURRENT=$((CURRENT + 1))
-done
-
-osascript -e "display notification \"Converted $TOTAL video(s) to WebM.\" with title \"vid2webm Complete\"" 2>/dev/null || true
+notify "WebM conversion complete." "vid2webm"

@@ -1,69 +1,39 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-show_help_menu() {
-    echo "🧰 Jasubal's Custom Terminal Tools:"
-    echo "-----------------------------------"
-    echo "🎵 wav2mp3   - Convert WAV files to MP3 format."
-    echo "🖼️  img2webp  - Convert and resize images to WebP format."
-    echo "🎬 vid2webm  - Compress and convert MP4 video to WebM."
-    echo "🌐 thumloc   - Add Finder thumbnails to .webloc files recursively."
-    echo "🔊 vid2audio - Extract audio tracks from video files."
-    echo "👾 vid2gif   - Convert video to optimized animated GIF."
-    echo "📝 webloc2md - Compile recursive .webloc bookmarks into a Markdown index."
-    echo "📥 ytdl      - Interactive media downloader (yt-dlp)."
-    echo ""
+usage() { cat <<'EOF'
+Usage: mytools [command]
+
+Open the interactive launcher, or run one of:
+  doctor       Check dependencies
+  config       Show/create the presets configuration
+  help         Print this help
+
+Tools: img2webp, vid2webm, wav2mp3, vid2audio, vid2gif, media-info,
+media-optimize, thumloc, webloc2md, ytdl.
+EOF
 }
-
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-    show_help_menu
-    exit 0
-fi
-
-if ! command -v fzf &> /dev/null; then
-    show_help_menu
-    echo "💡 Install fzf to enable interactive menus: brew install fzf"
-    exit 0
-fi
-
-# Print interactive fzf menu
-TOOL_OPTION=$(printf "vid2webm (MP4/MOV -> WebM)\nwav2mp3 (WAV -> MP3)\nimg2webp (JPG/PNG -> WebP)\nthumloc (.webloc thumbnails in current folder)\nvid2audio (Extract audio track from video)\nvid2gif (Convert video to optimized GIF)\nwebloc2md (Index .webloc files to Markdown)\nytdl (Interactive YouTube/Media downloader)" | fzf --prompt="Select tool > " --height=50% --layout=reverse --border)
-
-if [ -z "$TOOL_OPTION" ]; then
-    exit 0
-fi
-
-# Extract the command prefix
-TOOL=$(echo "$TOOL_OPTION" | awk '{print $1}')
-
-# Handle commands that run without picking specific files first
-if [ "$TOOL" = "thumloc" ]; then
-    echo "Executing: thumloc on current folder: $PWD"
-    "$TOOL"
-    exit $?
-fi
-
-if [ "$TOOL" = "webloc2md" ]; then
-    echo "Executing: webloc2md on current folder..."
-    "$TOOL"
-    exit $?
-fi
-
-if [ "$TOOL" = "ytdl" ]; then
-    "$TOOL"
-    exit $?
-fi
-
-# Prompt for file selection using fzf for the rest of the file-processing tools
-echo "You selected $TOOL. Select file(s) (Tab to multi-select, Enter to confirm):"
-FILES=$(fzf -m --prompt="Select files > " --height=60% --layout=reverse --border)
-
-if [ -z "$FILES" ]; then
-    echo "Canceled."
-    exit 0
-fi
-
-# Read multiline fzf output into array safely
-IFS=$'\n' read -r -d '' -a FILE_ARRAY <<< "$FILES"$'\0'
-
-echo "Executing: $TOOL on ${#FILE_ARRAY[@]} file(s)..."
-"$TOOL" "${FILE_ARRAY[@]}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+case "${1:-}" in
+  -h|--help|help) usage; exit 0;;
+  doctor) exec "$SCRIPT_DIR/mytools-doctor" "${@:2}";;
+  config) exec "$SCRIPT_DIR/mytools-config" "${@:2}";;
+  "") ;;
+  *) echo "Unknown mytools command: $1" >&2; usage >&2; exit 1;;
+esac
+command -v fzf >/dev/null 2>&1 || { usage; echo "💡 Install fzf for the interactive launcher: brew install fzf"; exit 0; }
+OPTION=$(printf '%s\n' \
+  'img2webp — image to WebP' 'vid2webm — video to WebM' 'wav2mp3 — audio to MP3' 'wav2tempo — retime a WAV by BPM' \
+  'vid2audio — extract video audio' 'vid2gif — video to GIF' 'media-info — inspect a file' \
+  'media-optimize — web/social/archive video' 'thumloc — Finder bookmark thumbnails' \
+  'webloc2md — bookmark index' 'ytdl — download media' 'doctor — dependency check' 'config — presets' | fzf --prompt='mytools > ' --height=60% --layout=reverse --border)
+[ -n "$OPTION" ] || exit 0
+TOOL="${OPTION%% *}"
+case "$TOOL" in
+  doctor) exec "$SCRIPT_DIR/mytools-doctor";; config) exec "$SCRIPT_DIR/mytools-config";;
+  thumloc|webloc2md|ytdl) exec "$SCRIPT_DIR/$TOOL";;
+esac
+FILES=$(find . -maxdepth 1 -type f -print | sed 's#^./##' | fzf -m --prompt="${TOOL} files > " --height=60% --layout=reverse --border)
+[ -n "$FILES" ] || { echo 'Canceled.'; exit 0; }
+FILE_ARRAY=(); while IFS= read -r file; do FILE_ARRAY+=("$file"); done <<< "$FILES"
+exec "$SCRIPT_DIR/$TOOL" "${FILE_ARRAY[@]}"

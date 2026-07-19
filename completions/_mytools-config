@@ -1,0 +1,2 @@
+#compdef mytools-config
+_arguments '(-h --help)'{-h,--help}'[show help]' '--init[create default config]' '--path[print config path]' '--list[list presets]'
