@@ -23,7 +23,7 @@ case "${1:-}" in
 esac
 command -v fzf >/dev/null 2>&1 || { usage; echo "💡 Install fzf for the interactive launcher: brew install fzf"; exit 0; }
 OPTION=$(printf '%s\n' \
-  'img2webp — image to WebP' 'vid2webm — video to WebM' 'wav2mp3 — audio to MP3' 'wav2tempo — retime a WAV by BPM' \
+  'img2webp — image to WebP' 'vid2webm — video to WebM' 'wav2mp3 — audio to MP3' 'wav2tempo — retime a WAV by BPM' 'wavreverse — reverse WAV audio' \
   'vid2audio — extract video audio' 'vid2gif — video to GIF' 'media-info — inspect a file' \
   'media-optimize — web/social/archive video' 'thumloc — Finder bookmark thumbnails' \
   'webloc2md — bookmark index' 'ytdl — download media' 'doctor — dependency check' 'config — presets' | fzf --prompt='mytools > ' --height=60% --layout=reverse --border)

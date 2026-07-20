@@ -12,6 +12,7 @@
 - `img2webp`: mature image batching/resizing/WebP command.
 - `vid2webm`, `vid2gif`, `vid2audio`, `wav2mp3`: safe media conversions with non-overwrite defaults, `--force`, `--dry-run`, and output-directory support.
 - `wav2tempo`: detects a single WAV’s BPM with `aubio` and pitch-preservingly retimes it with FFmpeg; accepts `--bpm` when detection is unavailable or unsuitable.
+- `wavreverse`: reverses one or more WAV files using FFmpeg’s `areverse` filter.
 - `media-info`: FFprobe report.
 - `media-optimize`: Web/social/archive H.264/H.265 output presets.
 - `ytdl`, `thumloc`, `webloc2md`: downloading and bookmark tools.
