@@ -1,0 +1,8 @@
+#compdef mp4glue
+_arguments \
+ '(-o --output)'{-o,--output}'[output MP4 file]:file:_files -g "*.(mp4)(-.)"' \
+ '(-b --bounce)'{-b,--bounce}'[glue video forward and reversed]' \
+ '(-r --reencode)'{-r,--reencode}'[re-encode streams]' \
+ '(-f --force)'{-f,--force}'[overwrite output]' \
+ '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+ '*:video file:_files -g "*.(mp4|mov|avi|mkv|webm)(-.)"'

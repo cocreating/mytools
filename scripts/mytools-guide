@@ -1,0 +1,366 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+show_overview() {
+  cat <<'EOF'
+🧰 MYTOOLS - YOUR TERMINAL MEDIA SWISS ARMY KNIFE 🛠️
+
+📸 IMAGE WIZARD 🪄
+  img2webp       Convert JPEG, PNG, GIF, HEIC to WebP (shrink size without losing quality) ⚡
+
+🎞️ VIDEO FUSION & CONVERSION 🎬
+  mp4glue        Glue/concatenate MP4 files (fast copy, re-encode, or 🪃 --bounce)
+  vid2webm       Convert video to modern VP9/Opus WebM 🌐
+  vid2gif        Convert video clips to high-quality animated GIFs 👾
+  media-optimize Re-encode videos for web, social, or archive presets 🚀
+
+🎵 AUDIO LAB & TIME BENDER 🎧
+  vid2audio      Extract crisp audio streams from video (WAV / MP3) 🔊
+  wav2mp3        Convert heavy WAV audio to lightweight MP3 🎶
+  wav2tempo      Retime WAV tempo to a target BPM using aubio 🥁
+  wavreverse     Reverse WAV audio sample-accurately 🔄
+
+🕵️ INSPECT & DOWNLOAD 📥
+  media-info     Inspect video/audio codecs, duration, bitrate, resolution 🔍
+  ytdl           Grab video/audio from web URLs via yt-dlp 🌐
+
+📂 FINDER & BOOKMARKS 📑
+  thumloc        Generate Finder thumbnail previews for .webloc files 🖼️
+  webloc2md      Create a structured Markdown index of bookmark URLs 📝
+
+⚙️ HEALTH & CONFIGURATION 🩺
+  doctor         Check & auto-install missing dependencies (ffmpeg, webp, aubio...) 🩺
+  config         Show/edit user configuration presets (~/.config/mytools/config) 🛠️
+  guide          Interactive help browser & cheat-sheets 📖
+
+💡 PRO TIPS 🚀
+  • Run 'mytools' for the interactive launcher menu 🎯
+  • In launcher file selection: Press [Tab] to mark multiple files, then [Enter] to confirm! 📌
+  • Run 'mytools help <tool>' (e.g., 'mytools help mp4glue') for a detailed guide 📖
+  • Run 'mytools guide' (or 'mytools g') to interactively browse help & cheat-sheets 🔍
+EOF
+}
+
+show_tool_help() {
+  local tool="$1"
+  case "$tool" in
+    mp4glue)
+      cat <<'EOF'
+🎞️ mp4glue — Glue & Concatenate MP4 Video Files 🧲
+
+Usage:
+  mp4glue [options] <video1> <video2...>
+  mp4glue --bounce [options] <video>
+
+Description:
+  Fuses multiple MP4 video files into a single seamless output file! 🎬
+  Uses lightning-fast stream copy (-c copy) by default when inputs share codecs,
+  or --reencode to normalize mixed video formats.
+  Pass -b/--bounce for instant Boomerang-style forward-and-rewind magic! 🪃
+
+Options:
+  -o, --output <file>  Output MP4 file path (default: <first-video>-glued.mp4) 💾
+  -b, --bounce         Play 1st video forward and 2nd reversed (or forward + reversed for 1 video) 🪃
+  -r, --reencode       Force stream re-encoding (H.264/AAC) for mixed inputs ⚙️
+  -f, --force          Overwrite existing output file ⚡
+  -n, --dry-run        Preview planned output without running FFmpeg 📝
+
+Examples:
+  mp4glue clip1.mp4 clip2.mp4
+  mp4glue -o combined.mp4 intro.mp4 main.mp4 outro.mp4
+  mp4glue --bounce clip.mp4                      # 🪃 forward + reversed bounce loop
+  mp4glue --bounce -o joined.mp4 part1.mp4 part2.mp4  # part1 forward, part2 reversed
+
+💡 Launcher Tip:
+  In 'mytools' interactive launcher, press [Tab] on each file to mark multiple files,
+  then press [Enter] to confirm selection! 📌
+EOF
+      ;;
+    img2webp)
+      cat <<'EOF'
+📸 img2webp — Image to WebP Converter 🪄
+
+Usage:
+  img2webp [options] <image...>
+
+Description:
+  Converts JPEG, PNG, GIF, TIFF, HEIC to lightweight, ultra-optimized WebP images! ⚡
+
+Options:
+  -q, --quality <0-100>  Quality factor (default: 85) 🎯
+  -w, --width <px>       Downscale image to maximum width 📐
+  -R, --recursive        Search directories recursively 📁
+  -j, --jobs <N>         Number of parallel conversion jobs 🚀
+  -o, --output-dir <d>   Write output files to directory 📂
+  -f, --force            Overwrite existing output ⚡
+  -n, --dry-run          Preview conversions without running 📝
+
+Examples:
+  img2webp photo.jpg
+  img2webp -q 80 --width 1200 photo.png
+  img2webp -R -j 4 -o ./webp ~/Pictures
+EOF
+      ;;
+    vid2webm)
+      cat <<'EOF'
+🌐 vid2webm — Video to WebM Transcoder 🎬
+
+Usage:
+  vid2webm [options] <video...>
+
+Description:
+  Converts video clips to modern WebM format powered by VP9 video & Opus audio codecs. 🚀
+
+Options:
+  -q, --quality <0-63>  VP9 CRF quality (default: 30; lower is higher quality) 🎯
+  -w, --width <px>      Downscale to maximum width 📐
+  -o, --output-dir <d>  Output directory 📂
+  --from <time>         Trim start time (HH:MM:SS or seconds) ✂️
+  --to <time>           Trim end time (HH:MM:SS or seconds) ✂️
+  -f, --force           Overwrite existing file ⚡
+  -n, --dry-run         Preview output path 📝
+
+Examples:
+  vid2webm clip.mov
+  vid2webm -q 25 -w 1280 --from 00:00:10 --to 00:00:25 recording.mp4
+EOF
+      ;;
+    vid2gif)
+      cat <<'EOF'
+👾 vid2gif — Video to Animated GIF Generator 🎨
+
+Usage:
+  vid2gif [options] <video...>
+
+Description:
+  Transforms video clips into buttery smooth, palette-optimized animated GIFs! ✨
+
+Options:
+  -w, --width <px>      GIF max width (default: 480) 📐
+  -r, --fps <N>         Frames per second (default: 12) ⏱️
+  --from <time>         Start time ✂️
+  --to <time>           End time ✂️
+  -o, --output-dir <d>  Output directory 📂
+
+Examples:
+  vid2gif demo.mov
+  vid2gif -w 600 -r 15 --from 00:00:02 --to 00:00:06 demo.mp4
+EOF
+      ;;
+    media-optimize)
+      cat <<'EOF'
+🚀 media-optimize — Optimize Video for Web/Social/Archive 🎬
+
+Usage:
+  media-optimize [options] <video...>
+
+Description:
+  Re-encodes videos using tailored quality presets defined in ~/.config/mytools/config. ⚡
+
+Presets:
+  🌐 web       H.264, CRF 23, max 1080p width (default)
+  📱 social    H.264, CRF 25, max 720p width
+  📦 archive   H.265, CRF 26, source dimensions
+
+Options:
+  -p, --preset <name>  Preset section name (web|social|archive) ⚙️
+  -o, --output-dir <d> Output directory 📂
+  -f, --force          Overwrite existing output ⚡
+  -n, --dry-run        Preview output path 📝
+
+Examples:
+  media-optimize video.mov
+  media-optimize --preset social -o ./social *.mov
+EOF
+      ;;
+    vid2audio|wav2mp3|wav2tempo|wavreverse)
+      case "$tool" in
+        vid2audio)
+          cat <<'EOF'
+🔊 vid2audio — Extract Video Audio 🎧
+
+Usage:
+  vid2audio [--format wav|mp3] [--bitrate <kbps>] <video...>
+
+Description:
+  Rips crystal-clear audio streams out of video files into WAV or MP3! 🎶
+EOF
+          ;;
+        wav2mp3)
+          cat <<'EOF'
+🎧 wav2mp3 — WAV to MP3 Shrinker 🎶
+
+Usage:
+  wav2mp3 [--bitrate <kbps>] <wav...>
+
+Description:
+  Converts heavy uncompressed WAV audio into compact, high-quality MP3 files! 📦
+EOF
+          ;;
+        wav2tempo)
+          cat <<'EOF'
+🥁 wav2tempo — Retime WAV Audio by BPM ⏱️
+
+Usage:
+  wav2tempo [--target-bpm <BPM>] [--bpm <sourceBPM>] <wav...>
+
+Description:
+  Detects audio BPM using aubio, then retimes audio pitch-preservingly via FFmpeg magic! 🪄
+EOF
+          ;;
+        wavreverse)
+          cat <<'EOF'
+🔄 wavreverse — Reverse WAV Audio 🪃
+
+Usage:
+  wavreverse <wav...>
+
+Description:
+  Reverses sample audio upside down to create <name>-reversed.wav! 🎶
+EOF
+          ;;
+      esac
+      ;;
+    media-info)
+      cat <<'EOF'
+🕵️ media-info — Inspect Media File Metadata 🔍
+
+Usage:
+  media-info <file...>
+
+Description:
+  Inspects video/audio codecs, resolution, duration, bitrate, and size down to the byte! 📊
+EOF
+      ;;
+    ytdl)
+      cat <<'EOF'
+📥 ytdl — Media Grabber 🌐
+
+Usage:
+  ytdl [--format mp4|mp3] [--playlist] [URL]
+
+Description:
+  Downloads media from web links using yt-dlp. Automatically checks your clipboard for URLs! 📋
+EOF
+      ;;
+    thumloc|webloc2md)
+      cat <<'EOF'
+📂 Finder & Bookmarks Tools 📑
+
+Commands:
+  🖼️ thumloc    Generate Finder thumbnail previews for .webloc bookmark files
+  📝 webloc2md  Create a structured Markdown index of bookmark URLs
+EOF
+      ;;
+    doctor|config)
+      case "$tool" in
+        doctor)
+          cat <<'EOF'
+🩺 doctor — Dependency Check & Auto-Install 🛠️
+
+Usage:
+  mytools doctor [--install]
+
+Description:
+  Checks required Homebrew packages (ffmpeg, webp, aubio, yt-dlp, fzf...).
+  Pass --install to automatically prescribe and install missing packages! 💊
+EOF
+          ;;
+        config)
+          cat <<'EOF'
+⚙️ config — Presets Configuration Lab 🛠️
+
+Usage:
+  mytools config [--init|--path|--list]
+
+Description:
+  Manages your editable configuration file (~/.config/mytools/config). 📝
+EOF
+          ;;
+      esac
+      ;;
+    launcher-tips)
+      cat <<'EOF'
+💡 Launcher Tips & Multi-File Selection 🎯
+
+Multi-file Selection in fzf:
+  When you launch 'mytools' and pick a multi-file command (like 'mp4glue' or 'img2webp'):
+  1. Use ↑ / ↓ arrow keys to navigate your files. 🎯
+  2. Press [Tab] to mark each file you want to include (a '>' indicator appears). 📌
+  3. Press [Enter] to confirm and execute the command! 🚀
+
+Single-file Fallback:
+  If you select 1 file for 'mp4glue', it will ask if you want a cool --bounce loop! 🪃
+EOF
+      ;;
+    *)
+      if [ -f "$SCRIPT_DIR/$tool" ]; then
+        bash "$SCRIPT_DIR/$tool" --help
+      else
+        echo "❓ Unknown tool: $tool" >&2
+        echo "💡 Run 'mytools help' for a list of available commands." >&2
+        exit 1
+      fi
+      ;;
+  esac
+}
+
+interactive_guide() {
+  command -v fzf >/dev/null 2>&1 || {
+    show_overview
+    exit 0
+  }
+  
+  local topics
+  topics=$(printf '%s\n' \
+    'mp4glue — 🎞️ Glue & concatenate MP4 videos' \
+    'img2webp — 📸 Convert images to WebP' \
+    'vid2webm — 🌐 Convert videos to WebM' \
+    'vid2gif — 👾 Create animated GIFs' \
+    'media-optimize — 🚀 Web/social/archive video optimization' \
+    'vid2audio — 🔊 Extract audio from video' \
+    'wav2mp3 — 🎧 Convert WAV to MP3' \
+    'wav2tempo — 🥁 Retime WAV by BPM' \
+    'wavreverse — 🔄 Reverse WAV audio' \
+    'media-info — 🕵️ Inspect media codec & details' \
+    'ytdl — 📥 Download web media' \
+    'thumloc — 🖼️ Finder bookmark thumbnails' \
+    'webloc2md — 📑 Bookmark markdown index' \
+    'doctor — 🩺 Dependency check & installer' \
+    'config — ⚙️ User settings & presets' \
+    'launcher-tips — 💡 Multi-file selection & keybindings' \
+  )
+
+  local choice
+  choice=$(echo "$topics" | fzf \
+    --prompt='mytools guide > ' \
+    --header='💡 Select a tool or topic to view detailed guide & examples' \
+    --height=80% \
+    --layout=reverse \
+    --border \
+    --preview="bash \"$SOURCE_PATH\" preview {1}" \
+    --preview-window=right:60%:wrap)
+  
+  [ -n "$choice" ] || exit 0
+  local tool="${choice%% *}"
+  show_tool_help "$tool"
+}
+
+case "${1:-}" in
+  preview)
+    show_tool_help "${2:-overview}"
+    ;;
+  -i|--interactive|guide)
+    interactive_guide
+    ;;
+  -h|--help)
+    show_overview
+    ;;
+  "")
+    show_overview
+    ;;
+  *)
+    show_tool_help "$1"
+    ;;
+esac

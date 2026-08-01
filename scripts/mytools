@@ -5,35 +5,37 @@ usage() { cat <<'EOF'
 Usage: mytools [command]
 
 Open the interactive launcher, or run one of:
+  help [tool]  Print overview or detailed guide for a tool
+  guide        Interactive help browser & cheat-sheets
   doctor       Check dependencies
   config       Show/create the presets configuration
-  help         Print this help
 
-Tools: img2webp, vid2webm, wav2mp3, vid2audio, vid2gif, media-info,
-media-optimize, thumloc, webloc2md, ytdl.
+Tools: img2webp, mp4glue, vid2webm, wav2mp3, wav2tempo, wavreverse, vid2audio,
+vid2gif, media-info, media-optimize, thumloc, webloc2md, ytdl.
 EOF
 }
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"
 case "${1:-}" in
-  -h|--help|help) usage; exit 0;;
+  -h|--help|help|h) exec "$SCRIPT_DIR/mytools-guide" "${2:-}";;
+  guide|g) exec "$SCRIPT_DIR/mytools-guide" --interactive;;
   doctor) exec "$SCRIPT_DIR/mytools-doctor" "${@:2}";;
   config) exec "$SCRIPT_DIR/mytools-config" "${@:2}";;
   "") ;;
-  *) echo "Unknown mytools command: $1" >&2; usage >&2; exit 1;;
+  *) echo "Unknown mytools command: $1" >&2; exec "$SCRIPT_DIR/mytools-guide";;
 esac
-command -v fzf >/dev/null 2>&1 || { usage; echo "💡 Install fzf for the interactive launcher: brew install fzf"; exit 0; }
+command -v fzf >/dev/null 2>&1 || { "$SCRIPT_DIR/mytools-guide"; echo "💡 Install fzf for the interactive launcher: brew install fzf"; exit 0; }
 OPTION=$(printf '%s\n' \
-  'img2webp — image to WebP' 'vid2webm — video to WebM' 'wav2mp3 — audio to MP3' 'wav2tempo — retime a WAV by BPM' 'wavreverse — reverse WAV audio' \
-  'vid2audio — extract video audio' 'vid2gif — video to GIF' 'media-info — inspect a file' \
-  'media-optimize — web/social/archive video' 'thumloc — Finder bookmark thumbnails' \
-  'webloc2md — bookmark index' 'ytdl — download media' 'doctor — dependency check' 'config — presets' | fzf --prompt='mytools > ' --height=60% --layout=reverse --border)
+  'img2webp — 📸 Image to WebP' 'mp4glue — 🎞️ Glue MP4 videos' 'vid2webm — 🌐 Video to WebM' 'wav2mp3 — 🎧 Audio to MP3' 'wav2tempo — 🥁 Retime WAV by BPM' 'wavreverse — 🔄 Reverse WAV audio' \
+  'vid2audio — 🔊 Extract video audio' 'vid2gif — 👾 Video to GIF' 'media-info — 🕵️ Inspect media file' \
+  'media-optimize — 🚀 Optimize video (web/social/archive)' 'thumloc — 🖼️ Finder bookmark thumbnails' \
+  'webloc2md — 📑 Bookmark index' 'ytdl — 📥 Download web media' 'guide — 📖 Interactive guide & cheat-sheets' 'doctor — 🩺 Dependency health check' 'config — ⚙️ User presets & config' | fzf --prompt='mytools > ' --height=60% --layout=reverse --border)
 [ -n "$OPTION" ] || exit 0
 TOOL="${OPTION%% *}"
 case "$TOOL" in
-  doctor) exec "$SCRIPT_DIR/mytools-doctor";; config) exec "$SCRIPT_DIR/mytools-config";;
+  guide) exec "$SCRIPT_DIR/mytools-guide" --interactive;; doctor) exec "$SCRIPT_DIR/mytools-doctor";; config) exec "$SCRIPT_DIR/mytools-config";;
   thumloc|webloc2md|ytdl) exec "$SCRIPT_DIR/$TOOL";;
 esac
-FILES=$(find . -maxdepth 1 -type f -print | sed 's#^./##' | fzf -m --prompt="${TOOL} files > " --height=60% --layout=reverse --border)
+FILES=$(find . -maxdepth 1 -type f -print | sed 's#^./##' | fzf -m --prompt="${TOOL} files > " --header='💡 Press [Tab] to mark multiple files, then press [Enter] to confirm' --height=60% --layout=reverse --border)
 [ -n "$FILES" ] || { echo 'Canceled.'; exit 0; }
 FILE_ARRAY=(); while IFS= read -r file; do FILE_ARRAY+=("$file"); done <<< "$FILES"
 exec "$SCRIPT_DIR/$TOOL" "${FILE_ARRAY[@]}"

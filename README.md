@@ -17,7 +17,9 @@ mytools doctor
 
 ```bash
 mytools                 # interactive launcher
-mytools help            # command overview
+mytools help            # categorized command overview
+mytools help <tool>     # detailed guide for a specific tool (e.g. mytools help mp4glue)
+mytools guide           # interactive help browser & cheat-sheets
 mytools doctor          # dependency and PATH check
 mytools config          # create/show ~/.config/mytools/config
 ```
@@ -57,6 +59,18 @@ vid2gif -o ./gifs -f clip1.mp4 clip2.mp4
 ```
 
 GIFs use palette generation for better quality and now support multiple videos.
+
+### Glue MP4 videos: `mp4glue`
+
+```bash
+mp4glue part1.mp4 part2.mp4
+mp4glue -o combined.mp4 clip1.mp4 clip2.mp4 clip3.mp4
+mp4glue --bounce video1.mp4 video2.mp4       # video1 forward, video2 reversed
+mp4glue --bounce video.mp4                 # video forward + video reversed (bounce effect)
+mp4glue --reencode -o merged.mp4 mixed1.mp4 mixed2.mov
+```
+
+Glues multiple video files into a single MP4 file. Uses fast stream copy (`-c copy`) by default, or `--reencode` to re-encode streams into standard H.264/AAC MP4 when source files have different resolutions or codecs. Pass `-b` / `--bounce` to play videos forward and reversed.
 
 ### Extract or convert audio
 

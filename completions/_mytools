@@ -1,2 +1,2 @@
 #compdef mytools
-_arguments '1:command:(doctor config help)'
+_arguments '1:command:(doctor config help h guide g)'

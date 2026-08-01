@@ -1,0 +1,5 @@
+#compdef mytools-guide
+_arguments \
+ '(-i --interactive)'{-i,--interactive}'[interactive help browser]' \
+ '(-h --help)'{-h,--help}'[show overview]' \
+ '1:tool:(img2webp mp4glue vid2webm vid2gif media-optimize vid2audio wav2mp3 wav2tempo wavreverse media-info ytdl thumloc webloc2md doctor config launcher-tips)'

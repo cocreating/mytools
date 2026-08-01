@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+OUTPUT=""
+FORCE=0
+DRY_RUN=0
+REENCODE=0
+BOUNCE=0
+FILES=()
+
+usage() { cat <<EOF
+Usage: mp4glue [options] <video1> [video2...]
+Glue (concatenate) MP4 video files into a single MP4.
+
+Options:
+  -o, --output <file>  Output MP4 file path (default: <first-video>-glued.mp4)
+  -b, --bounce         Play 1st video forward and 2nd reversed (or forward + reversed for 1 video)
+  -r, --reencode       Re-encode streams (useful if inputs have different codecs/resolutions)
+  -f, --force          Overwrite existing output file
+  -n, --dry-run        Show planned operation without running FFmpeg
+  -h, --help           Show this help message
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -o|--output) OUTPUT="${2:?$1 requires a value}"; shift 2;;
+    -b|--bounce) BOUNCE=1; REENCODE=1; shift;;
+    -r|--reencode) REENCODE=1; shift;;
+    -f|--force) FORCE=1; shift;;
+    -n|--dry-run) DRY_RUN=1; shift;;
+    -h|--help) usage; exit 0;;
+    -*) echo "Unknown option: $1" >&2; exit 1;;
+    *) FILES+=("$1"); shift;;
+  esac
+done
+
+if [ "$BOUNCE" -eq 1 ]; then
+  if [ "${#FILES[@]}" -lt 1 ]; then
+    echo "❌ Error: mp4glue --bounce requires at least 1 input file." >&2
+    usage >&2
+    exit 1
+  fi
+else
+  if [ "${#FILES[@]}" -lt 2 ]; then
+    if [ "${#FILES[@]}" -eq 1 ] && [ -t 0 ]; then
+      printf '💡 Only 1 file provided (%s).\n' "${FILES[0]}" >&2
+      printf '   Would you like to process it in --bounce mode (forward + reversed)? [Y/n] ' >&2
+      read -r reply || reply=""
+      case "$reply" in
+        [nN]*) echo "❌ Operation canceled. mp4glue requires 2+ files (use [Tab] in mytools fzf launcher to select multiple files)." >&2; exit 1;;
+        *) BOUNCE=1; REENCODE=1;;
+      esac
+    else
+      echo "❌ Error: mp4glue requires at least 2 input files (or pass -b/--bounce for 1 file)." >&2
+      echo "💡 In the 'mytools' launcher, press [Tab] on each file to mark multiple files before pressing [Enter]." >&2
+      usage >&2
+      exit 1
+    fi
+  fi
+fi
+
+require_commands ffmpeg
+
+for input in "${FILES[@]}"; do
+  if [ ! -f "$input" ]; then
+    echo "❌ Input file not found: $input" >&2
+    exit 1
+  fi
+done
+
+first_file="${FILES[0]}"
+if [ -z "$OUTPUT" ]; then
+  filename=$(basename "$first_file")
+  OUTPUT="$(dirname "$first_file")/${filename%.*}-glued.mp4"
+fi
+
+if [ "$DRY_RUN" -eq 1 ]; then
+  echo "📝 Would glue the following files into: $OUTPUT"
+  for f in "${FILES[@]}"; do
+    echo "  - $f"
+  done
+  if [ "$BOUNCE" -eq 1 ]; then
+    if [ "${#FILES[@]}" -eq 1 ]; then
+      echo "ℹ️  Mode: Bounce (Forward + Reversed version of 1 video)"
+    else
+      echo "ℹ️  Mode: Bounce (Forward / Reversed alternating videos)"
+    fi
+  elif [ "$REENCODE" -eq 1 ]; then
+    echo "ℹ️  Mode: Re-encode (H.264/AAC)"
+  else
+    echo "ℹ️  Mode: Fast stream copy (-c copy)"
+  fi
+  exit 0
+fi
+
+output_is_safe "$OUTPUT" "$FORCE" || exit 1
+
+if [ "$BOUNCE" -eq 1 ]; then
+  echo "🪃  Gluing with bounce magic (forward/reversed) → $OUTPUT"
+  ffmpeg_inputs=()
+  filter_prep=()
+  concat_inputs=""
+  
+  if [ "${#FILES[@]}" -eq 1 ]; then
+    ffmpeg_inputs+=(-i "${FILES[0]}")
+    filter_prep+=("[0:v]reverse[vrev0];[0:a]areverse[arev0]")
+    concat_inputs="[0:v][0:a][vrev0][arev0]"
+    concat_count=2
+  else
+    concat_count="${#FILES[@]}"
+    for i in "${!FILES[@]}"; do
+      ffmpeg_inputs+=(-i "${FILES[$i]}")
+      if [ $((i % 2)) -eq 0 ]; then
+        concat_inputs+="[$i:v][$i:a]"
+      else
+        filter_prep+=("[$i:v]reverse[vrev$i];[$i:a]areverse[arev$i]")
+        concat_inputs+="[vrev$i][arev$i]"
+      fi
+    done
+  fi
+
+  filter_complex_str=""
+  if [ "${#filter_prep[@]}" -gt 0 ]; then
+    IFS=';'; filter_complex_str="${filter_prep[*]};"; unset IFS
+  fi
+  filter_complex_str="${filter_complex_str}${concat_inputs}concat=n=${concat_count}:v=1:a=1[v][a]"
+
+  ffmpeg -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+    -filter_complex "$filter_complex_str" -map "[v]" -map "[a]" \
+    -c:v libx264 -preset fast -crf 22 -c:a aac "$OUTPUT"
+
+elif [ "$REENCODE" -eq 1 ]; then
+  echo "⚙️  Re-encoding and fusing ${#FILES[@]} files → $OUTPUT"
+  ffmpeg_inputs=()
+  filter_inputs=""
+  for i in "${!FILES[@]}"; do
+    ffmpeg_inputs+=(-i "${FILES[$i]}")
+    filter_inputs+="[$i:v][$i:a]"
+  done
+  filter_complex="${filter_inputs}concat=n=${#FILES[@]}:v=1:a=1[v][a]"
+  ffmpeg -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+    -filter_complex "$filter_complex" -map "[v]" -map "[a]" \
+    -c:v libx264 -preset fast -crf 22 -c:a aac "$OUTPUT"
+else
+  echo "⚡  Gluing ${#FILES[@]} files (fast stream copy) → $OUTPUT"
+  MANIFEST="$(mktemp "${TMPDIR:-/tmp}/mp4glue_XXXXXX.txt")"
+  trap 'rm -f "$MANIFEST"' EXIT
+  for f in "${FILES[@]}"; do
+    abs_path="$(cd "$(dirname "$f")" && pwd)/$(basename "$f")"
+    printf "file '%s'\n" "$abs_path" >> "$MANIFEST"
+  done
+  ffmpeg -hide_banner -loglevel error -stats -f concat -safe 0 -i "$MANIFEST" -c copy "$OUTPUT"
+fi
+
+notify "MP4 glue complete! 🎬" "mp4glue"
+echo "🎉 Created: $OUTPUT"
