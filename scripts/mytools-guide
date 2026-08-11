@@ -17,6 +17,7 @@ show_overview() {
 
 🎵 AUDIO LAB & TIME BENDER 🎧
   vid2audio      Extract crisp audio streams from video (WAV / MP3) 🔊
+  videoWithoutAudio  Create a muted video (optionally preserve audio tracks) 🔇
   wav2mp3        Convert heavy WAV audio to lightweight MP3 🎶
   wav2tempo      Retime WAV tempo to a target BPM using aubio 🥁
   wavreverse     Reverse WAV audio sample-accurately 🔄
@@ -174,7 +175,7 @@ Examples:
   media-optimize --preset social -o ./social *.mov
 EOF
       ;;
-    vid2audio|wav2mp3|wav2tempo|wavreverse)
+    vid2audio|videoWithoutAudio|wav2mp3|wav2tempo|wavreverse)
       case "$tool" in
         vid2audio)
           cat <<'EOF'
@@ -185,6 +186,24 @@ Usage:
 
 Description:
   Rips crystal-clear audio streams out of video files into WAV or MP3! 🎶
+EOF
+          ;;
+        videoWithoutAudio)
+          cat <<'EOF'
+🔇 videoWithoutAudio — Create a Video Without Audio 🎬
+
+Usage:
+  videoWithoutAudio [options] <video...>
+
+Description:
+  Creates a video copy with no audio and discards the source audio by default.
+  Pass --extract-audio to preserve every original audio stream as its own
+  lossless-copy .mka file. The source video is never modified.
+
+Examples:
+  videoWithoutAudio interview.mp4
+  videoWithoutAudio --extract-audio -o ./separated recording.mov
+  videoWithoutAudio --dry-run *.mp4
 EOF
           ;;
         wav2mp3)
@@ -320,6 +339,7 @@ interactive_guide() {
     'vid2gif — 👾 Create animated GIFs' \
     'media-optimize — 🚀 Web/social/archive video optimization' \
     'vid2audio — 🔊 Extract audio from video' \
+    'videoWithoutAudio — 🔇 Remove audio (optionally preserve tracks)' \
     'wav2mp3 — 🎧 Convert WAV to MP3' \
     'wav2tempo — 🥁 Retime WAV by BPM' \
     'wavreverse — 🔄 Reverse WAV audio' \

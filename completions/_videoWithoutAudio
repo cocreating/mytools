@@ -1,0 +1,7 @@
+#compdef videoWithoutAudio
+_arguments \
+  '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \
+  '(-e --extract-audio)'{-e,--extract-audio}'[preserve source audio tracks as .mka files]' \
+  '(-f --force)'{-f,--force}'[overwrite existing outputs]' \
+  '(-n --dry-run)'{-n,--dry-run}'[show planned outputs]' \
+  '*:video file:_files -g "*.(mp4|mov|avi|mkv|webm|m4v)(-.)"'

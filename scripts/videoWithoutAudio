@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+OUTPUT_DIR=""; EXTRACT_AUDIO=0; FORCE=0; DRY_RUN=0; FILES=()
+usage() { cat <<'EOF'
+Usage: videoWithoutAudio [options] <video> [video ...]
+
+Creates an audio-less copy of each video. By default the original audio is
+discarded; use --extract-audio to also preserve every stream as a .mka file.
+
+  -o, --output-dir <dir>  Write outputs to this directory
+  -e, --extract-audio     Preserve each original audio stream as a .mka file
+  -f, --force             Overwrite existing outputs
+  -n, --dry-run           Show planned outputs only
+  -h, --help              Show help
+
+Examples:
+  videoWithoutAudio interview.mp4
+  videoWithoutAudio --extract-audio -o ./separated recording.mov
+  videoWithoutAudio --dry-run *.mp4
+EOF
+}
+while [ "$#" -gt 0 ]; do case "$1" in
+  -o|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;;
+  -e|--extract-audio) EXTRACT_AUDIO=1; shift;;
+  -f|--force) FORCE=1; shift;; -n|--dry-run) DRY_RUN=1; shift;;
+  -h|--help) usage; exit 0;; -*) echo "Unknown option: $1" >&2; usage >&2; exit 1;;
+  *) FILES+=("$1"); shift;;
+esac; done
+[ "${#FILES[@]}" -gt 0 ] || { usage >&2; exit 1; }
+require_commands ffmpeg
+[ "$EXTRACT_AUDIO" -eq 0 ] || require_commands ffprobe
+[ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+
+run_ffmpeg() {
+  if [ "$FORCE" -eq 1 ]; then ffmpeg -y "$@"; else ffmpeg "$@"; fi
+}
+
+SUCCESS=0; FAILED=0; SKIPPED=0
+for input in "${FILES[@]}"; do
+  if [ ! -f "$input" ]; then echo "⚠️  Not a file: $input" >&2; FAILED=$((FAILED + 1)); continue; fi
+  filename="$(basename "$input")"; extension="${filename##*.}"; stem="${filename%.*}"
+  if [ "$stem" = "$filename" ]; then echo "⚠️  Video needs a filename extension: $input" >&2; FAILED=$((FAILED + 1)); continue; fi
+  target_dir="${OUTPUT_DIR:-$(dirname "$input")}"; muted_video="${target_dir}/${stem}-without-audio.${extension}"
+  audio_count=0
+  if [ "$EXTRACT_AUDIO" -eq 1 ]; then audio_count="$(ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 "$input" | awk 'NF { count++ } END { print count + 0 }')"; fi
+  collision=0
+  [ -e "$muted_video" ] && [ "$FORCE" -ne 1 ] && collision=1
+  track=0
+  while [ "$track" -lt "$audio_count" ]; do
+    track_file="${target_dir}/${stem}-audio-track-$(printf '%02d' "$((track + 1))").mka"
+    [ -e "$track_file" ] && [ "$FORCE" -ne 1 ] && collision=1
+    track=$((track + 1))
+  done
+  if [ "$collision" -eq 1 ]; then
+    echo "⚠️  Skipped (one or more outputs exist; pass --force): $input" >&2
+    SKIPPED=$((SKIPPED + 1)); continue
+  fi
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "📝 Would create muted video: $muted_video"
+    track=0; while [ "$track" -lt "$audio_count" ]; do echo "   Would preserve audio track $((track + 1)): ${target_dir}/${stem}-audio-track-$(printf '%02d' "$((track + 1))").mka"; track=$((track + 1)); done
+    continue
+  fi
+  echo "▶️  Creating muted video: $muted_video"
+  if ! run_ffmpeg -hide_banner -loglevel error -stats -i "$input" -map 0 -map -0:a -c copy -an "$muted_video"; then FAILED=$((FAILED + 1)); continue; fi
+  file_failed=0; track=0
+  while [ "$track" -lt "$audio_count" ]; do
+    track_file="${target_dir}/${stem}-audio-track-$(printf '%02d' "$((track + 1))").mka"
+    echo "   🎵 Preserving audio track $((track + 1))/$audio_count: $track_file"
+    if ! run_ffmpeg -hide_banner -loglevel error -stats -i "$input" -map "0:a:$track" -c copy -f matroska "$track_file"; then file_failed=1; fi
+    track=$((track + 1))
+  done
+  if [ "$file_failed" -eq 1 ]; then FAILED=$((FAILED + 1)); else SUCCESS=$((SUCCESS + 1)); fi
+done
+echo "✅ Done: $SUCCESS muted video(s) created, $FAILED failed, $SKIPPED skipped"
+[ "$SUCCESS" -eq 0 ] || notify "Created $SUCCESS muted video(s)." 'videoWithoutAudio'
+exit "$FAILED"

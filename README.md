@@ -81,6 +81,16 @@ wav2mp3 --bitrate 256 interview.wav
 wav2mp3 -n -o ./mp3 *.wav                   # preview first
 ```
 
+### Split a video from its audio: `videoWithoutAudio`
+
+```bash
+videoWithoutAudio interview.mp4
+videoWithoutAudio --extract-audio -o ./separated recording.mov
+videoWithoutAudio --dry-run *.mp4
+```
+
+By default, this creates only `<name>-without-audio.<ext>` and discards the original audio from the new copy. Add `--extract-audio` to also preserve every source stream as `<name>-audio-track-01.mka`, `<name>-audio-track-02.mka`, and so on. Preserved audio streams are copied without re-encoding; the original video is never changed.
+
 ### Retime a WAV by BPM: `wav2tempo`
 
 ```bash

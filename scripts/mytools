@@ -10,7 +10,7 @@ Open the interactive launcher, or run one of:
   doctor       Check dependencies
   config       Show/create the presets configuration
 
-Tools: img2webp, mp4glue, vid2webm, wav2mp3, wav2tempo, wavreverse, vid2audio,
+Tools: img2webp, mp4glue, vid2webm, videoWithoutAudio, wav2mp3, wav2tempo, wavreverse, vid2audio,
 vid2gif, media-info, media-optimize, thumloc, webloc2md, ytdl.
 EOF
 }
@@ -26,7 +26,7 @@ esac
 command -v fzf >/dev/null 2>&1 || { "$SCRIPT_DIR/mytools-guide"; echo "💡 Install fzf for the interactive launcher: brew install fzf"; exit 0; }
 OPTION=$(printf '%s\n' \
   'img2webp — 📸 Image to WebP' 'mp4glue — 🎞️ Glue MP4 videos' 'vid2webm — 🌐 Video to WebM' 'wav2mp3 — 🎧 Audio to MP3' 'wav2tempo — 🥁 Retime WAV by BPM' 'wavreverse — 🔄 Reverse WAV audio' \
-  'vid2audio — 🔊 Extract video audio' 'vid2gif — 👾 Video to GIF' 'media-info — 🕵️ Inspect media file' \
+  'vid2audio — 🔊 Extract video audio' 'videoWithoutAudio — 🔇 Remove video audio (optional preserve tracks)' 'vid2gif — 👾 Video to GIF' 'media-info — 🕵️ Inspect media file' \
   'media-optimize — 🚀 Optimize video (web/social/archive)' 'thumloc — 🖼️ Finder bookmark thumbnails' \
   'webloc2md — 📑 Bookmark index' 'ytdl — 📥 Download web media' 'guide — 📖 Interactive guide & cheat-sheets' 'doctor — 🩺 Dependency health check' 'config — ⚙️ User presets & config' | fzf --prompt='mytools > ' --height=60% --layout=reverse --border)
 [ -n "$OPTION" ] || exit 0
