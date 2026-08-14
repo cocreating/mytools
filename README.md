@@ -99,7 +99,7 @@ wav2tempo --target-bpm 128 drum-loop.wav
 wav2tempo --bpm 92 -t 120 -o ./retimed song.wav
 ```
 
-`wav2tempo` uses `aubio` to estimate the source BPM and FFmpeg’s pitch-preserving tempo filter to create a new WAV. Detection works best with a rhythmic loop or a track with a clear, steady beat. If detection is uncertain, use `--bpm` to enter the known source BPM yourself.
+`wav2tempo` uses `aubio` to estimate the source BPM and FFmpeg’s pitch-preserving tempo filter to create a new WAV. Detection works best with a rhythmic loop or a track with a clear, steady beat. If detection is uncertain, use `--bpm` to enter the known source BPM yourself. Both period (`.`) and comma (`,`) decimal separators are supported regardless of system locale.
 
 ### Reverse a WAV: `wavreverse`
 

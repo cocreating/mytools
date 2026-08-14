@@ -37,14 +37,16 @@ if [ -z "$SOURCE_BPM" ]; then
   require_commands aubio
   echo '🔎 Detecting BPM…'
   SOURCE_BPM="$(aubio tempo "$INPUT_FILE" 2>/dev/null | awk '
-    match($0, /[0-9]+([.][0-9]+)?/) { print substr($0, RSTART, RLENGTH); exit }')"
+    match($0, /[0-9]+([.,][0-9]+)?/) { print substr($0, RSTART, RLENGTH); exit }')"
   [ -n "$SOURCE_BPM" ] || { echo '❌ BPM could not be detected. Try --bpm <source-bpm>.' >&2; exit 1; }
 fi
+SOURCE_BPM="${SOURCE_BPM//,/.}"
 is_bpm "$SOURCE_BPM" || { echo 'Source BPM must be a number between 0 and 1000.' >&2; exit 1; }
 echo "🎵 Detected/source BPM: $SOURCE_BPM"
 if [ -z "$TARGET_BPM" ]; then
   read -r -p 'Target BPM: ' TARGET_BPM
 fi
+TARGET_BPM="${TARGET_BPM//,/.}"
 is_bpm "$TARGET_BPM" || { echo 'Target BPM must be a number between 0 and 1000.' >&2; exit 1; }
 SPEED="$(awk -v target="$TARGET_BPM" -v source="$SOURCE_BPM" 'BEGIN { printf "%.8f", target / source }')"
 FILTERS=""; REMAINING="$SPEED"

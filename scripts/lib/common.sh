@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Shared helpers for mytools commands. Compatible with macOS Bash 3.2.
 
+export LC_ALL=C
+export LC_NUMERIC=C
+
 MYTOOLS_CONFIG_DIR="${MYTOOLS_CONFIG_DIR:-$HOME/.config/mytools}"
 MYTOOLS_CONFIG_FILE="${MYTOOLS_CONFIG_FILE:-$MYTOOLS_CONFIG_DIR/config}"
 
