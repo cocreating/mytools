@@ -1,0 +1,8 @@
+#compdef wavfade
+_arguments \
+  '(-i --in)'{-i,--in}'[fade-in duration in seconds]:seconds' \
+  '(-o --out)'{-o,--out}'[fade-out duration in seconds]:seconds' \
+  '(-c --curve)'{-c,--curve}'[fade curve type]:curve:(tri qsin esin hsin log exp)' \
+  '(-d --output-dir)'{-d,--output-dir}'[output directory]:directory:_files -/' \
+  '(-f --force)'{-f,--force}'[overwrite existing output]' '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+  '*:WAV file:_files -g "*.wav(-.)"'

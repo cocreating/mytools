@@ -40,9 +40,11 @@ load_config() {
 
 usage() {
     cat <<EOF
-Usage: img2webp [options] <file1.jpg> [file2.png ...]
+Usage: img2webp [options] [file1.jpg file2.png ... or directory]
 
 Options:
+  -i, --interactive     Interactive wizard mode (prompts for settings & files)
+  -a, --all             Process all images in the current directory
   -q, --quality <n>     Quality 0-100 (default: $QUALITY)
   -w, --width <px>      Resize width (keeps aspect ratio)
   -H, --height <px>     Resize height (keeps aspect ratio)
@@ -58,8 +60,11 @@ Options:
   -h, --help            Show this help
 
 Examples:
+  img2webp -i                               # Interactive wizard
+  img2webp --width 1200 -q 90 -a            # Convert all images in current folder
+  img2webp -width 1200 -q 90 .              # Single-dash flags supported
   img2webp -q 80 photo.jpg
-  img2webp --width 1200 --output-dir ./converted/ *.png
+  img2webp --width 1200 --output-dir ./out/ *.png
   img2webp -R -j 4 -f ~/Pictures/Vacation/
   img2webp -q 90 -d -o ./webp/ photo.heic
 
@@ -89,34 +94,224 @@ validate_numeric() {
     fi
 }
 
+interactive_wizard() {
+    echo "🧙 Welcome to the img2webp interactive wizard!"
+    echo "───────────────────────────────────────────────"
+
+    # Step 1: Input files / folder selection
+    if [ "${#FILES[@]}" -eq 0 ]; then
+        echo "📂 Step 1: Select images to convert"
+        echo "  [1] All images in current directory ($(pwd)) [Default]"
+        echo "  [2] All images in current directory and subdirectories (recursive)"
+        if command -v fzf &>/dev/null; then
+            echo "  [3] Select files interactively with fzf"
+        fi
+        echo "  [4] Specify custom path, directory, or files"
+        printf "Choose an option [1]: "
+        read -r file_choice
+        file_choice="${file_choice:-1}"
+
+        case "$file_choice" in
+            1)
+                FILES+=(".")
+                ;;
+            2)
+                RECURSIVE=1
+                FILES+=(".")
+                ;;
+            3)
+                if command -v fzf &>/dev/null; then
+                    echo "💡 Tip: Press [Tab] to mark multiple files, then [Enter] to confirm."
+                    local cand_files=""
+                    cand_files=$(find . -maxdepth 1 -type f 2>/dev/null | grep -Ei '\.(jpe?g|png|gif|bmp|tiff?|heic|heif|webp)$' | sed 's#^./##' || true)
+                    if [ -z "$cand_files" ]; then
+                        cand_files=$(find . -type f 2>/dev/null | grep -Ei '\.(jpe?g|png|gif|bmp|tiff?|heic|heif|webp)$' | sed 's#^./##' || true)
+                    fi
+                    local selected=""
+                    if [ -n "$cand_files" ]; then
+                        selected=$(printf '%s\n' "$cand_files" | fzf -m --prompt="img2webp files > " --height=50% --layout=reverse --border || true)
+                    fi
+                    if [ -z "$selected" ]; then
+                        echo "No files selected. Defaulting to all images in current directory."
+                        FILES+=(".")
+                    else
+                        while IFS= read -r f; do
+                            [ -n "$f" ] && FILES+=("$f")
+                        done <<< "$selected"
+                    fi
+                else
+                    FILES+=(".")
+                fi
+                ;;
+            4)
+                printf "Enter path or directory [default: .]: "
+                read -r custom_path
+                custom_path="${custom_path:-.}"
+                FILES+=("$custom_path")
+                ;;
+            *)
+                FILES+=(".")
+                ;;
+        esac
+        echo ""
+    else
+        echo "📂 Files: ${#FILES[@]} item(s) specified on command line."
+        echo ""
+    fi
+
+    # Step 2: Quality
+    echo "🎨 Step 2: Quality (0-100)"
+    printf "Enter quality [default: %s]: " "$QUALITY"
+    read -r input_quality
+    if [ -n "$input_quality" ]; then
+        if [[ "$input_quality" =~ ^[0-9]+$ ]] && [ "$input_quality" -ge 0 ] && [ "$input_quality" -le 100 ]; then
+            QUALITY="$input_quality"
+        else
+            echo "⚠️  Invalid quality '$input_quality', keeping default: $QUALITY"
+        fi
+    fi
+    echo ""
+
+    # Step 3: Resize (Width / Height)
+    echo "📐 Step 3: Resize (keeps aspect ratio unless both width and height are given)"
+    local cur_w="none"
+    [ "$WIDTH" -gt 0 ] && cur_w="$WIDTH"
+    printf "Max width in pixels (e.g. 1200, 1920, or Enter to keep original) [%s]: " "$cur_w"
+    read -r input_width
+    if [ -n "$input_width" ]; then
+        if [[ "$input_width" =~ ^[0-9]+$ ]]; then
+            WIDTH="$input_width"
+        else
+            echo "⚠️  Invalid width '$input_width', keeping original width"
+        fi
+    fi
+
+    local cur_h="none"
+    [ "$HEIGHT" -gt 0 ] && cur_h="$HEIGHT"
+    printf "Max height in pixels (e.g. 800, or Enter to keep original) [%s]: " "$cur_h"
+    read -r input_height
+    if [ -n "$input_height" ]; then
+        if [[ "$input_height" =~ ^[0-9]+$ ]]; then
+            HEIGHT="$input_height"
+        else
+            echo "⚠️  Invalid height '$input_height', keeping original height"
+        fi
+    fi
+    echo ""
+
+    # Step 4: Lossless
+    echo "💎 Step 4: Compression mode"
+    printf "Lossless encoding? (ignores quality setting) [y/N]: "
+    read -r input_lossless
+    if [[ "$input_lossless" =~ ^[Yy]$ ]]; then
+        LOSSLESS=1
+    fi
+    echo ""
+
+    # Step 5: Output directory
+    echo "📂 Step 5: Output directory"
+    printf "Output directory (Enter for same folder as input)%s: " "$([ -n "$OUTPUT_DIR" ] && echo " [$OUTPUT_DIR]" || echo "")"
+    read -r input_outdir
+    if [ -n "$input_outdir" ]; then
+        OUTPUT_DIR="$input_outdir"
+    fi
+    echo ""
+
+    # Step 6: Additional options
+    echo "⚙️  Step 6: Additional options"
+    printf "Overwrite existing .webp files? [y/N]: "
+    read -r input_force
+    [[ "$input_force" =~ ^[Yy]$ ]] && FORCE=1
+
+    printf "Delete original files after successful conversion? [y/N]: "
+    read -r input_del
+    [[ "$input_del" =~ ^[Yy]$ ]] && DELETE_ORIGINAL=1
+    echo ""
+
+    # Step 7: Summary & Confirmation
+    local eq_cmd="img2webp"
+    [ "$QUALITY" -ne 85 ] && eq_cmd+=" -q $QUALITY"
+    [ "$WIDTH" -gt 0 ] && eq_cmd+=" --width $WIDTH"
+    [ "$HEIGHT" -gt 0 ] && eq_cmd+=" --height $HEIGHT"
+    [ "$LOSSLESS" -eq 1 ] && eq_cmd+=" --lossless"
+    [ -n "$OUTPUT_DIR" ] && eq_cmd+=" --output-dir \"$OUTPUT_DIR\""
+    [ "$RECURSIVE" -eq 1 ] && eq_cmd+=" --recursive"
+    [ "$FORCE" -eq 1 ] && eq_cmd+=" --force"
+    [ "$DELETE_ORIGINAL" -eq 1 ] && eq_cmd+=" --delete-original"
+    if [ "${#FILES[@]}" -eq 1 ] && [ "${FILES[0]}" = "." ]; then
+        eq_cmd+=" -a"
+    else
+        for f in "${FILES[@]}"; do
+            eq_cmd+=" \"$f\""
+        done
+    fi
+
+    echo "══════════════════════════════════════════════════"
+    echo "📋 Planned Configuration:"
+    echo "  Quality        : $([ "$LOSSLESS" -eq 1 ] && echo "Lossless" || echo "$QUALITY")"
+    if [ "$WIDTH" -gt 0 ] && [ "$HEIGHT" -gt 0 ]; then
+        echo "  Resize         : ${WIDTH}x${HEIGHT}px"
+    elif [ "$WIDTH" -gt 0 ]; then
+        echo "  Resize width   : ${WIDTH}px (maintains aspect ratio)"
+    elif [ "$HEIGHT" -gt 0 ]; then
+        echo "  Resize height  : ${HEIGHT}px (maintains aspect ratio)"
+    else
+        echo "  Resize         : None (original dimensions)"
+    fi
+    echo "  Output dir     : ${OUTPUT_DIR:-"Same as source file"}"
+    echo "  Overwrite      : $([ "$FORCE" -eq 1 ] && echo "Yes" || echo "No")"
+    echo "  Delete source  : $([ "$DELETE_ORIGINAL" -eq 1 ] && echo "Yes" || echo "No")"
+    echo ""
+    echo "💡 Equivalent command:"
+    echo "   $eq_cmd"
+    echo "══════════════════════════════════════════════════"
+    printf "Proceed with conversion? [Y/n]: "
+    read -r confirm
+    confirm="${confirm:-y}"
+    if ! [[ "$confirm" =~ ^[Yy]$ ]]; then
+        echo "❌ Conversion canceled."
+        exit 0
+    fi
+    echo ""
+}
+
+load_config
+
 # ─── Parse arguments ───────────────────────────
 FILES=()
+INTERACTIVE=0
+ALL_IN_DIR=0
+CLI_OPTIONS_PASSED=0
+
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
-        -q|--quality)  [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a value" >&2; exit 1; }; QUALITY="$2"; shift 2 ;;
-        -w|--width)    [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a value" >&2; exit 1; }; WIDTH="$2"; shift 2 ;;
-        -H|--height)   [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a value" >&2; exit 1; }; HEIGHT="$2"; shift 2 ;;
-        -r|--resize)
+        -i|--interactive|-interactive) INTERACTIVE=1; shift ;;
+        -a|--all|-all) ALL_IN_DIR=1; shift ;;
+        -q|--quality|-quality)  [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a value" >&2; exit 1; }; QUALITY="$2"; CLI_OPTIONS_PASSED=1; shift 2 ;;
+        -w|--width|-width)    [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a value" >&2; exit 1; }; WIDTH="$2"; CLI_OPTIONS_PASSED=1; shift 2 ;;
+        -H|--height|-height)   [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a value" >&2; exit 1; }; HEIGHT="$2"; CLI_OPTIONS_PASSED=1; shift 2 ;;
+        -r|--resize|-resize)
             [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires WIDTHxHEIGHT" >&2; exit 1; }
             if [[ "$2" =~ ^([0-9]+)x([0-9]+)$ ]]; then
                 WIDTH="${BASH_REMATCH[1]}"; HEIGHT="${BASH_REMATCH[2]}"
             else
                 echo "❌ Error: resize must use WIDTHxHEIGHT, e.g. 1200x800" >&2; exit 1
             fi
+            CLI_OPTIONS_PASSED=1
             shift 2 ;;
-        -l|--lossless) LOSSLESS=1; shift ;;
-        -o|--output-dir)
+        -l|--lossless|-lossless) LOSSLESS=1; CLI_OPTIONS_PASSED=1; shift ;;
+        -o|--output-dir|-output-dir)
             [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a directory" >&2; exit 1; }
-            OUTPUT_DIR="$2"; shift 2 ;;
-        -R|--recursive) RECURSIVE=1; shift ;;
-        -j|--jobs)
+            OUTPUT_DIR="$2"; CLI_OPTIONS_PASSED=1; shift 2 ;;
+        -R|--recursive|-recursive) RECURSIVE=1; CLI_OPTIONS_PASSED=1; shift ;;
+        -j|--jobs|-jobs)
             [[ -n "${2:-}" ]] || { echo "❌ Error: $1 requires a number" >&2; exit 1; }
-            JOBS="$2"; shift 2 ;;
-        -f|--force) FORCE=1; shift ;;
-        -n|--dry-run) DRY_RUN=1; shift ;;
-        -d|--delete-original) DELETE_ORIGINAL=1; shift ;;
-        -v|--verbose) VERBOSE=1; shift ;;
-        -h|--help) usage; exit 0 ;;
+            JOBS="$2"; CLI_OPTIONS_PASSED=1; shift 2 ;;
+        -f|--force|-force) FORCE=1; CLI_OPTIONS_PASSED=1; shift ;;
+        -n|--dry-run|-dry-run) DRY_RUN=1; CLI_OPTIONS_PASSED=1; shift ;;
+        -d|--delete-original|-delete-original) DELETE_ORIGINAL=1; CLI_OPTIONS_PASSED=1; shift ;;
+        -v|--verbose|-verbose) VERBOSE=1; CLI_OPTIONS_PASSED=1; shift ;;
+        -h|--help|-help) usage; exit 0 ;;
         -*)
             echo "❌ Error: unknown option $1" >&2
             usage >&2; exit 1 ;;
@@ -124,7 +319,32 @@ while [[ "$#" -gt 0 ]]; do
     esac
 done
 
-load_config
+if [ "$ALL_IN_DIR" -eq 1 ]; then
+    FILES+=(".")
+fi
+
+if [ "$INTERACTIVE" -eq 1 ]; then
+    interactive_wizard
+elif [ "${#FILES[@]}" -eq 0 ]; then
+    if [ -t 0 ]; then
+        if [ "$CLI_OPTIONS_PASSED" -eq 0 ]; then
+            interactive_wizard
+        else
+            printf "📁 No files specified. Convert all images in current directory (%s)? [Y/n]: " "$(pwd)"
+            read -r reply
+            reply="${reply:-y}"
+            if [[ "$reply" =~ ^[Yy]$ ]]; then
+                FILES+=(".")
+            else
+                echo "💡 Run 'img2webp --help' for usage or 'img2webp -i' for interactive wizard."
+                exit 0
+            fi
+        fi
+    else
+        usage >&2
+        exit 1
+    fi
+fi
 
 if ! [[ "$QUALITY" =~ ^[0-9]+$ ]] || [ "$QUALITY" -lt 0 ] || [ "$QUALITY" -gt 100 ]; then
     echo "❌ Error: quality must be a number from 0 to 100" >&2; exit 1
@@ -132,8 +352,6 @@ fi
 validate_numeric "$WIDTH" width
 validate_numeric "$HEIGHT" height
 validate_numeric "$JOBS" jobs
-
-if [ "${#FILES[@]}" -eq 0 ]; then usage >&2; exit 1; fi
 
 # ─── Resolve output dir ────────────────────────
 if [[ -n "$OUTPUT_DIR" ]]; then
@@ -148,14 +366,18 @@ fi
 ALL_INPUTS=()
 for item in "${FILES[@]}"; do
     if [ -d "$item" ]; then
+        depth_args=()
         if [ "$RECURSIVE" -eq 0 ]; then
-            echo "⚠️  '$item' is a directory. Use -R/--recursive." >&2
-            continue
+            depth_args=(-maxdepth 1)
         fi
         for ext in "${IMAGE_EXTENSIONS[@]}"; do
             while IFS= read -r -d '' file; do
+                # Avoid re-encoding webp in place unless output dir is specified
+                if [[ "$ext" == "webp" && -z "$OUTPUT_DIR" ]]; then
+                    continue
+                fi
                 ALL_INPUTS+=("$file")
-            done < <(find "$item" -type f -iname "*.${ext}" -print0 2>/dev/null || true)
+            done < <(find "$item" "${depth_args[@]}" -type f -iname "*.${ext}" -print0 2>/dev/null || true)
         done
     elif [ -f "$item" ]; then
         ALL_INPUTS+=("$item")
@@ -163,6 +385,15 @@ for item in "${FILES[@]}"; do
         echo "⚠️  File not found: $item" >&2
     fi
 done
+
+# De-duplicate files while preserving order
+if [ "${#ALL_INPUTS[@]}" -gt 0 ]; then
+    DEDUP_INPUTS=()
+    while IFS= read -r file; do
+        [ -n "$file" ] && DEDUP_INPUTS+=("$file")
+    done < <(printf '%s\n' "${ALL_INPUTS[@]}" | awk '!seen[$0]++')
+    ALL_INPUTS=("${DEDUP_INPUTS[@]}")
+fi
 
 if [ "${#ALL_INPUTS[@]}" -eq 0 ]; then
     echo "❌ No valid image files found." >&2; exit 1
@@ -230,6 +461,18 @@ process_file_job() {
     local RESULT_DIR="$4"
     local OUTPUT_FILE
     OUTPUT_FILE="$(get_output_path "$INPUT_FILE")"
+
+    # Check if input and output are the exact same file
+    if [ -f "$OUTPUT_FILE" ] && [ -f "$INPUT_FILE" ]; then
+        local in_real out_real
+        in_real="$(cd "$(dirname "$INPUT_FILE")" 2>/dev/null && pwd)/$(basename "$INPUT_FILE")"
+        out_real="$(cd "$(dirname "$OUTPUT_FILE")" 2>/dev/null && pwd)/$(basename "$OUTPUT_FILE")"
+        if [ "$in_real" = "$out_real" ]; then
+            echo "   ⚠️  [$CURRENT/$TOTAL] Skipped (source and output are the same file): $OUTPUT_FILE"
+            echo "skipped" > "${RESULT_DIR}/${CURRENT}"
+            return 0
+        fi
+    fi
 
     # Overwrite check
     if [ -f "$OUTPUT_FILE" ] && [ "$FORCE" -eq 0 ] && [ "$DRY_RUN" -eq 0 ]; then

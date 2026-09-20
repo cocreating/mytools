@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+THRESHOLD="-50"; START_ONLY=0; END_ONLY=0; OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; FILES=()
+usage() { cat <<'EOF'
+Usage: wavtrim [options] <file.wav> [file.wav ...]
+
+Strip silence from the start and/or end of one or more WAV files.
+
+  -t, --threshold <dB>    Silence threshold in dB (default: -50)
+  -s, --start-only        Trim leading silence only
+  -e, --end-only          Trim trailing silence only
+  -o, --output-dir <dir>  Write output files to this directory
+  -f, --force             Overwrite existing output files
+  -n, --dry-run           Show planned output files only
+  -h, --help              Show help
+
+Examples:
+  wavtrim sample.wav
+  wavtrim --threshold -40dB vocal.wav
+  wavtrim --start-only kick.wav
+  wavtrim -t -45 -o ./trimmed *.wav
+EOF
+}
+while [ "$#" -gt 0 ]; do case "$1" in
+  -t|--threshold) THRESHOLD="${2:?$1 requires a value}"; shift 2;;
+  -s|--start-only) START_ONLY=1; shift;;
+  -e|--end-only) END_ONLY=1; shift;;
+  -o|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;;
+  -f|--force) FORCE=1; shift;; -n|--dry-run) DRY_RUN=1; shift;;
+  -h|--help) usage; exit 0;; -*) echo "Unknown option: $1" >&2; usage >&2; exit 1;;
+  *) FILES+=("$1"); shift;;
+esac; done
+[ "${#FILES[@]}" -gt 0 ] || { usage >&2; exit 1; }
+THRESHOLD="${THRESHOLD%dB}"
+THRESHOLD="${THRESHOLD%DB}"
+THRESHOLD="${THRESHOLD//,/.}"
+require_commands ffmpeg
+
+[ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+SUCCESS=0; FAILED=0; SKIPPED=0
+for input in "${FILES[@]}"; do
+  if [ ! -f "$input" ]; then echo "⚠️  Not a file: $input" >&2; FAILED=$((FAILED + 1)); continue; fi
+  [[ "${input##*.}" =~ ^([Ww][Aa][Vv])$ ]] || { echo "⚠️  Not a WAV file: $input" >&2; FAILED=$((FAILED + 1)); continue; }
+
+  TRIM_START="silenceremove=start_periods=1:start_threshold=${THRESHOLD}dB:start_silence=0.01"
+  TRIM_END="areverse,silenceremove=start_periods=1:start_threshold=${THRESHOLD}dB:start_silence=0.01,areverse"
+
+  if [ "$START_ONLY" -eq 1 ]; then
+    FILTERS="$TRIM_START"
+    DESC="Trim leading silence (< ${THRESHOLD}dB)"
+  elif [ "$END_ONLY" -eq 1 ]; then
+    FILTERS="$TRIM_END"
+    DESC="Trim trailing silence (< ${THRESHOLD}dB)"
+  else
+    FILTERS="${TRIM_START},${TRIM_END}"
+    DESC="Trim leading & trailing silence (< ${THRESHOLD}dB)"
+  fi
+
+  output="${OUTPUT_DIR:-$(dirname "$input")}/$(basename "${input%.*}")-trimmed.wav"
+  if [ "$DRY_RUN" -eq 1 ]; then echo "📝 Would create: $output ($DESC)"; continue; fi
+  if ! output_is_safe "$output" "$FORCE"; then SKIPPED=$((SKIPPED + 1)); continue; fi
+  echo "▶️  $input → $output ($DESC)"
+  if ffmpeg -hide_banner -loglevel error -stats -i "$input" -af "$FILTERS" -c:a pcm_s16le "$output"; then SUCCESS=$((SUCCESS + 1)); else FAILED=$((FAILED + 1)); fi
+done
+echo "✅ Done: $SUCCESS trimmed, $FAILED failed, $SKIPPED skipped"
+[ "$SUCCESS" -eq 0 ] || notify "Trimmed $SUCCESS WAV file(s)." 'wavtrim'
+exit "$FAILED"

@@ -1,0 +1,7 @@
+#compdef wavpitch
+_arguments \
+  '(-s --semitones)'{-s,--semitones}'[semitones to shift]:semitones' \
+  '(-v --varispeed)'{-v,--varispeed}'[link pitch and speed (tape effect)]' \
+  '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \
+  '(-f --force)'{-f,--force}'[overwrite existing output]' '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+  '*:WAV file:_files -g "*.wav(-.)"'

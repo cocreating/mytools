@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+FADE_IN="0"; FADE_OUT="0"; CURVE="tri"; OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; FILES=()
+usage() { cat <<'EOF'
+Usage: wavfade [options] <file.wav> [file.wav ...]
+
+Apply fade-in and fade-out volume envelopes to one or more WAV files.
+
+  -i, --in <seconds>      Fade-in duration in seconds (e.g. 0.1, 0.5)
+  -o, --out <seconds>     Fade-out duration in seconds (e.g. 0.2, 1.0)
+  -c, --curve <type>      Fade curve (tri, qsin, esin, hsin, log, exp; default: tri)
+  -d, --output-dir <dir>  Write output files to this directory
+  -f, --force             Overwrite existing output files
+  -n, --dry-run           Show planned output files only
+  -h, --help              Show help
+
+Examples:
+  wavfade -i 0.1 -o 0.2 sample.wav
+  wavfade --in 0.5 --out 1.0 synth-pad.wav
+  wavfade -i 0.2 -o 0.5 --curve qsin -d ./faded *.wav
+EOF
+}
+while [ "$#" -gt 0 ]; do case "$1" in
+  -i|--in) FADE_IN="${2:?$1 requires a value}"; shift 2;;
+  -o|--out) FADE_OUT="${2:?$1 requires a value}"; shift 2;;
+  -c|--curve) CURVE="${2:?$1 requires a value}"; shift 2;;
+  -d|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;;
+  -f|--force) FORCE=1; shift;; -n|--dry-run) DRY_RUN=1; shift;;
+  -h|--help) usage; exit 0;; -*) echo "Unknown option: $1" >&2; usage >&2; exit 1;;
+  *) FILES+=("$1"); shift;;
+esac; done
+[ "${#FILES[@]}" -gt 0 ] || { usage >&2; exit 1; }
+FADE_IN="${FADE_IN//,/.}"
+FADE_OUT="${FADE_OUT//,/.}"
+awk -v fi="$FADE_IN" -v fo="$FADE_OUT" 'BEGIN { exit !(fi > 0 || fo > 0) }' || { echo 'At least one of --in or --out must be greater than 0.' >&2; exit 1; }
+require_commands ffmpeg ffprobe
+
+[ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+SUCCESS=0; FAILED=0; SKIPPED=0
+for input in "${FILES[@]}"; do
+  if [ ! -f "$input" ]; then echo "⚠️  Not a file: $input" >&2; FAILED=$((FAILED + 1)); continue; fi
+  [[ "${input##*.}" =~ ^([Ww][Aa][Vv])$ ]] || { echo "⚠️  Not a WAV file: $input" >&2; FAILED=$((FAILED + 1)); continue; }
+
+  FILTERS=""
+  if awk -v fi="$FADE_IN" 'BEGIN { exit !(fi > 0) }'; then
+    FILTERS="afade=t=in:ss=0:d=${FADE_IN}:curve=${CURVE}"
+  fi
+
+  if awk -v fo="$FADE_OUT" 'BEGIN { exit !(fo > 0) }'; then
+    DURATION="$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo "0")"
+    START_TIME="$(awk -v dur="$DURATION" -v fo="$FADE_OUT" 'BEGIN { st = dur - fo; printf "%.4f", (st < 0 ? 0 : st) }')"
+    OUT_FILTER="afade=t=out:st=${START_TIME}:d=${FADE_OUT}:curve=${CURVE}"
+    FILTERS="${FILTERS:+$FILTERS,}$OUT_FILTER"
+  fi
+
+  output="${OUTPUT_DIR:-$(dirname "$input")}/$(basename "${input%.*}")-faded.wav"
+  if [ "$DRY_RUN" -eq 1 ]; then echo "📝 Would create: $output (fade-in: ${FADE_IN}s, fade-out: ${FADE_OUT}s)"; continue; fi
+  if ! output_is_safe "$output" "$FORCE"; then SKIPPED=$((SKIPPED + 1)); continue; fi
+  echo "▶️  $input → $output (fade-in: ${FADE_IN}s, fade-out: ${FADE_OUT}s)"
+  if ffmpeg -hide_banner -loglevel error -stats -i "$input" -af "$FILTERS" -c:a pcm_s16le "$output"; then SUCCESS=$((SUCCESS + 1)); else FAILED=$((FAILED + 1)); fi
+done
+echo "✅ Done: $SUCCESS faded, $FAILED failed, $SKIPPED skipped"
+[ "$SUCCESS" -eq 0 ] || notify "Faded $SUCCESS WAV file(s)." 'wavfade'
+exit "$FAILED"

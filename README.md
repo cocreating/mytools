@@ -27,18 +27,45 @@ mytools config          # create/show ~/.config/mytools/config
 All conversion tools avoid overwriting an existing output by default. Use `--force` only when replacing it is intentional, and `--dry-run` to preview batch operations.
 `mytools config` creates editable overrides for the built-in `media-optimize` presets; change `codec`, `crf`, or `width` within a named preset section.
 
-## Media conversions
+## Image tools
 
 ### Images: `img2webp`
 
 ```bash
+img2webp -i                                    # interactive wizard
+img2webp --width 1200 -q 90 -a                 # batch convert all images in current folder
+img2webp -width 1200 -q 90 .                   # single-dash flags & directory scan supported
 img2webp photo.jpg
 img2webp -q 80 --width 1200 photo.png
 img2webp -R -j 4 -n ~/Pictures/ToPublish       # preview a recursive batch
 img2webp -R -j 4 -o ./webp ~/Pictures/ToPublish
 ```
 
-Supports JPEG, PNG, GIF, TIFF, HEIC/HEIF and WebP; quality, lossless mode, size limits, folders, parallel jobs and optional deletion of successfully converted originals.
+Supports JPEG, PNG, GIF, TIFF, HEIC/HEIF and WebP; interactive wizard, quality, lossless mode, size limits, current folder and recursive batching, parallel jobs and optional deletion of successfully converted originals.
+
+## Web downloads: `ytdl`
+
+```bash
+ytdl 'https://example.com/video'
+ytdl --format mp3 --output-dir ~/Music 'https://example.com/video'
+ytdl --format mp4 --playlist --subtitles 'https://example.com/playlist'
+```
+
+If no URL is supplied, the command uses a URL in the clipboard or prompts for one. It defaults to a single item; pass `--playlist` explicitly to download a playlist.
+
+## Video tools
+
+### Glue MP4 videos: `mp4glue`
+
+```bash
+mp4glue part1.mp4 part2.mp4
+mp4glue -o combined.mp4 clip1.mp4 clip2.mp4 clip3.mp4
+mp4glue --bounce video1.mp4 video2.mp4       # video1 forward, video2 reversed
+mp4glue --bounce video.mp4                 # video forward + video reversed (bounce effect)
+mp4glue --reencode -o merged.mp4 mixed1.mp4 mixed2.mov
+```
+
+Glues multiple video files into a single MP4 file. Uses fast stream copy (`-c copy`) by default, or `--reencode` to re-encode streams into standard H.264/AAC MP4 when source files have different resolutions or codecs. Pass `-b` / `--bounce` to play videos forward and reversed.
 
 ### Video to WebM: `vid2webm`
 
@@ -60,27 +87,6 @@ vid2gif -o ./gifs -f clip1.mp4 clip2.mp4
 
 GIFs use palette generation for better quality and now support multiple videos.
 
-### Glue MP4 videos: `mp4glue`
-
-```bash
-mp4glue part1.mp4 part2.mp4
-mp4glue -o combined.mp4 clip1.mp4 clip2.mp4 clip3.mp4
-mp4glue --bounce video1.mp4 video2.mp4       # video1 forward, video2 reversed
-mp4glue --bounce video.mp4                 # video forward + video reversed (bounce effect)
-mp4glue --reencode -o merged.mp4 mixed1.mp4 mixed2.mov
-```
-
-Glues multiple video files into a single MP4 file. Uses fast stream copy (`-c copy`) by default, or `--reencode` to re-encode streams into standard H.264/AAC MP4 when source files have different resolutions or codecs. Pass `-b` / `--bounce` to play videos forward and reversed.
-
-### Extract or convert audio
-
-```bash
-vid2audio trailer.mov                       # WAV by default
-vid2audio --format mp3 --bitrate 128 -o ./audio trailer.mov
-wav2mp3 --bitrate 256 interview.wav
-wav2mp3 -n -o ./mp3 *.wav                   # preview first
-```
-
 ### Split a video from its audio: `videoWithoutAudio`
 
 ```bash
@@ -90,6 +96,41 @@ videoWithoutAudio --dry-run *.mp4
 ```
 
 By default, this creates only `<name>-without-audio.<ext>` and discards the original audio from the new copy. Add `--extract-audio` to also preserve every source stream as `<name>-audio-track-01.mka`, `<name>-audio-track-02.mka`, and so on. Preserved audio streams are copied without re-encoding; the original video is never changed.
+
+### Optimize video: `media-optimize`
+
+```bash
+media-optimize --preset web recording.mov
+media-optimize --preset social -o ./social *.mov
+media-optimize --preset archive --dry-run footage.mp4
+```
+
+`media-optimize` writes a new MP4 using one of three presets:
+
+- `web`: H.264, CRF 23, capped to 1080p
+- `social`: H.264, CRF 25, capped to 720p
+- `archive`: H.265, CRF 26, source dimensions
+
+## Audio tools
+
+### Extract audio from video: `vid2audio`
+
+```bash
+vid2audio trailer.mov                       # WAV by default
+vid2audio --format mp3 --bitrate 128 -o ./audio trailer.mov
+```
+
+Extracts crisp audio streams from video files into uncompressed WAV or MP3.
+
+### Audio to MP3: `wav2mp3`
+
+```bash
+wav2mp3 interview.wav
+wav2mp3 --bitrate 256 interview.wav
+wav2mp3 -n -o ./mp3 *.wav                   # preview first
+```
+
+Converts heavy WAV audio into compact, high-quality MP3 files.
 
 ### Retime a WAV by BPM: `wav2tempo`
 
@@ -111,30 +152,66 @@ wavreverse --dry-run samples/*.wav
 
 Creates a full, sample-accurate reverse of each WAV and writes `<name>-reversed.wav` without modifying the original.
 
-### Inspect and optimize media
+### Shift pitch: `wavpitch`
+
+```bash
+wavpitch -s +2 vocal.wav                     # shift up 2 semitones
+wavpitch --semitones -3 drumloop.wav         # shift down 3 semitones
+wavpitch --varispeed -s -5 track.wav         # tape speed effect (pitch + playback speed)
+```
+
+`wavpitch` shifts WAV pitch by semitones while preserving tempo by default, or uses `--varispeed` to link pitch and speed for tape/vinyl drop effects.
+
+### Normalize volume: `wavnorm`
+
+```bash
+wavnorm podcast.wav                          # default: -14 LUFS integrated loudness
+wavnorm --lufs -16 interview.wav
+wavnorm --peak 0 master.wav                  # peak normalize to 0 dBFS
+```
+
+`wavnorm` normalizes audio volume to standard EBU R128 integrated LUFS or sample-accurate peak dBFS levels.
+
+### Fade in / fade out: `wavfade`
+
+```bash
+wavfade -i 0.1 -o 0.2 sample.wav             # 100ms fade-in, 200ms fade-out
+wavfade --in 0.5 --out 1.0 synth-pad.wav
+wavfade -i 0.2 -o 0.5 --curve qsin *.wav
+```
+
+`wavfade` applies smooth fade envelopes to eliminate clicks and pops at sample boundaries.
+
+### Trim silence: `wavtrim`
+
+```bash
+wavtrim sample.wav                           # strip silence below -50dB
+wavtrim --threshold -40dB vocal.wav
+wavtrim --start-only kick.wav                # trim leading silence only
+```
+
+`wavtrim` automatically detects and crops leading and trailing silence from WAV recordings.
+
+### Audio effects & EQ: `wavfx`
+
+```bash
+wavfx --reverb room loop.wav                 # room, hall, or space reverb
+wavfx --delay 250 guitar.wav                 # echo delay in ms
+wavfx --lowpass 800 synth-pad.wav            # warm low-pass filter
+wavfx --highpass 150 --reverb hall vocal.wav # cut sub rumble + hall reverb
+```
+
+`wavfx` applies DSP audio effects including spatial reverb presets, echo delays, and low/high-pass filters.
+
+## Media inspection
+
+### Inspect media: `media-info`
 
 ```bash
 media-info recording.mov song.m4a
-media-optimize --preset web recording.mov
-media-optimize --preset social -o ./social *.mov
-media-optimize --preset archive --dry-run footage.mp4
 ```
 
-`media-info` reports codecs, dimensions, duration, size, and bitrate. `media-optimize` writes a new MP4 using one of three presets:
-
-- `web`: H.264, CRF 23, capped to 1080p
-- `social`: H.264, CRF 25, capped to 720p
-- `archive`: H.265, CRF 26, source dimensions
-
-## Downloads: `ytdl`
-
-```bash
-ytdl 'https://example.com/video'
-ytdl --format mp3 --output-dir ~/Music 'https://example.com/video'
-ytdl --format mp4 --playlist --subtitles 'https://example.com/playlist'
-```
-
-If no URL is supplied, the command uses a URL in the clipboard or prompts for one. It defaults to a single item; pass `--playlist` explicitly to download a playlist.
+`media-info` reports codecs, dimensions, duration, size, and bitrate.
 
 ## Finder bookmarks
 

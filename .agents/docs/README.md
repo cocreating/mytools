@@ -10,15 +10,30 @@
 - `mytools-guide`: detailed and interactive command guide.
 - `mytools-doctor`: checks optional dependencies; `--install` uses Homebrew.
 - `mytools-config`: initializes and shows `~/.config/mytools/config`.
-- `img2webp`: mature image batching/resizing/WebP command.
-- `mp4glue`: concatenates compatible MP4 files with stream copy, optional re-encoding, or bounce mode.
-- `vid2webm`, `vid2gif`, `vid2audio`, `wav2mp3`: safe media conversions with non-overwrite defaults, `--force`, `--dry-run`, and output-directory support.
-- `wav2tempo`: detects a single WAV’s BPM with `aubio` and pitch-preservingly retimes it with FFmpeg; accepts `--bpm` when detection is unavailable or unsuitable.
-- `wavreverse`: reverses one or more WAV files using FFmpeg’s `areverse` filter.
-- `videoWithoutAudio`: creates an audio-less video copy, discarding audio by default; `--extract-audio` preserves every original stream as a separate lossless-copy `.mka` file.
-- `media-info`: FFprobe report.
-- `media-optimize`: Web/social/archive H.264/H.265 output presets.
-- `ytdl`, `thumloc`, `webloc2md`: downloading and bookmark tools.
+- Image tools:
+  - `img2webp`: mature image batching/resizing/WebP command.
+- Web Downloads:
+  - `ytdl`: downloading video/audio from web URLs via yt-dlp.
+- Video tools:
+  - `mp4glue`: concatenates compatible MP4 files with stream copy, optional re-encoding, or bounce mode.
+  - `vid2webm`: safe VP9/Opus WebM conversion.
+  - `vid2gif`: video to animated GIF conversion with palette generation.
+  - `videoWithoutAudio`: creates an audio-less video copy, discarding audio by default; `--extract-audio` preserves every original stream as a separate lossless-copy `.mka` file.
+  - `media-optimize`: Web/social/archive H.264/H.265 output presets.
+- Audio tools:
+  - `vid2audio`: extracts audio streams from video files (WAV / MP3).
+  - `wav2mp3`: safe WAV to MP3 conversion.
+  - `wav2tempo`: detects a single WAV’s BPM with `aubio` and pitch-preservingly retimes it with FFmpeg; accepts `--bpm` when detection is unavailable or unsuitable.
+  - `wavreverse`: reverses one or more WAV files using FFmpeg’s `areverse` filter.
+  - `wavpitch`: pitch shifts WAV files by semitones (pitch-only or tape varispeed).
+  - `wavnorm`: normalizes WAV volume using EBU R128 LUFS or peak dBFS targets.
+  - `wavfade`: applies customizable fade-in and fade-out volume envelopes.
+  - `wavtrim`: strips leading and trailing silence using FFmpeg silence removal.
+  - `wavfx`: applies DSP audio effects (reverb presets, delay, low/high pass filters).
+- Inspection & Bookmarks:
+  - `media-info`: FFprobe report for codec, resolution, bitrate, duration.
+  - `thumloc`: generates Finder thumbnail previews for `.webloc` files.
+  - `webloc2md`: creates a structured Markdown index of bookmark URLs.
 
 ## Conventions
 

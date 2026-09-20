@@ -1,6 +1,8 @@
 #compdef img2webp
 
 _arguments \
+  '(-i --interactive)'{-i,--interactive}'[Interactive wizard mode]' \
+  '(-a --all)'{-a,--all}'[Process all images in current directory]' \
   '(-q --quality)'{-q,--quality}'[Quality 0-100 (default: 85)]:quality' \
   '(-w --width)'{-w,--width}'[Resize width (keeps aspect ratio)]:width (px)' \
   '(-H --height)'{-H,--height}'[Resize height (keeps aspect ratio)]:height (px)' \

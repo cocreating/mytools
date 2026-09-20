@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+REVERB=""; DELAY_MS=""; LOWPASS_HZ=""; HIGHPASS_HZ=""; OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; FILES=()
+usage() { cat <<'EOF'
+Usage: wavfx [options] <file.wav> [file.wav ...]
+
+Apply DSP audio effects (reverb, delay, low-pass, high-pass filters) to WAV files.
+
+  --reverb <preset>       Reverb effect (room, hall, space; default: room)
+  --delay <ms>            Echo delay time in milliseconds (e.g. 250)
+  --lowpass <Hz>          Low-pass filter cutoff frequency in Hz (e.g. 800)
+  --highpass <Hz>         High-pass filter cutoff frequency in Hz (e.g. 120)
+  -o, --output-dir <dir>  Write output files to this directory
+  -f, --force             Overwrite existing output files
+  -n, --dry-run           Show planned output files only
+  -h, --help              Show help
+
+Examples:
+  wavfx --reverb room loop.wav
+  wavfx --delay 250 guitar.wav
+  wavfx --lowpass 800 synth-pad.wav
+  wavfx --highpass 150 --reverb hall vocal.wav
+EOF
+}
+while [ "$#" -gt 0 ]; do case "$1" in
+  --reverb)
+    if [ "$#" -gt 1 ] && [[ "$2" =~ ^(room|hall|space)$ ]]; then REVERB="$2"; shift 2; else REVERB="room"; shift 1; fi
+    ;;
+  --delay) DELAY_MS="${2:?$1 requires a value}"; shift 2;;
+  --lowpass) LOWPASS_HZ="${2:?$1 requires a value}"; shift 2;;
+  --highpass) HIGHPASS_HZ="${2:?$1 requires a value}"; shift 2;;
+  -o|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;;
+  -f|--force) FORCE=1; shift;; -n|--dry-run) DRY_RUN=1; shift;;
+  -h|--help) usage; exit 0;; -*) echo "Unknown option: $1" >&2; usage >&2; exit 1;;
+  *) FILES+=("$1"); shift;;
+esac; done
+[ "${#FILES[@]}" -gt 0 ] || { usage >&2; exit 1; }
+[ -n "$REVERB" ] || [ -n "$DELAY_MS" ] || [ -n "$LOWPASS_HZ" ] || [ -n "$HIGHPASS_HZ" ] || {
+  echo 'Specify at least one effect option (--reverb, --delay, --lowpass, --highpass).' >&2
+  usage >&2
+  exit 1
+}
+require_commands ffmpeg
+
+[ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+SUCCESS=0; FAILED=0; SKIPPED=0
+for input in "${FILES[@]}"; do
+  if [ ! -f "$input" ]; then echo "⚠️  Not a file: $input" >&2; FAILED=$((FAILED + 1)); continue; fi
+  [[ "${input##*.}" =~ ^([Ww][Aa][Vv])$ ]] || { echo "⚠️  Not a WAV file: $input" >&2; FAILED=$((FAILED + 1)); continue; }
+
+  FILTERS=""
+  if [ -n "$HIGHPASS_HZ" ]; then
+    HZ="${HIGHPASS_HZ//,/.}"
+    FILTERS="${FILTERS:+$FILTERS,}highpass=f=${HZ}"
+  fi
+  if [ -n "$LOWPASS_HZ" ]; then
+    HZ="${LOWPASS_HZ//,/.}"
+    FILTERS="${FILTERS:+$FILTERS,}lowpass=f=${HZ}"
+  fi
+  if [ -n "$REVERB" ]; then
+    case "$REVERB" in
+      room) R_FILTER="aecho=0.8:0.88:60|120:0.4|0.2" ;;
+      hall) R_FILTER="aecho=0.8:0.9:100|200|300:0.5|0.3|0.1" ;;
+      space) R_FILTER="aecho=0.8:0.95:200|400|600|800:0.6|0.4|0.2|0.1" ;;
+      *) R_FILTER="aecho=0.8:0.88:60|120:0.4|0.2" ;;
+    esac
+    FILTERS="${FILTERS:+$FILTERS,}$R_FILTER"
+  fi
+  if [ -n "$DELAY_MS" ]; then
+    MS="${DELAY_MS//,/.}"
+    FILTERS="${FILTERS:+$FILTERS,}aecho=0.8:0.7:${MS}:0.4"
+  fi
+
+  output="${OUTPUT_DIR:-$(dirname "$input")}/$(basename "${input%.*}")-fx.wav"
+  if [ "$DRY_RUN" -eq 1 ]; then echo "📝 Would create: $output"; continue; fi
+  if ! output_is_safe "$output" "$FORCE"; then SKIPPED=$((SKIPPED + 1)); continue; fi
+  echo "▶️  $input → $output (effects applied)"
+  if ffmpeg -hide_banner -loglevel error -stats -i "$input" -af "$FILTERS" -c:a pcm_s16le "$output"; then SUCCESS=$((SUCCESS + 1)); else FAILED=$((FAILED + 1)); fi
+done
+echo "✅ Done: $SUCCESS fx applied, $FAILED failed, $SKIPPED skipped"
+[ "$SUCCESS" -eq 0 ] || notify "Applied FX to $SUCCESS WAV file(s)." 'wavfx'
+exit "$FAILED"

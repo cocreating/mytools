@@ -1,0 +1,7 @@
+#compdef wavnorm
+_arguments \
+  '(-l --lufs)'{-l,--lufs}'[target integrated LUFS]:LUFS' \
+  '(-p --peak)'{-p,--peak}'[peak normalize to peak dBFS]:dB' \
+  '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \
+  '(-f --force)'{-f,--force}'[overwrite existing output]' '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+  '*:WAV file:_files -g "*.wav(-.)"'

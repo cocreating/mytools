@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+SEMITONES=""; VARISPEED=0; OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; FILES=()
+usage() { cat <<'EOF'
+Usage: wavpitch [options] <file.wav> [file.wav ...]
+
+Shift the pitch of one or more WAV files by semitones.
+
+  -s, --semitones <n>     Semitones to shift (e.g. +2, -3.5, 7)
+  -v, --varispeed         Link pitch and speed (tape/vinyl speed effect)
+  -o, --output-dir <dir>  Write output files to this directory
+  -f, --force             Overwrite existing output files
+  -n, --dry-run           Show planned output files only
+  -h, --help              Show help
+
+Examples:
+  wavpitch -s +2 vocal.wav
+  wavpitch --semitones -3 drumloop.wav
+  wavpitch --varispeed -s -5 track.wav
+  wavpitch -s 7 -o ./pitched *.wav
+EOF
+}
+while [ "$#" -gt 0 ]; do case "$1" in
+  -s|--semitones) SEMITONES="${2:?$1 requires a value}"; shift 2;;
+  -v|--varispeed) VARISPEED=1; shift;;
+  -o|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;;
+  -f|--force) FORCE=1; shift;; -n|--dry-run) DRY_RUN=1; shift;;
+  -h|--help) usage; exit 0;; -*) echo "Unknown option: $1" >&2; usage >&2; exit 1;;
+  *) FILES+=("$1"); shift;;
+esac; done
+[ "${#FILES[@]}" -gt 0 ] || { usage >&2; exit 1; }
+if [ -z "$SEMITONES" ]; then
+  read -r -p 'Semitones to shift (e.g. +2, -3.5): ' SEMITONES
+fi
+SEMITONES="${SEMITONES//,/.}"
+awk -v s="$SEMITONES" 'BEGIN { exit !(s >= -48 && s <= 48) }' || { echo 'Semitones must be a number between -48 and +48.' >&2; exit 1; }
+require_commands ffmpeg ffprobe
+
+[ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+SUCCESS=0; FAILED=0; SKIPPED=0
+for input in "${FILES[@]}"; do
+  if [ ! -f "$input" ]; then echo "⚠️  Not a file: $input" >&2; FAILED=$((FAILED + 1)); continue; fi
+  [[ "${input##*.}" =~ ^([Ww][Aa][Vv])$ ]] || { echo "⚠️  Not a WAV file: $input" >&2; FAILED=$((FAILED + 1)); continue; }
+
+  SAMPLE_RATE="$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null || echo 44100)"
+  [ -n "$SAMPLE_RATE" ] || SAMPLE_RATE=44100
+  NEW_RATE="$(awk -v sr="$SAMPLE_RATE" -v s="$SEMITONES" 'BEGIN { printf "%.0f", sr * (2 ^ (s / 12)) }')"
+
+  if [ "$VARISPEED" -eq 1 ]; then
+    FILTERS="asetrate=r=$NEW_RATE,aresample=$SAMPLE_RATE"
+    TAG="pitch${SEMITONES}semi-varispeed"
+  else
+    SPEED="$(awk -v nr="$NEW_RATE" -v sr="$SAMPLE_RATE" 'BEGIN { printf "%.8f", nr / sr }')"
+    ATEMPO="$(awk -v speed="$SPEED" 'BEGIN { printf "%.8f", 1 / speed }')"
+    TEMPO_FILTERS=""; REMAINING="$ATEMPO"
+    while awk -v v="$REMAINING" 'BEGIN { exit !(v > 2) }'; do TEMPO_FILTERS="${TEMPO_FILTERS:+$TEMPO_FILTERS,}atempo=2"; REMAINING="$(awk -v v="$REMAINING" 'BEGIN { printf "%.8f", v / 2 }')"; done
+    while awk -v v="$REMAINING" 'BEGIN { exit !(v < 0.5) }'; do TEMPO_FILTERS="${TEMPO_FILTERS:+$TEMPO_FILTERS,}atempo=0.5"; REMAINING="$(awk -v v="$REMAINING" 'BEGIN { printf "%.8f", v / 0.5 }')"; done
+    TEMPO_FILTERS="${TEMPO_FILTERS:+$TEMPO_FILTERS,}atempo=$REMAINING"
+    FILTERS="asetrate=r=$NEW_RATE,$TEMPO_FILTERS,aresample=$SAMPLE_RATE"
+    TAG="pitch${SEMITONES}semi"
+  fi
+
+  output="${OUTPUT_DIR:-$(dirname "$input")}/$(basename "${input%.*}")-${TAG}.wav"
+  if [ "$DRY_RUN" -eq 1 ]; then echo "📝 Would create: $output"; continue; fi
+  if ! output_is_safe "$output" "$FORCE"; then SKIPPED=$((SKIPPED + 1)); continue; fi
+  echo "▶️  $input → $output (shift: ${SEMITONES} semitones)"
+  if ffmpeg -hide_banner -loglevel error -stats -i "$input" -af "$FILTERS" -c:a pcm_s16le "$output"; then SUCCESS=$((SUCCESS + 1)); else FAILED=$((FAILED + 1)); fi
+done
+echo "✅ Done: $SUCCESS pitched, $FAILED failed, $SKIPPED skipped"
+[ "$SUCCESS" -eq 0 ] || notify "Pitched $SUCCESS WAV file(s)." 'wavpitch'
+exit "$FAILED"

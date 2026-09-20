@@ -1,0 +1,9 @@
+#compdef wavfx
+_arguments \
+  '--reverb[reverb preset]:preset:(room hall space)' \
+  '--delay[echo delay time in ms]:ms' \
+  '--lowpass[low-pass cutoff frequency in Hz]:Hz' \
+  '--highpass[high-pass cutoff frequency in Hz]:Hz' \
+  '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \
+  '(-f --force)'{-f,--force}'[overwrite existing output]' '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+  '*:WAV file:_files -g "*.wav(-.)"'

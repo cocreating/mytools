@@ -6,25 +6,32 @@ show_overview() {
   cat <<'EOF'
 🧰 MYTOOLS - YOUR TERMINAL MEDIA SWISS ARMY KNIFE 🛠️
 
-📸 IMAGE WIZARD 🪄
+📸 IMAGE TOOLS 🪄
   img2webp       Convert JPEG, PNG, GIF, HEIC to WebP (shrink size without losing quality) ⚡
 
-🎞️ VIDEO FUSION & CONVERSION 🎬
+📥 WEB DOWNLOADS 🌐
+  ytdl           Grab video/audio from web URLs via yt-dlp 🌐
+
+🎞️ VIDEO TOOLS 🎬
   mp4glue        Glue/concatenate MP4 files (fast copy, re-encode, or 🪃 --bounce)
   vid2webm       Convert video to modern VP9/Opus WebM 🌐
   vid2gif        Convert video clips to high-quality animated GIFs 👾
+  videoWithoutAudio  Create a muted video (optionally preserve audio tracks) 🔇
   media-optimize Re-encode videos for web, social, or archive presets 🚀
 
-🎵 AUDIO LAB & TIME BENDER 🎧
+🎵 AUDIO TOOLS 🎧
   vid2audio      Extract crisp audio streams from video (WAV / MP3) 🔊
-  videoWithoutAudio  Create a muted video (optionally preserve audio tracks) 🔇
   wav2mp3        Convert heavy WAV audio to lightweight MP3 🎶
   wav2tempo      Retime WAV tempo to a target BPM using aubio 🥁
   wavreverse     Reverse WAV audio sample-accurately 🔄
+  wavpitch       Shift WAV pitch by semitones (preserve tempo or varispeed) 🎼
+  wavnorm        Normalize WAV volume (EBU R128 LUFS or Peak dBFS) 🎚️
+  wavfade        Apply smooth fade-in and fade-out volume envelopes 📈
+  wavtrim        Strip leading and trailing silence from WAV audio ✂️
+  wavfx          Apply DSP audio effects (reverb, delay, low/high pass filters) 🎛️
 
-🕵️ INSPECT & DOWNLOAD 📥
+🕵️ MEDIA INSPECTION 🔍
   media-info     Inspect video/audio codecs, duration, bitrate, resolution 🔍
-  ytdl           Grab video/audio from web URLs via yt-dlp 🌐
 
 📂 FINDER & BOOKMARKS 📑
   thumloc        Generate Finder thumbnail previews for .webloc files 🖼️
@@ -83,21 +90,30 @@ EOF
 📸 img2webp — Image to WebP Converter 🪄
 
 Usage:
-  img2webp [options] <image...>
+  img2webp [options] [image... or directory]
 
 Description:
   Converts JPEG, PNG, GIF, TIFF, HEIC to lightweight, ultra-optimized WebP images! ⚡
 
 Options:
+  -i, --interactive      Interactive wizard (prompts for settings & files) 🧙
+  -a, --all              Process all images in current directory 📂
   -q, --quality <0-100>  Quality factor (default: 85) 🎯
   -w, --width <px>       Downscale image to maximum width 📐
+  -H, --height <px>      Downscale image to maximum height 📐
+  -r, --resize <WxH>     Exact resize dimensions 📐
+  -l, --lossless         Lossless encoding 💎
   -R, --recursive        Search directories recursively 📁
   -j, --jobs <N>         Number of parallel conversion jobs 🚀
   -o, --output-dir <d>   Write output files to directory 📂
   -f, --force            Overwrite existing output ⚡
+  -d, --delete-original  Delete original after conversion 🗑️
   -n, --dry-run          Preview conversions without running 📝
 
 Examples:
+  img2webp -i                             # launch interactive wizard
+  img2webp --width 1200 -q 90 -a          # convert all images in current folder
+  img2webp -width 1200 -q 90 .            # single-dash flags supported
   img2webp photo.jpg
   img2webp -q 80 --width 1200 photo.png
   img2webp -R -j 4 -o ./webp ~/Pictures
@@ -175,7 +191,7 @@ Examples:
   media-optimize --preset social -o ./social *.mov
 EOF
       ;;
-    vid2audio|videoWithoutAudio|wav2mp3|wav2tempo|wavreverse)
+    vid2audio|videoWithoutAudio|wav2mp3|wav2tempo|wavreverse|wavpitch|wavnorm|wavfade|wavtrim|wavfx)
       case "$tool" in
         vid2audio)
           cat <<'EOF'
@@ -237,6 +253,63 @@ Usage:
 
 Description:
   Reverses sample audio upside down to create <name>-reversed.wav! 🎶
+EOF
+          ;;
+        wavpitch)
+          cat <<'EOF'
+🎼 wavpitch — WAV Pitch Shifter 🎵
+
+Usage:
+  wavpitch [--semitones <n>] [--varispeed] <wav...>
+
+Description:
+  Shifts WAV audio pitch by semitones while preserving tempo!
+  Pass --varispeed to link pitch and playback speed (tape/vinyl speed drop effect).
+EOF
+          ;;
+        wavnorm)
+          cat <<'EOF'
+🎚️ wavnorm — Volume Normalizer 🔊
+
+Usage:
+  wavnorm [--lufs <n>] [--peak <dB>] <wav...>
+
+Description:
+  Normalizes audio volume to target integrated LUFS (EBU R128 standard)
+  or sample-accurate peak dBFS level!
+EOF
+          ;;
+        wavfade)
+          cat <<'EOF'
+📈 wavfade — Fade In/Out Envelopes 🎶
+
+Usage:
+  wavfade [--in <sec>] [--out <sec>] [--curve <type>] <wav...>
+
+Description:
+  Applies smooth volume fade-in and fade-out curves to eliminate pops and clicks!
+EOF
+          ;;
+        wavtrim)
+          cat <<'EOF'
+✂️ wavtrim — Silence Stripper 🔇
+
+Usage:
+  wavtrim [--threshold <dB>] [--start-only] [--end-only] <wav...>
+
+Description:
+  Automatically detects and strips silence from the start and end of WAV audio!
+EOF
+          ;;
+        wavfx)
+          cat <<'EOF'
+🎛️ wavfx — Audio DSP Effects 🌌
+
+Usage:
+  wavfx [--reverb room|hall|space] [--delay <ms>] [--lowpass <Hz>] [--highpass <Hz>] <wav...>
+
+Description:
+  Applies DSP audio effects: room/hall/space reverb presets, echo delays, low-pass and high-pass filters!
 EOF
           ;;
       esac
@@ -333,18 +406,23 @@ interactive_guide() {
   
   local topics
   topics=$(printf '%s\n' \
-    'mp4glue — 🎞️ Glue & concatenate MP4 videos' \
     'img2webp — 📸 Convert images to WebP' \
+    'ytdl — 📥 Download web media' \
+    'mp4glue — 🎞️ Glue & concatenate MP4 videos' \
     'vid2webm — 🌐 Convert videos to WebM' \
     'vid2gif — 👾 Create animated GIFs' \
+    'videoWithoutAudio — 🔇 Remove audio (optionally preserve tracks)' \
     'media-optimize — 🚀 Web/social/archive video optimization' \
     'vid2audio — 🔊 Extract audio from video' \
-    'videoWithoutAudio — 🔇 Remove audio (optionally preserve tracks)' \
     'wav2mp3 — 🎧 Convert WAV to MP3' \
     'wav2tempo — 🥁 Retime WAV by BPM' \
     'wavreverse — 🔄 Reverse WAV audio' \
+    'wavpitch — 🎼 Shift WAV pitch by semitones' \
+    'wavnorm — 🎚️ Normalize WAV loudness or peak volume' \
+    'wavfade — 📈 Apply fade in and fade out envelopes' \
+    'wavtrim — ✂️ Strip leading and trailing silence' \
+    'wavfx — 🎛️ Apply reverb, delay, and EQ filters' \
     'media-info — 🕵️ Inspect media codec & details' \
-    'ytdl — 📥 Download web media' \
     'thumloc — 🖼️ Finder bookmark thumbnails' \
     'webloc2md — 📑 Bookmark markdown index' \
     'doctor — 🩺 Dependency check & installer' \
