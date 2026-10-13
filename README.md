@@ -111,6 +111,31 @@ media-optimize --preset archive --dry-run footage.mp4
 - `social`: H.264, CRF 25, capped to 720p
 - `archive`: H.265, CRF 26, source dimensions
 
+### Glitch & retro video FX: `vidglitch`
+
+```bash
+vidglitch -i                                       # interactive guided wizard
+vidglitch clip.mp4                                 # RGB chromatic aberration (default)
+vidglitch --preset vhs recording.mov               # analog VHS tape noise & vignette
+vidglitch --preset cyberpunk --burst promo.mp4     # pulsing neon glitch & scanlines
+vidglitch --preset 8bit -o ./glitched *.mp4        # retro pixelated look
+vidglitch --rgb-split 16 --scanlines intro.mp4     # custom RGB shift & CRT scanlines
+```
+
+Applies customizable analog and digital glitch effects using FFmpeg. Built-in presets: `rgb-split`, `vhs`, `crt`, `8bit`, `cyberpunk`, `badsignal`, and `tear`. Pass `--burst` to pulse the glitch periodically instead of applying a static overlay.
+
+### Cut film & jump cuts: `filmcut`
+
+```bash
+filmcut clip.mp4                                   # 20% random frame excision (default)
+filmcut -p 35 recording.mov                        # 35% shorter video with jump cuts
+filmcut -p 25 --mode jumps action.mp4              # 25% chunk jump cuts (~0.2s each)
+filmcut -p 20 --jitter --grain vintage.mp4         # with projector jitter & film grain
+filmcut -i                                         # interactive guided wizard
+```
+
+Erases a chosen percentage of random frames or micro-chunks from the timeline, producing a shorter video with authentic physical cut-film and jump-cut aesthetics. Audio is trimmed in lockstep to maintain perfect synchronization across all cuts.
+
 ## Audio tools
 
 ### Extract audio from video: `vid2audio`

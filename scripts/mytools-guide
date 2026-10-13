@@ -18,6 +18,8 @@ show_overview() {
   vid2gif        Convert video clips to high-quality animated GIFs 👾
   videoWithoutAudio  Create a muted video (optionally preserve audio tracks) 🔇
   media-optimize Re-encode videos for web, social, or archive presets 🚀
+  vidglitch      Apply glitch, CRT, VHS, 8-bit & retro visual effects ⚡
+  filmcut        Erase random frames for cut film & jump-cut effect (shorter output) ✂️
 
 🎵 AUDIO TOOLS 🎧
   vid2audio      Extract crisp audio streams from video (WAV / MP3) 🔊
@@ -189,6 +191,88 @@ Options:
 Examples:
   media-optimize video.mov
   media-optimize --preset social -o ./social *.mov
+EOF
+      ;;
+    vidglitch)
+      cat <<'EOF'
+⚡ vidglitch — Glitch & Retro Visual Effects Generator 👾
+
+Usage:
+  vidglitch [options] <video...>
+
+Description:
+  Applies stylish digital and analog glitch effects directly to video files! 🎨
+  Features presets for RGB channel splitting (chromatic aberration), VHS tape decay,
+  arcade CRT scanlines, 8-bit pixelation, cyberpunk neon tearing, and signal loss.
+
+Presets:
+  🌈 rgb-split    Chromatic aberration (red/blue channel shift) (default)
+  📼 vhs          Analog tape noise, color bleed, contrast boost, and vignette
+  📺 crt          Retro arcade scanlines with subtle chromatic shift
+  🕹️ 8bit         Pixelated block retro gaming aesthetic
+  🌆 cyberpunk    Neon chromatic aberration, scanlines, and intermittent tearing
+  📡 badsignal    Heavy static noise, extreme channel shifts, and data distortion
+  ⚡ tear         Horizontal data glitch displacement
+
+Options:
+  -p, --preset <name>     Select glitch preset (default: rgb-split) ⚙️
+  --rgb-split <px>        Shift red/blue color channels (e.g. 15) 🌈
+  --scanlines             Add CRT scanline overlay 📺
+  --noise <level>         Add analog video noise (1-100, e.g. 15) 📻
+  --pixelate <factor>     Pixelate video into blocks (e.g. 10) 🕹️
+  --tear                  Add horizontal data glitch tearing ⚡
+  --burst                 Pulse glitch intermittently instead of constant 💓
+  --mute                  Discard audio track from output video 🔇
+  --from <time>           Start timestamp (e.g. 00:00:02) ✂️
+  --to <time>             End timestamp (e.g. 00:00:10) ✂️
+  -o, --output-dir <d>    Write output files to directory 📂
+  -f, --force             Overwrite existing output ⚡
+  -n, --dry-run           Preview output without running FFmpeg 📝
+
+Examples:
+  vidglitch clip.mp4
+  vidglitch --preset vhs recording.mov
+  vidglitch --preset cyberpunk --burst promo.mp4
+  vidglitch --rgb-split 15 --scanlines intro.mp4
+  vidglitch --preset 8bit -o ./glitched *.mp4
+EOF
+      ;;
+    filmcut)
+      cat <<'EOF'
+✂️ filmcut — Cut Film & Random Frame Excision Generator 🎞️
+
+Usage:
+  filmcut [options] <video...>
+
+Description:
+  Erases a chosen percentage of random frames or micro-chunks from the timeline,
+  producing a shorter video with authentic physical cut-film and jump-cut aesthetics!
+  Audio is trimmed in lockstep to maintain synchronization across all cuts.
+
+Options:
+  -p, --percent <N>    Percentage of frames to cut out (1-90, default: 20) 🎯
+  -m, --mode <mode>    Cut style: frames, jumps, stutter (default: frames) 🎬
+                       • frames:  Erase random single frames (missing celluloid)
+                       • jumps:   Excise micro-chunks (~0.2s jump cuts)
+                       • stutter: Rapid 2-frame skips (projector chatter)
+  -i, --interactive    Interactive wizard (prompts for settings & files) 🧙
+  --seed <int>         Seed for random cut pattern (reproducible cuts) 🎲
+  --jitter             Add mechanical film projector gate weave/jitter 📽️
+  --grain              Add analog 16mm/35mm film grain 🎞️
+  --flash              Add occasional white splice tape flashes ⚡
+  --mute               Discard audio track from output 🔇
+  --from <time>        Start timestamp (e.g. 00:00:02) ✂️
+  --to <time>          End timestamp (e.g. 00:00:10) ✂️
+  -o, --output-dir <d> Write output files to directory 📂
+  -f, --force          Overwrite existing output ⚡
+  -n, --dry-run        Preview output without running FFmpeg 📝
+
+Examples:
+  filmcut clip.mp4                            # 20% random frame drops
+  filmcut -p 35 recording.mov                 # 35% shorter with jump cuts
+  filmcut -p 25 --mode jumps action.mp4       # 25% chunk jump cuts
+  filmcut -p 20 --jitter --grain vintage.mp4  # with gate weave & film grain
+  filmcut -i                                  # interactive guided wizard
 EOF
       ;;
     vid2audio|videoWithoutAudio|wav2mp3|wav2tempo|wavreverse|wavpitch|wavnorm|wavfade|wavtrim|wavfx)
@@ -413,6 +497,8 @@ interactive_guide() {
     'vid2gif — 👾 Create animated GIFs' \
     'videoWithoutAudio — 🔇 Remove audio (optionally preserve tracks)' \
     'media-optimize — 🚀 Web/social/archive video optimization' \
+    'vidglitch — ⚡ Glitch, CRT, VHS & retro video FX' \
+    'filmcut — ✂️ Erase random frames / cut film (shorter output)' \
     'vid2audio — 🔊 Extract audio from video' \
     'wav2mp3 — 🎧 Convert WAV to MP3' \
     'wav2tempo — 🥁 Retime WAV by BPM' \

@@ -20,6 +20,8 @@
   - `vid2gif`: video to animated GIF conversion with palette generation.
   - `videoWithoutAudio`: creates an audio-less video copy, discarding audio by default; `--extract-audio` preserves every original stream as a separate lossless-copy `.mka` file.
   - `media-optimize`: Web/social/archive H.264/H.265 output presets.
+  - `vidglitch`: glitch and retro video FX with RGB split, VHS, CRT, 8-bit, cyberpunk, badsignal, and tear presets.
+  - `filmcut`: cut film and random frame excision generator producing a shorter video with synchronized audio.
 - Audio tools:
   - `vid2audio`: extracts audio streams from video files (WAV / MP3).
   - `wav2mp3`: safe WAV to MP3 conversion.

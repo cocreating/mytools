@@ -1,0 +1,271 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+PRESET="rgb-split"; CUSTOM_RGB=""; SCANLINES=0; NOISE=0; PIXELATE=0; TEAR=0; BURST=0; MUTE=0
+OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; START=""; END=""; FILES=(); HAS_CUSTOM=0; INTERACTIVE=0
+
+usage() { cat <<'EOF'
+Usage: vidglitch [options] <video...>
+
+Apply glitch and retro visual effects to video files.
+
+Options:
+  -i, --interactive       Interactive wizard (prompts for presets & files) 🧙
+
+Presets:
+  -p, --preset <name>     Preset effect (default: rgb-split)
+                          Available: rgb-split, vhs, crt, 8bit, cyberpunk, badsignal, tear
+
+Custom effect options:
+  --rgb-split <px>        Shift red and blue color channels (e.g. 12)
+  --scanlines             Add CRT scanline overlay
+  --noise <level>         Add analog video noise (1-100, e.g. 15)
+  --pixelate <factor>     Pixelate video into blocks (e.g. 10)
+  --tear                  Add horizontal data glitch tearing
+  --burst                 Trigger glitch intermittently (pulse) instead of constant
+  --mute                  Discard audio from the output video
+
+Trimming & Output:
+  --from <time>           Start timestamp (e.g. 00:00:02)
+  --to <time>             End timestamp (e.g. 00:00:10)
+  -o, --output-dir <dir>  Write output files to this directory
+  -f, --force             Overwrite existing output files
+  -n, --dry-run           Show planned output files only
+  -h, --help              Show help
+
+Examples:
+  vidglitch -i                            # interactive guided wizard
+  vidglitch clip.mp4
+  vidglitch --preset vhs recording.mov
+  vidglitch --preset cyberpunk --burst promo.mp4
+  vidglitch --rgb-split 15 --scanlines intro.mp4
+  vidglitch --preset 8bit -o ./glitched *.mp4
+EOF
+}
+
+interactive_wizard() {
+  echo "🧙 Welcome to the vidglitch interactive wizard!"
+  echo "───────────────────────────────────────────────"
+
+  # Step 1: Input files if none provided
+  if [ "${#FILES[@]}" -eq 0 ]; then
+    if command -v fzf &>/dev/null; then
+      echo "📂 Step 1: Select video files (press [Tab] to mark multiple, [Enter] to confirm)"
+      local cand_files="" selected=""
+      cand_files=$(find . -maxdepth 2 -type f 2>/dev/null | grep -Ei '\.(mp4|mov|avi|mkv|webm|m4v)$' | sed 's#^./##' || true)
+      if [ -n "$cand_files" ]; then
+        selected=$(printf '%s\n' "$cand_files" | fzf -m --prompt="vidglitch files > " --height=50% --layout=reverse --border || true)
+      fi
+      if [ -n "$selected" ]; then
+        while IFS= read -r f; do [ -n "$f" ] && FILES+=("$f"); done <<< "$selected"
+      fi
+    fi
+    if [ "${#FILES[@]}" -eq 0 ]; then
+      printf "Enter path to video file: "
+      read -r manual_file
+      [ -n "$manual_file" ] && FILES+=("$manual_file")
+    fi
+  fi
+
+  [ "${#FILES[@]}" -gt 0 ] || { echo "❌ No video files selected. Canceled."; exit 0; }
+
+  # Step 2: Glitch Preset
+  if command -v fzf &>/dev/null; then
+    local p_choice
+    p_choice=$(printf '%s\n' \
+      'rgb-split — 🌈 Chromatic aberration (default)' \
+      'vhs — 📼 Analog tape noise & vignette' \
+      'crt — 📺 Arcade scanlines & RGB offset' \
+      '8bit — 🕹️ Retro pixelated gaming blocks' \
+      'cyberpunk — 🌆 Neon RGB split & tearing' \
+      'badsignal — 📡 Heavy static & signal loss' \
+      'tear — ⚡ Digital data block displacement' | fzf --prompt="Select glitch preset > " --height=50% --layout=reverse --border || true)
+    [ -n "$p_choice" ] && PRESET="${p_choice%% *}"
+  else
+    echo "Glitch presets:"
+    echo "  [1] rgb-split (default)"
+    echo "  [2] vhs"
+    echo "  [3] crt"
+    echo "  [4] 8bit"
+    echo "  [5] cyberpunk"
+    echo "  [6] badsignal"
+    echo "  [7] tear"
+    printf "Choose a preset [1]: "
+    read -r p_num
+    case "${p_num:-1}" in
+      1) PRESET="rgb-split";; 2) PRESET="vhs";; 3) PRESET="crt";;
+      4) PRESET="8bit";; 5) PRESET="cyberpunk";; 6) PRESET="badsignal";; 7) PRESET="tear";;
+    esac
+  fi
+
+  # Step 3: Burst / Pulse mode
+  printf "Enable intermittent pulse/burst mode? [y/N]: "
+  read -r b_ans
+  case "$b_ans" in [yY]|[yY][eE][sS]) BURST=1 ;; *) BURST=0 ;; esac
+}
+
+while [ "$#" -gt 0 ]; do case "$1" in
+  -i|--interactive) INTERACTIVE=1; shift;;
+  -p|--preset) PRESET="${2:?$1 requires a value}"; shift 2;;
+  --rgb-split) CUSTOM_RGB="${2:?$1 requires a value}"; HAS_CUSTOM=1; shift 2;;
+  --scanlines) SCANLINES=1; HAS_CUSTOM=1; shift;;
+  --noise) NOISE="${2:?$1 requires a value}"; HAS_CUSTOM=1; shift 2;;
+  --pixelate) PIXELATE="${2:?$1 requires a value}"; HAS_CUSTOM=1; shift 2;;
+  --tear) TEAR=1; HAS_CUSTOM=1; shift;;
+  --burst) BURST=1; shift;;
+  --mute) MUTE=1; shift;;
+  --from) START="${2:?$1 requires a value}"; shift 2;;
+  --to) END="${2:?$1 requires a value}"; shift 2;;
+  -o|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;;
+  -f|--force) FORCE=1; shift;;
+  -n|--dry-run) DRY_RUN=1; shift;;
+  -h|--help) usage; exit 0;;
+  -*) echo "Unknown option: $1" >&2; usage >&2; exit 1;;
+  *) FILES+=("$1"); shift;;
+esac; done
+
+if [ "$INTERACTIVE" -eq 1 ] || { [ "${#FILES[@]}" -eq 0 ] && [ -t 0 ]; }; then
+  interactive_wizard
+fi
+
+[ "${#FILES[@]}" -gt 0 ] || { usage >&2; exit 1; }
+require_commands ffmpeg
+
+if [ "$HAS_CUSTOM" -eq 1 ]; then
+  VF=""
+  ENABLE_BURST=""
+  [ "$BURST" -eq 1 ] && ENABLE_BURST=":enable='lt(mod(t\\,2)\\,0.35)'"
+
+  if [ -n "$CUSTOM_RGB" ]; then
+    [[ "$CUSTOM_RGB" =~ ^[0-9]+$ ]] || { echo "RGB split offset must be a positive integer." >&2; exit 1; }
+    VF="${VF:+$VF,}rgbashift=rh=${CUSTOM_RGB}:bh=-${CUSTOM_RGB}:gv=2${ENABLE_BURST}"
+  fi
+  if [ "$SCANLINES" -eq 1 ]; then
+    VF="${VF:+$VF,}drawgrid=w=iw:h=4:t=2:c=black@0.45${ENABLE_BURST}"
+  fi
+  if [ "$NOISE" -gt 0 ]; then
+    VF="${VF:+$VF,}noise=alls=${NOISE}:allf=t+u${ENABLE_BURST}"
+  fi
+  if [ "$PIXELATE" -gt 0 ]; then
+    VF="${VF:+$VF,}pixelize=w=${PIXELATE}:h=${PIXELATE}${ENABLE_BURST}"
+  fi
+  if [ "$TEAR" -eq 1 ]; then
+    VF="${VF:+$VF,}shufflepixels=w=48:h=6:d=0:m=0${ENABLE_BURST}"
+  fi
+  TAG="glitch"
+else
+  case "$PRESET" in
+    rgb-split)
+      if [ "$BURST" -eq 1 ]; then
+        VF="rgbashift=rh=12:bh=-12:gv=3:enable='lt(mod(t\\,2)\\,0.35)'"
+      else
+        VF="rgbashift=rh=10:bh=-10:gv=2"
+      fi
+      TAG="rgb-split"
+      ;;
+    vhs)
+      if [ "$BURST" -eq 1 ]; then
+        VF="noise=alls=15:allf=t+u,eq=contrast=1.15:saturation=1.35:gamma=0.95,rgbashift=rh=8:bh=-8:gv=2:enable='lt(mod(t\\,2)\\,0.35)',vignette=PI/4"
+      else
+        VF="noise=alls=15:allf=t+u,eq=contrast=1.15:saturation=1.35:gamma=0.95,rgbashift=rh=4:bh=-4:gv=1,vignette=PI/4"
+      fi
+      TAG="vhs"
+      ;;
+    crt)
+      if [ "$BURST" -eq 1 ]; then
+        VF="drawgrid=w=iw:h=4:t=2:c=black@0.45,rgbashift=rh=8:bh=-8:enable='lt(mod(t\\,2)\\,0.35)',eq=contrast=1.2:saturation=1.2"
+      else
+        VF="drawgrid=w=iw:h=4:t=2:c=black@0.45,rgbashift=rh=5:bh=-5,eq=contrast=1.2:saturation=1.2"
+      fi
+      TAG="crt"
+      ;;
+    8bit)
+      if [ "$BURST" -eq 1 ]; then
+        VF="pixelize=w=12:h=12:enable='lt(mod(t\\,2)\\,0.35)',eq=contrast=1.3:saturation=1.5"
+      else
+        VF="pixelize=w=12:h=12,eq=contrast=1.3:saturation=1.5"
+      fi
+      TAG="8bit"
+      ;;
+    cyberpunk)
+      if [ "$BURST" -eq 1 ]; then
+        VF="rgbashift=rh=16:bh=-16:gv=6:enable='lt(mod(t\\,1.5)\\,0.4)',drawgrid=w=iw:h=6:t=2:c=black@0.3,eq=contrast=1.3:saturation=1.65,shufflepixels=w=40:h=4:d=0:m=0:enable='lt(mod(t\\,1.5)\\,0.25)'"
+      else
+        VF="rgbashift=rh=16:bh=-16:gv=6,drawgrid=w=iw:h=6:t=2:c=black@0.3,eq=contrast=1.3:saturation=1.65,shufflepixels=w=40:h=4:d=0:m=0:enable='lt(mod(t\\,1.5)\\,0.2)'"
+      fi
+      TAG="cyberpunk"
+      ;;
+    badsignal)
+      if [ "$BURST" -eq 1 ]; then
+        VF="noise=alls=22:allf=t+u,rgbashift=rh=22:bh=-18:bv=-6:enable='lt(mod(t\\,1.5)\\,0.4)',shufflepixels=w=60:h=8:d=0:m=0:enable='lt(mod(t\\,1.5)\\,0.3)',drawgrid=w=iw:h=8:t=3:c=black@0.4"
+      else
+        VF="noise=alls=22:allf=t+u,rgbashift=rh=22:bh=-18:bv=-6,shufflepixels=w=60:h=8:d=0:m=0,drawgrid=w=iw:h=8:t=3:c=black@0.4"
+      fi
+      TAG="badsignal"
+      ;;
+    tear)
+      if [ "$BURST" -eq 1 ]; then
+        VF="shufflepixels=w=48:h=6:d=0:m=0:enable='lt(mod(t\\,2)\\,0.35)',rgbashift=rh=10:bh=-10:enable='lt(mod(t\\,2)\\,0.35)'"
+      else
+        VF="shufflepixels=w=48:h=6:d=0:m=0,rgbashift=rh=8:bh=-8"
+      fi
+      TAG="tear"
+      ;;
+    *)
+      echo "Unknown preset '$PRESET'. Choose from: rgb-split, vhs, crt, 8bit, cyberpunk, badsignal, tear" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+VF="${VF},format=yuv420p"
+[ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+
+SUCCESS=0; FAILED=0; SKIPPED=0
+for input in "${FILES[@]}"; do
+  if [ ! -f "$input" ]; then
+    echo "⚠️  Not a file: $input" >&2
+    FAILED=$((FAILED + 1))
+    continue
+  fi
+
+  base="$(basename "${input%.*}")"
+  out="${OUTPUT_DIR:-$(dirname "$input")}/${base}-${TAG}.mp4"
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "📝 Would create: $out"
+    continue
+  fi
+
+  if ! output_is_safe "$out" "$FORCE"; then
+    SKIPPED=$((SKIPPED + 1))
+    continue
+  fi
+
+  args=(-hide_banner -loglevel error -stats)
+  [ -n "$START" ] && args+=(-ss "$START")
+  args+=(-i "$input")
+  [ -n "$END" ] && args+=(-to "$END")
+  args+=(-vf "$VF" -c:v libx264 -crf 20 -preset medium)
+
+  if [ "$MUTE" -eq 1 ]; then
+    args+=(-an)
+  else
+    args+=(-c:a aac -b:a 192k)
+  fi
+  args+=("$out")
+
+  echo "▶️  $input → $out ($TAG)"
+  if ffmpeg "${args[@]}"; then
+    SUCCESS=$((SUCCESS + 1))
+  else
+    FAILED=$((FAILED + 1))
+  fi
+done
+
+if [ "$DRY_RUN" -eq 0 ]; then
+  echo "✅ Done: $SUCCESS video(s) glitched, $FAILED failed, $SKIPPED skipped"
+  [ "$SUCCESS" -eq 0 ] || notify "Glitched $SUCCESS video(s)." "vidglitch"
+fi
+exit "$FAILED"

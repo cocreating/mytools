@@ -1,0 +1,17 @@
+#compdef vidglitch
+_arguments \
+  '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
+  '(-p --preset)'{-p,--preset}'[glitch preset]:preset:(rgb-split vhs crt 8bit cyberpunk badsignal tear)' \
+  '--rgb-split[shift red and blue color channels in px]:offset' \
+  '--scanlines[add CRT scanlines overlay]' \
+  '--noise[add analog video noise]:level' \
+  '--pixelate[pixelate video into blocks]:factor' \
+  '--tear[add horizontal data glitch tearing]' \
+  '--burst[pulse glitch intermittently]' \
+  '--mute[discard audio track]' \
+  '--from[trim start time]:time' \
+  '--to[trim end time]:time' \
+  '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \
+  '(-f --force)'{-f,--force}'[overwrite existing output]' \
+  '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+  '*:video file:_files -g "*.(mp4|mov|avi|mkv|webm|m4v)(-.)"'

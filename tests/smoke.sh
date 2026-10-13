@@ -4,7 +4,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 for script in "$ROOT"/scripts/* "$ROOT"/scripts/lib/common.sh "$ROOT"/install.sh; do
   [ -f "$script" ] && bash -n "$script"
 done
-for command in img2webp ytdl mp4glue vid2webm vid2gif videoWithoutAudio media-optimize vid2audio wav2mp3 wav2tempo wavreverse wavpitch wavnorm wavfade wavtrim wavfx media-info thumloc webloc2md mytools mytools-guide mytools-doctor mytools-config; do
+for command in img2webp ytdl mp4glue vid2webm vid2gif videoWithoutAudio media-optimize vidglitch filmcut vid2audio wav2mp3 wav2tempo wavreverse wavpitch wavnorm wavfade wavtrim wavfx media-info thumloc webloc2md mytools mytools-guide mytools-doctor mytools-config; do
   bash "$ROOT/scripts/$command" --help >/dev/null
 done
 TEMP_CONFIG="$(mktemp -d)/config"
@@ -40,5 +40,16 @@ trap 'rm -f "$TEST_WAV"; rm -rf "$TEST_IMG_DIR"' EXIT
 ffmpeg -y -f lavfi -i color=c=blue:s=100x100:d=1 -vframes 1 "$TEST_IMG_DIR/test.png" >/dev/null 2>&1
 IMG_OUT="$(cd "$TEST_IMG_DIR" && bash "$ROOT/scripts/img2webp" -width 80 -q 90 -a -n)"
 echo "$IMG_OUT" | grep -q "test.png → .*test.webp"
+
+# Dry-run smoke test for vidglitch
+TEST_VID="$(mktemp "${TMPDIR:-/tmp}/test_smoke_vid_XXXXXX.mp4")"
+trap 'rm -f "$TEST_WAV" "$TEST_VID"; rm -rf "$TEST_IMG_DIR"' EXIT
+ffmpeg -y -f lavfi -i testsrc=duration=1:size=100x100:rate=10 -c:v libx264 "$TEST_VID" >/dev/null 2>&1
+GLITCH_OUT="$(bash "$ROOT/scripts/vidglitch" --preset cyberpunk -n "$TEST_VID")"
+echo "$GLITCH_OUT" | grep -q "Would create:"
+
+# Dry-run smoke test for filmcut
+CUT_OUT="$(bash "$ROOT/scripts/filmcut" -p 20 -n "$TEST_VID")"
+echo "$CUT_OUT" | grep -q "Would create:"
 
 echo 'Smoke tests passed.'

@@ -1,0 +1,235 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+PERCENT=20; MODE="frames"; SEED=""; JITTER=0; GRAIN=0; FLASH=0; MUTE=0
+OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; START=""; END=""; FILES=(); INTERACTIVE=0
+
+usage() { cat <<'EOF'
+Usage: filmcut [options] <video...>
+
+Erase random frames or chunks to create a cut film / jump-cut effect,
+resulting in a shorter video with synchronized audio.
+
+Options:
+  -p, --percent <N>       Percentage of frames to cut out (1-90, default: 20)
+  -m, --mode <mode>       Cut mode: frames, jumps, stutter (default: frames)
+                          • frames:  Erase random single frames (missing celluloid frames)
+                          • jumps:   Excise micro-chunks (~0.2s jump cuts)
+                          • stutter: Rapid 2-frame skips (projector chatter)
+  -i, --interactive       Interactive wizard (guided mode) 🧙
+  --seed <int>            Seed for random cut pattern (reproducible cuts)
+  --jitter                Add mechanical film projector gate weave/jitter
+  --grain                 Add analog 16mm/35mm film grain
+  --flash                 Add occasional white splice tape flashes
+  --mute                  Discard audio track from output
+
+Trimming & Output:
+  --from <time>           Start timestamp (e.g. 00:00:02)
+  --to <time>             End timestamp (e.g. 00:00:10)
+  -o, --output-dir <dir>  Write output files to this directory
+  -f, --force             Overwrite existing output files
+  -n, --dry-run           Show planned output files only
+  -h, --help              Show help
+
+Examples:
+  filmcut clip.mp4                            # 20% random frame drops
+  filmcut -p 35 recording.mov                 # 35% shorter with jump cuts
+  filmcut -p 25 --mode jumps action.mp4       # 25% chunk jump cuts
+  filmcut -p 20 --jitter --grain vintage.mp4  # with gate weave & film grain
+  filmcut -i                                  # interactive guided wizard
+EOF
+}
+
+interactive_wizard() {
+  echo "🎞️ Welcome to the filmcut interactive wizard!"
+  echo "────────────────────────────────────────────"
+
+  # Step 1: Input files
+  if [ "${#FILES[@]}" -eq 0 ]; then
+    if command -v fzf &>/dev/null; then
+      echo "📂 Step 1: Select video files (press [Tab] to mark multiple, [Enter] to confirm)"
+      local cand_files="" selected=""
+      cand_files=$(find . -maxdepth 2 -type f 2>/dev/null | grep -Ei '\.(mp4|mov|avi|mkv|webm|m4v)$' | sed 's#^./##' || true)
+      if [ -n "$cand_files" ]; then
+        selected=$(printf '%s\n' "$cand_files" | fzf -m --prompt="filmcut files > " --height=50% --layout=reverse --border || true)
+      fi
+      if [ -n "$selected" ]; then
+        while IFS= read -r f; do [ -n "$f" ] && FILES+=("$f"); done <<< "$selected"
+      fi
+    fi
+    if [ "${#FILES[@]}" -eq 0 ]; then
+      printf "Enter path to video file: "
+      read -r manual_file
+      [ -n "$manual_file" ] && FILES+=("$manual_file")
+    fi
+  fi
+
+  [ "${#FILES[@]}" -gt 0 ] || { echo "❌ No video files selected. Canceled."; exit 0; }
+
+  # Step 2: Cut Percentage
+  if command -v fzf &>/dev/null; then
+    local p_choice
+    p_choice=$(printf '%s\n' \
+      '20% — ✂️ Balanced cut film (20% shorter, default)' \
+      '10% — 🎞️ Subtle missing frames (10% shorter)' \
+      '30% — 🎬 Energetic jump cuts (30% shorter)' \
+      '50% — ⚡ Frantic staccato cuts (50% shorter)' \
+      'Custom — ✍️ Enter custom percentage' | fzf --prompt="Select cut percentage > " --height=40% --layout=reverse --border || true)
+    case "${p_choice%% *}" in
+      10%) PERCENT=10;;
+      20%) PERCENT=20;;
+      30%) PERCENT=30;;
+      50%) PERCENT=50;;
+      Custom)
+        printf "Enter cut percentage (1-90) [20]: "
+        read -r custom_p
+        PERCENT="${custom_p:-20}"
+        ;;
+    esac
+  else
+    printf "Enter percentage of frames to erase (1-90) [20]: "
+    read -r p_in
+    PERCENT="${p_in:-20}"
+  fi
+
+  # Step 3: Cut Style
+  if command -v fzf &>/dev/null; then
+    local m_choice
+    m_choice=$(printf '%s\n' \
+      'frames — ✂️ Random single-frame drops (missing celluloid frames)' \
+      'jumps — 🎬 Micro-chunk jump cuts (~0.2s French New Wave cuts)' \
+      'stutter — 📽️ 2-frame skips (mechanical projector chatter)' | fzf --prompt="Select cut style > " --height=40% --layout=reverse --border || true)
+    [ -n "$m_choice" ] && MODE="${m_choice%% *}"
+  fi
+
+  # Step 4: Optional vintage extras
+  printf "Add projector gate jitter/weave? [y/N]: "
+  read -r j_ans
+  case "$j_ans" in [yY]|[yY][eE][sS]) JITTER=1 ;; *) JITTER=0 ;; esac
+
+  printf "Add analog film grain? [y/N]: "
+  read -r g_ans
+  case "$g_ans" in [yY]|[yY][eE][sS]) GRAIN=1 ;; *) GRAIN=0 ;; esac
+}
+
+while [ "$#" -gt 0 ]; do case "$1" in
+  -i|--interactive) INTERACTIVE=1; shift;;
+  -p|--percent|--cut) PERCENT="${2:?$1 requires a value}"; shift 2;;
+  -m|--mode) MODE="${2:?$1 requires a value}"; shift 2;;
+  --seed) SEED="${2:?$1 requires a value}"; shift 2;;
+  --jitter) JITTER=1; shift;;
+  --grain) GRAIN=1; shift;;
+  --flash) FLASH=1; shift;;
+  --mute) MUTE=1; shift;;
+  --from) START="${2:?$1 requires a value}"; shift 2;;
+  --to) END="${2:?$1 requires a value}"; shift 2;;
+  -o|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;;
+  -f|--force) FORCE=1; shift;;
+  -n|--dry-run) DRY_RUN=1; shift;;
+  -h|--help) usage; exit 0;;
+  -*) echo "Unknown option: $1" >&2; usage >&2; exit 1;;
+  *) FILES+=("$1"); shift;;
+esac; done
+
+if [ "$INTERACTIVE" -eq 1 ] || { [ "${#FILES[@]}" -eq 0 ] && [ -t 0 ]; }; then
+  interactive_wizard
+fi
+
+[ "${#FILES[@]}" -gt 0 ] || { usage >&2; exit 1; }
+[[ "$PERCENT" =~ ^[0-9]+$ && "$PERCENT" -ge 1 && "$PERCENT" -le 90 ]] || {
+  echo "Error: Cut percentage must be an integer between 1 and 90." >&2
+  exit 1
+}
+
+require_commands ffmpeg ffprobe
+
+# Set frequency based on mode
+case "$MODE" in
+  frames) FREQ=25 ;;
+  jumps)  FREQ=6  ;;
+  stutter) FREQ=12 ;;
+  *) echo "Unknown mode '$MODE'. Choose from: frames, jumps, stutter." >&2; exit 1 ;;
+esac
+
+# Generate reproducible or random seed
+if [ -z "$SEED" ]; then
+  SEED=$(( (RANDOM % 800) + 101 ))
+fi
+
+[ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+
+SUCCESS=0; FAILED=0; SKIPPED=0
+for input in "${FILES[@]}"; do
+  if [ ! -f "$input" ]; then
+    echo "⚠️  Not a file: $input" >&2
+    FAILED=$((FAILED + 1))
+    continue
+  fi
+
+  base="$(basename "${input%.*}")"
+  out="${OUTPUT_DIR:-$(dirname "$input")}/${base}-cut${PERCENT}.mp4"
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "📝 Would create: $out (${PERCENT}% cut, mode: ${MODE})"
+    continue
+  fi
+
+  if ! output_is_safe "$out" "$FORCE"; then
+    SKIPPED=$((SKIPPED + 1))
+    continue
+  fi
+
+  # Detect if input has an audio stream
+  HAS_AUDIO=0
+  if [ "$MUTE" -eq 0 ]; then
+    AUDIO_STREAM=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of default=nw=1:nk=1 "$input" 2>/dev/null || true)
+    [ "$AUDIO_STREAM" = "audio" ] && HAS_AUDIO=1
+  fi
+
+  # Build filter chain
+  VF="select=gte(mod(floor(t*${FREQ})*${SEED}\,100)\\,${PERCENT}),setpts=N/FRAME_RATE/TB"
+
+  if [ "$FLASH" -eq 1 ]; then
+    VF="${VF},drawbox=t=fill:c=white@0.85:enable=gt(random(2)\\,0.96)"
+  fi
+  if [ "$JITTER" -eq 1 ]; then
+    VF="${VF},pad=in_w:in_h+8:0:4:black,crop=in_w:in_h-8:0:trunc(abs(sin(n*1.3))*4)"
+  fi
+  if [ "$GRAIN" -eq 1 ]; then
+    VF="${VF},noise=alls=10:allf=t+u"
+  fi
+  VF="${VF},format=yuv420p"
+
+  args=(-hide_banner -loglevel error -stats)
+  [ -n "$START" ] && args+=(-ss "$START")
+  args+=(-i "$input")
+  [ -n "$END" ] && args+=(-to "$END")
+
+  if [ "$HAS_AUDIO" -eq 1 ]; then
+    AF="aselect=gte(mod(floor(t*${FREQ})*${SEED}\,100)\\,${PERCENT}),asetpts=N/SR/TB"
+    args+=(-filter_complex "[0:v]${VF}[v];[0:a]${AF}[a]" -map "[v]" -map "[a]" -c:v libx264 -crf 20 -preset medium -c:a aac -b:a 192k)
+  else
+    args+=(-vf "$VF" -c:v libx264 -crf 20 -preset medium -an)
+  fi
+  args+=("$out")
+
+  echo "▶️  $input → $out (${PERCENT}% erased, mode: ${MODE})"
+  if ffmpeg "${args[@]}"; then
+    # Calculate duration reduction for feedback
+    orig_dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$input" 2>/dev/null || true)
+    new_dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$out" 2>/dev/null || true)
+    if [ -n "$orig_dur" ] && [ -n "$new_dur" ]; then
+      printf "   ⏱️  Duration: %.1fs → %.1fs (~%d%% shorter)\n" "$orig_dur" "$new_dur" "$PERCENT"
+    fi
+    SUCCESS=$((SUCCESS + 1))
+  else
+    FAILED=$((FAILED + 1))
+  fi
+done
+
+if [ "$DRY_RUN" -eq 0 ]; then
+  echo "✅ Done: $SUCCESS video(s) cut, $FAILED failed, $SKIPPED skipped"
+  [ "$SUCCESS" -eq 0 ] || notify "Cut $SUCCESS video(s) by ${PERCENT}%." "filmcut"
+fi
+exit "$FAILED"

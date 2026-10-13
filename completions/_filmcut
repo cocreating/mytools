@@ -1,0 +1,16 @@
+#compdef filmcut
+_arguments \
+  '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
+  '(-p --percent --cut)'{-p,--percent,--cut}'[percentage of frames to erase (1-90)]:percentage' \
+  '(-m --mode)'{-m,--mode}'[cut mode]:mode:(frames jumps stutter)' \
+  '--seed[seed for random cut pattern]:integer' \
+  '--jitter[add mechanical film projector gate weave/jitter]' \
+  '--grain[add analog film grain]' \
+  '--flash[add occasional white splice tape flashes]' \
+  '--mute[discard audio track]' \
+  '--from[trim start time]:time' \
+  '--to[trim end time]:time' \
+  '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \
+  '(-f --force)'{-f,--force}'[overwrite existing output]' \
+  '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+  '*:video file:_files -g "*.(mp4|mov|avi|mkv|webm|m4v)(-.)"'

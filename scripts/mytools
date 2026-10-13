@@ -10,7 +10,7 @@ Open the interactive launcher, or run one of:
   doctor       Check dependencies
   config       Show/create the presets configuration
 
-Tools: img2webp, ytdl, mp4glue, vid2webm, vid2gif, videoWithoutAudio, media-optimize,
+Tools: img2webp, ytdl, mp4glue, vid2webm, vid2gif, videoWithoutAudio, media-optimize, vidglitch, filmcut,
 vid2audio, wav2mp3, wav2tempo, wavreverse, wavpitch, wavnorm, wavfade, wavtrim, wavfx,
 media-info, thumloc, webloc2md.
 EOF
@@ -28,7 +28,7 @@ command -v fzf >/dev/null 2>&1 || { "$SCRIPT_DIR/mytools-guide"; echo "💡 Inst
 OPTION=$(printf '%s\n' \
   'img2webp — 📸 Image to WebP' \
   'ytdl — 📥 Download web media' \
-  'mp4glue — 🎞️ Glue MP4 videos' 'vid2webm — 🌐 Video to WebM' 'vid2gif — 👾 Video to GIF' 'videoWithoutAudio — 🔇 Remove video audio (optional preserve tracks)' 'media-optimize — 🚀 Optimize video (web/social/archive)' \
+  'mp4glue — 🎞️ Glue MP4 videos' 'vid2webm — 🌐 Video to WebM' 'vid2gif — 👾 Video to GIF' 'videoWithoutAudio — 🔇 Remove video audio (optional preserve tracks)' 'media-optimize — 🚀 Optimize video (web/social/archive)' 'vidglitch — ⚡ Glitch & retro visual FX' 'filmcut — ✂️ Erase random frames / cut film' \
   'vid2audio — 🔊 Extract video audio' 'wav2mp3 — 🎧 Audio to MP3' 'wav2tempo — 🥁 Retime WAV by BPM' 'wavreverse — 🔄 Reverse WAV audio' 'wavpitch — 🎼 Shift WAV pitch' 'wavnorm — 🎚️ Normalize WAV volume' 'wavfade — 📈 Apply fade in/out' 'wavtrim — ✂️ Strip WAV silence' 'wavfx — 🎛️ WAV audio effects' \
   'media-info — 🕵️ Inspect media file' \
   'thumloc — 🖼️ Finder bookmark thumbnails' 'webloc2md — 📑 Bookmark index' \
@@ -42,4 +42,35 @@ esac
 FILES=$(find . -maxdepth 1 -type f -print | sed 's#^./##' | fzf -m --prompt="${TOOL} files > " --header='💡 Press [Tab] to mark multiple files, then press [Enter] to confirm' --height=60% --layout=reverse --border)
 [ -n "$FILES" ] || { echo 'Canceled.'; exit 0; }
 FILE_ARRAY=(); while IFS= read -r file; do FILE_ARRAY+=("$file"); done <<< "$FILES"
+if [ "$TOOL" = "vidglitch" ]; then
+  PRESET_CHOICE=$(printf '%s\n' \
+    'rgb-split — 🌈 Chromatic aberration (default)' \
+    'vhs — 📼 Analog tape noise & vignette' \
+    'crt — 📺 Arcade scanlines & RGB offset' \
+    '8bit — 🕹️ Retro pixelated gaming blocks' \
+    'cyberpunk — 🌆 Neon RGB split & tearing' \
+    'badsignal — 📡 Heavy static & signal loss' \
+    'tear — ⚡ Digital data block displacement' | fzf --prompt='vidglitch preset > ' --height=50% --layout=reverse --border || true)
+  if [ -n "$PRESET_CHOICE" ]; then
+    PRESET="${PRESET_CHOICE%% *}"
+    TIMING_CHOICE=$(printf '%s\n' \
+      'constant — 🌊 Continuous glitch (always on)' \
+      'burst — 💓 Intermittent pulse/burst mode (every 2s)' | fzf --prompt='vidglitch timing > ' --height=40% --layout=reverse --border || true)
+    EXTRA_FLAGS=()
+    [ "${TIMING_CHOICE%% *}" = "burst" ] && EXTRA_FLAGS+=("--burst")
+    exec "$SCRIPT_DIR/vidglitch" --preset "$PRESET" "${EXTRA_FLAGS[@]}" "${FILE_ARRAY[@]}"
+  fi
+fi
+if [ "$TOOL" = "filmcut" ]; then
+  CUT_CHOICE=$(printf '%s\n' \
+    '20% — ✂️ Balanced cut film (20% shorter, default)' \
+    '10% — 🎞️ Subtle missing frames (10% shorter)' \
+    '30% — 🎬 Energetic jump cuts (30% shorter)' \
+    '50% — ⚡ Frantic staccato cuts (50% shorter)' | fzf --prompt='filmcut percentage > ' --height=40% --layout=reverse --border || true)
+  if [ -n "$CUT_CHOICE" ]; then
+    PCT="${CUT_CHOICE%% *}"
+    PCT="${PCT%\%}"
+    exec "$SCRIPT_DIR/filmcut" --percent "$PCT" "${FILE_ARRAY[@]}"
+  fi
+fi
 exec "$SCRIPT_DIR/$TOOL" "${FILE_ARRAY[@]}"
