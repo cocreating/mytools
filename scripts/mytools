@@ -10,7 +10,7 @@ Open the interactive launcher, or run one of:
   doctor       Check dependencies
   config       Show/create the presets configuration
 
-Tools: img2webp, ytdl, mp4glue, vid2webm, vid2gif, videoWithoutAudio, media-optimize, vidglitch, filmcut,
+Tools: img2webp, ytdl, vidglue, vid2webm, vid2gif, videoWithoutAudio, vidoptim, vidglitch, vidcuts,
 vid2audio, wav2mp3, wav2tempo, wavreverse, wavpitch, wavnorm, wavfade, wavtrim, wavfx,
 media-info, thumloc, webloc2md.
 EOF
@@ -25,14 +25,22 @@ case "${1:-}" in
   *) echo "Unknown mytools command: $1" >&2; exec "$SCRIPT_DIR/mytools-guide";;
 esac
 command -v fzf >/dev/null 2>&1 || { "$SCRIPT_DIR/mytools-guide"; echo "💡 Install fzf for the interactive launcher: brew install fzf"; exit 0; }
+if [ -t 1 ]; then
+  CURRENT_LINES=$(tput lines 2>/dev/null || echo 0)
+  CURRENT_COLS=$(tput cols 2>/dev/null || echo 80)
+  if [ "$CURRENT_LINES" -gt 0 ] && [ "$CURRENT_LINES" -lt 30 ]; then
+    printf '\e[8;%d;%dt' 30 "$CURRENT_COLS"
+    sleep 0.05 2>/dev/null || true
+  fi
+fi
 OPTION=$(printf '%s\n' \
   'img2webp — 📸 Image to WebP' \
   'ytdl — 📥 Download web media' \
-  'mp4glue — 🎞️ Glue MP4 videos' 'vid2webm — 🌐 Video to WebM' 'vid2gif — 👾 Video to GIF' 'videoWithoutAudio — 🔇 Remove video audio (optional preserve tracks)' 'media-optimize — 🚀 Optimize video (web/social/archive)' 'vidglitch — ⚡ Glitch & retro visual FX' 'filmcut — ✂️ Erase random frames / cut film' \
+  'vidglue — 🎞️ Glue MP4 videos' 'vid2webm — 🌐 Video to WebM' 'vid2gif — 👾 Video to GIF' 'videoWithoutAudio — 🔇 Remove video audio (optional preserve tracks)' 'vidoptim — 🚀 Optimize video (web/social/archive)' 'vidglitch — ⚡ Glitch & retro visual FX' 'vidcuts — ✂️ Erase random frames / cut film' \
   'vid2audio — 🔊 Extract video audio' 'wav2mp3 — 🎧 Audio to MP3' 'wav2tempo — 🥁 Retime WAV by BPM' 'wavreverse — 🔄 Reverse WAV audio' 'wavpitch — 🎼 Shift WAV pitch' 'wavnorm — 🎚️ Normalize WAV volume' 'wavfade — 📈 Apply fade in/out' 'wavtrim — ✂️ Strip WAV silence' 'wavfx — 🎛️ WAV audio effects' \
   'media-info — 🕵️ Inspect media file' \
   'thumloc — 🖼️ Finder bookmark thumbnails' 'webloc2md — 📑 Bookmark index' \
-  'guide — 📖 Interactive guide & cheat-sheets' 'doctor — 🩺 Dependency health check' 'config — ⚙️ User presets & config' | fzf --prompt='mytools > ' --height=60% --layout=reverse --border)
+  'guide — 📖 Interactive guide & cheat-sheets' 'doctor — 🩺 Dependency health check' 'config — ⚙️ User presets & config' | fzf --prompt='mytools > ' --height=~100% --layout=reverse --border)
 [ -n "$OPTION" ] || exit 0
 TOOL="${OPTION%% *}"
 case "$TOOL" in
@@ -61,16 +69,16 @@ if [ "$TOOL" = "vidglitch" ]; then
     exec "$SCRIPT_DIR/vidglitch" --preset "$PRESET" "${EXTRA_FLAGS[@]}" "${FILE_ARRAY[@]}"
   fi
 fi
-if [ "$TOOL" = "filmcut" ]; then
+if [ "$TOOL" = "vidcuts" ]; then
   CUT_CHOICE=$(printf '%s\n' \
     '20% — ✂️ Balanced cut film (20% shorter, default)' \
     '10% — 🎞️ Subtle missing frames (10% shorter)' \
     '30% — 🎬 Energetic jump cuts (30% shorter)' \
-    '50% — ⚡ Frantic staccato cuts (50% shorter)' | fzf --prompt='filmcut percentage > ' --height=40% --layout=reverse --border || true)
+    '50% — ⚡ Frantic staccato cuts (50% shorter)' | fzf --prompt='vidcuts percentage > ' --height=40% --layout=reverse --border || true)
   if [ -n "$CUT_CHOICE" ]; then
     PCT="${CUT_CHOICE%% *}"
     PCT="${PCT%\%}"
-    exec "$SCRIPT_DIR/filmcut" --percent "$PCT" "${FILE_ARRAY[@]}"
+    exec "$SCRIPT_DIR/vidcuts" --percent "$PCT" "${FILE_ARRAY[@]}"
   fi
 fi
 exec "$SCRIPT_DIR/$TOOL" "${FILE_ARRAY[@]}"

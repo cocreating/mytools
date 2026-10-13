@@ -1,4 +1,4 @@
-#compdef media-optimize
+#compdef vidoptim
 _arguments \
   '(-p --preset)'{-p,--preset}'[optimization preset]:preset:(web social archive)' \
   '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \

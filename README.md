@@ -16,16 +16,16 @@ mytools doctor
 ## Start here
 
 ```bash
-mytools                 # interactive launcher
+mytools                 # interactive launcher (shows complete tool list without scrolling)
 mytools help            # categorized command overview
-mytools help <tool>     # detailed guide for a specific tool (e.g. mytools help mp4glue)
+mytools help <tool>     # detailed guide for a specific tool (e.g. mytools help vidglue)
 mytools guide           # interactive help browser & cheat-sheets
 mytools doctor          # dependency and PATH check
 mytools config          # create/show ~/.config/mytools/config
 ```
 
 All conversion tools avoid overwriting an existing output by default. Use `--force` only when replacing it is intentional, and `--dry-run` to preview batch operations.
-`mytools config` creates editable overrides for the built-in `media-optimize` presets; change `codec`, `crf`, or `width` within a named preset section.
+`mytools config` creates editable overrides for the built-in `vidoptim` presets; change `codec`, `crf`, or `width` within a named preset section.
 
 ## Image tools
 
@@ -55,14 +55,14 @@ If no URL is supplied, the command uses a URL in the clipboard or prompts for on
 
 ## Video tools
 
-### Glue MP4 videos: `mp4glue`
+### Glue MP4 videos: `vidglue`
 
 ```bash
-mp4glue part1.mp4 part2.mp4
-mp4glue -o combined.mp4 clip1.mp4 clip2.mp4 clip3.mp4
-mp4glue --bounce video1.mp4 video2.mp4       # video1 forward, video2 reversed
-mp4glue --bounce video.mp4                 # video forward + video reversed (bounce effect)
-mp4glue --reencode -o merged.mp4 mixed1.mp4 mixed2.mov
+vidglue part1.mp4 part2.mp4
+vidglue -o combined.mp4 clip1.mp4 clip2.mp4 clip3.mp4
+vidglue --bounce video1.mp4 video2.mp4       # video1 forward, video2 reversed
+vidglue --bounce video.mp4                 # video forward + video reversed (bounce effect)
+vidglue --reencode -o merged.mp4 mixed1.mp4 mixed2.mov
 ```
 
 Glues multiple video files into a single MP4 file. Uses fast stream copy (`-c copy`) by default, or `--reencode` to re-encode streams into standard H.264/AAC MP4 when source files have different resolutions or codecs. Pass `-b` / `--bounce` to play videos forward and reversed.
@@ -97,15 +97,15 @@ videoWithoutAudio --dry-run *.mp4
 
 By default, this creates only `<name>-without-audio.<ext>` and discards the original audio from the new copy. Add `--extract-audio` to also preserve every source stream as `<name>-audio-track-01.mka`, `<name>-audio-track-02.mka`, and so on. Preserved audio streams are copied without re-encoding; the original video is never changed.
 
-### Optimize video: `media-optimize`
+### Optimize video: `vidoptim`
 
 ```bash
-media-optimize --preset web recording.mov
-media-optimize --preset social -o ./social *.mov
-media-optimize --preset archive --dry-run footage.mp4
+vidoptim --preset web recording.mov
+vidoptim --preset social -o ./social *.mov
+vidoptim --preset archive --dry-run footage.mp4
 ```
 
-`media-optimize` writes a new MP4 using one of three presets:
+`vidoptim` writes a new MP4 using one of three presets:
 
 - `web`: H.264, CRF 23, capped to 1080p
 - `social`: H.264, CRF 25, capped to 720p
@@ -124,14 +124,14 @@ vidglitch --rgb-split 16 --scanlines intro.mp4     # custom RGB shift & CRT scan
 
 Applies customizable analog and digital glitch effects using FFmpeg. Built-in presets: `rgb-split`, `vhs`, `crt`, `8bit`, `cyberpunk`, `badsignal`, and `tear`. Pass `--burst` to pulse the glitch periodically instead of applying a static overlay.
 
-### Cut film & jump cuts: `filmcut`
+### Cut film & jump cuts: `vidcuts`
 
 ```bash
-filmcut clip.mp4                                   # 20% random frame excision (default)
-filmcut -p 35 recording.mov                        # 35% shorter video with jump cuts
-filmcut -p 25 --mode jumps action.mp4              # 25% chunk jump cuts (~0.2s each)
-filmcut -p 20 --jitter --grain vintage.mp4         # with projector jitter & film grain
-filmcut -i                                         # interactive guided wizard
+vidcuts clip.mp4                                   # 20% random frame excision (default)
+vidcuts -p 35 recording.mov                        # 35% shorter video with jump cuts
+vidcuts -p 25 --mode jumps action.mp4              # 25% chunk jump cuts (~0.2s each)
+vidcuts -p 20 --jitter --grain vintage.mp4         # with projector jitter & film grain
+vidcuts -i                                         # interactive guided wizard
 ```
 
 Erases a chosen percentage of random frames or micro-chunks from the timeline, producing a shorter video with authentic physical cut-film and jump-cut aesthetics. Audio is trimmed in lockstep to maintain perfect synchronization across all cuts.

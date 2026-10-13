@@ -4,7 +4,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 for script in "$ROOT"/scripts/* "$ROOT"/scripts/lib/common.sh "$ROOT"/install.sh; do
   [ -f "$script" ] && bash -n "$script"
 done
-for command in img2webp ytdl mp4glue vid2webm vid2gif videoWithoutAudio media-optimize vidglitch filmcut vid2audio wav2mp3 wav2tempo wavreverse wavpitch wavnorm wavfade wavtrim wavfx media-info thumloc webloc2md mytools mytools-guide mytools-doctor mytools-config; do
+for command in img2webp ytdl vidglue vid2webm vid2gif videoWithoutAudio vidoptim vidglitch vidcuts vid2audio wav2mp3 wav2tempo wavreverse wavpitch wavnorm wavfade wavtrim wavfx media-info thumloc webloc2md mytools mytools-guide mytools-doctor mytools-config; do
   bash "$ROOT/scripts/$command" --help >/dev/null
 done
 TEMP_CONFIG="$(mktemp -d)/config"
@@ -48,8 +48,8 @@ ffmpeg -y -f lavfi -i testsrc=duration=1:size=100x100:rate=10 -c:v libx264 "$TES
 GLITCH_OUT="$(bash "$ROOT/scripts/vidglitch" --preset cyberpunk -n "$TEST_VID")"
 echo "$GLITCH_OUT" | grep -q "Would create:"
 
-# Dry-run smoke test for filmcut
-CUT_OUT="$(bash "$ROOT/scripts/filmcut" -p 20 -n "$TEST_VID")"
+# Dry-run smoke test for vidcuts
+CUT_OUT="$(bash "$ROOT/scripts/vidcuts" -p 20 -n "$TEST_VID")"
 echo "$CUT_OUT" | grep -q "Would create:"
 
 echo 'Smoke tests passed.'

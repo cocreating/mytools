@@ -2,4 +2,4 @@
 _arguments \
  '(-i --interactive)'{-i,--interactive}'[interactive help browser]' \
  '(-h --help)'{-h,--help}'[show overview]' \
-  '1:tool:(img2webp ytdl mp4glue vid2webm vid2gif videoWithoutAudio media-optimize vidglitch filmcut vid2audio wav2mp3 wav2tempo wavreverse wavpitch wavnorm wavfade wavtrim wavfx media-info thumloc webloc2md doctor config launcher-tips)'
+  '1:tool:(img2webp ytdl vidglue vid2webm vid2gif videoWithoutAudio vidoptim vidglitch vidcuts vid2audio wav2mp3 wav2tempo wavreverse wavpitch wavnorm wavfade wavtrim wavfx media-info thumloc webloc2md doctor config launcher-tips)'

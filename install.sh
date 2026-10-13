@@ -12,6 +12,7 @@ echo "📦 Installing mytools..."
 # Create symlinks
 BIN_DIR="$HOME/.local/bin"
 mkdir -p "$BIN_DIR"
+rm -f "$BIN_DIR/mp4glue" "$BIN_DIR/media-optimize" "$BIN_DIR/filmcut"
 
 echo "🔗 Creating symlinks in $BIN_DIR..."
 for script in scripts/*; do
@@ -25,6 +26,7 @@ done
 # Setup Zsh completions
 ZFUNC_DIR="$HOME/.zfunc"
 mkdir -p "$ZFUNC_DIR"
+rm -f "$ZFUNC_DIR/_mp4glue" "$ZFUNC_DIR/_media-optimize" "$ZFUNC_DIR/_filmcut"
 echo "🔗 Setting up Zsh completions in $ZFUNC_DIR..."
 for comp in completions/*; do
     comp_name=$(basename "$comp")

@@ -10,7 +10,7 @@ BOUNCE=0
 FILES=()
 
 usage() { cat <<EOF
-Usage: mp4glue [options] <video1> [video2...]
+Usage: vidglue [options] <video1> [video2...]
 Glue (concatenate) MP4 video files into a single MP4.
 
 Options:
@@ -38,7 +38,7 @@ done
 
 if [ "$BOUNCE" -eq 1 ]; then
   if [ "${#FILES[@]}" -lt 1 ]; then
-    echo "❌ Error: mp4glue --bounce requires at least 1 input file." >&2
+    echo "❌ Error: vidglue --bounce requires at least 1 input file." >&2
     usage >&2
     exit 1
   fi
@@ -49,11 +49,11 @@ else
       printf '   Would you like to process it in --bounce mode (forward + reversed)? [Y/n] ' >&2
       read -r reply || reply=""
       case "$reply" in
-        [nN]*) echo "❌ Operation canceled. mp4glue requires 2+ files (use [Tab] in mytools fzf launcher to select multiple files)." >&2; exit 1;;
+        [nN]*) echo "❌ Operation canceled. vidglue requires 2+ files (use [Tab] in mytools fzf launcher to select multiple files)." >&2; exit 1;;
         *) BOUNCE=1; REENCODE=1;;
       esac
     else
-      echo "❌ Error: mp4glue requires at least 2 input files (or pass -b/--bounce for 1 file)." >&2
+      echo "❌ Error: vidglue requires at least 2 input files (or pass -b/--bounce for 1 file)." >&2
       echo "💡 In the 'mytools' launcher, press [Tab] on each file to mark multiple files before pressing [Enter]." >&2
       usage >&2
       exit 1
@@ -145,7 +145,7 @@ elif [ "$REENCODE" -eq 1 ]; then
     -c:v libx264 -preset fast -crf 22 -c:a aac "$OUTPUT"
 else
   echo "⚡  Gluing ${#FILES[@]} files (fast stream copy) → $OUTPUT"
-  MANIFEST="$(mktemp "${TMPDIR:-/tmp}/mp4glue_XXXXXX.txt")"
+  MANIFEST="$(mktemp "${TMPDIR:-/tmp}/vidglue_XXXXXX.txt")"
   trap 'rm -f "$MANIFEST"' EXIT
   for f in "${FILES[@]}"; do
     abs_path="$(cd "$(dirname "$f")" && pwd)/$(basename "$f")"
@@ -154,5 +154,5 @@ else
   ffmpeg -hide_banner -loglevel error -stats -f concat -safe 0 -i "$MANIFEST" -c copy "$OUTPUT"
 fi
 
-notify "MP4 glue complete! 🎬" "mp4glue"
+notify "MP4 glue complete! 🎬" "vidglue"
 echo "🎉 Created: $OUTPUT"

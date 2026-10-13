@@ -5,7 +5,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 PRESET="web"; OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; FILES=()
 usage() { cat <<'EOF'
-Usage: media-optimize [options] <video...>
+Usage: vidoptim [options] <video...>
 
 Presets: web (H.264 MP4, 1080p), social (H.264 MP4, 720p), archive (H.265 MP4).
 Options: -p, --preset <name>  -o, --output-dir <dir>  -f, --force  -n, --dry-run
@@ -37,4 +37,4 @@ for input in "${FILES[@]}"; do
   echo "▶️  $input → $out ($PRESET)"
   ffmpeg -hide_banner -loglevel error -stats -i "$input" "${filters[@]}" -c:v "$CODEC" -crf "$CRF" -preset medium -c:a aac -b:a 160k "$out"
 done
-notify "Optimization complete." "media-optimize"
+notify "Optimization complete." "vidoptim"

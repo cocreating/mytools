@@ -13,13 +13,13 @@ show_overview() {
   ytdl           Grab video/audio from web URLs via yt-dlp 🌐
 
 🎞️ VIDEO TOOLS 🎬
-  mp4glue        Glue/concatenate MP4 files (fast copy, re-encode, or 🪃 --bounce)
+  vidglue        Glue/concatenate MP4 files (fast copy, re-encode, or 🪃 --bounce)
   vid2webm       Convert video to modern VP9/Opus WebM 🌐
   vid2gif        Convert video clips to high-quality animated GIFs 👾
   videoWithoutAudio  Create a muted video (optionally preserve audio tracks) 🔇
-  media-optimize Re-encode videos for web, social, or archive presets 🚀
+  vidoptim       Re-encode videos for web, social, or archive presets 🚀
   vidglitch      Apply glitch, CRT, VHS, 8-bit & retro visual effects ⚡
-  filmcut        Erase random frames for cut film & jump-cut effect (shorter output) ✂️
+  vidcuts        Erase random frames for cut film & jump-cut effect (shorter output) ✂️
 
 🎵 AUDIO TOOLS 🎧
   vid2audio      Extract crisp audio streams from video (WAV / MP3) 🔊
@@ -47,7 +47,7 @@ show_overview() {
 💡 PRO TIPS 🚀
   • Run 'mytools' for the interactive launcher menu 🎯
   • In launcher file selection: Press [Tab] to mark multiple files, then [Enter] to confirm! 📌
-  • Run 'mytools help <tool>' (e.g., 'mytools help mp4glue') for a detailed guide 📖
+  • Run 'mytools help <tool>' (e.g., 'mytools help vidglue') for a detailed guide 📖
   • Run 'mytools guide' (or 'mytools g') to interactively browse help & cheat-sheets 🔍
 EOF
 }
@@ -55,13 +55,13 @@ EOF
 show_tool_help() {
   local tool="$1"
   case "$tool" in
-    mp4glue)
+    vidglue|mp4glue)
       cat <<'EOF'
-🎞️ mp4glue — Glue & Concatenate MP4 Video Files 🧲
+🎞️ vidglue — Glue & Concatenate MP4 Video Files 🧲
 
 Usage:
-  mp4glue [options] <video1> <video2...>
-  mp4glue --bounce [options] <video>
+  vidglue [options] <video1> <video2...>
+  vidglue --bounce [options] <video>
 
 Description:
   Fuses multiple MP4 video files into a single seamless output file! 🎬
@@ -77,10 +77,10 @@ Options:
   -n, --dry-run        Preview planned output without running FFmpeg 📝
 
 Examples:
-  mp4glue clip1.mp4 clip2.mp4
-  mp4glue -o combined.mp4 intro.mp4 main.mp4 outro.mp4
-  mp4glue --bounce clip.mp4                      # 🪃 forward + reversed bounce loop
-  mp4glue --bounce -o joined.mp4 part1.mp4 part2.mp4  # part1 forward, part2 reversed
+  vidglue clip1.mp4 clip2.mp4
+  vidglue -o combined.mp4 intro.mp4 main.mp4 outro.mp4
+  vidglue --bounce clip.mp4                      # 🪃 forward + reversed bounce loop
+  vidglue --bounce -o joined.mp4 part1.mp4 part2.mp4  # part1 forward, part2 reversed
 
 💡 Launcher Tip:
   In 'mytools' interactive launcher, press [Tab] on each file to mark multiple files,
@@ -167,12 +167,12 @@ Examples:
   vid2gif -w 600 -r 15 --from 00:00:02 --to 00:00:06 demo.mp4
 EOF
       ;;
-    media-optimize)
+    vidoptim|media-optimize)
       cat <<'EOF'
-🚀 media-optimize — Optimize Video for Web/Social/Archive 🎬
+🚀 vidoptim — Optimize Video for Web/Social/Archive 🎬
 
 Usage:
-  media-optimize [options] <video...>
+  vidoptim [options] <video...>
 
 Description:
   Re-encodes videos using tailored quality presets defined in ~/.config/mytools/config. ⚡
@@ -189,8 +189,8 @@ Options:
   -n, --dry-run        Preview output path 📝
 
 Examples:
-  media-optimize video.mov
-  media-optimize --preset social -o ./social *.mov
+  vidoptim video.mov
+  vidoptim --preset social -o ./social *.mov
 EOF
       ;;
     vidglitch)
@@ -237,12 +237,12 @@ Examples:
   vidglitch --preset 8bit -o ./glitched *.mp4
 EOF
       ;;
-    filmcut)
+    vidcuts|filmcut)
       cat <<'EOF'
-✂️ filmcut — Cut Film & Random Frame Excision Generator 🎞️
+✂️ vidcuts — Cut Film & Random Frame Excision Generator 🎞️
 
 Usage:
-  filmcut [options] <video...>
+  vidcuts [options] <video...>
 
 Description:
   Erases a chosen percentage of random frames or micro-chunks from the timeline,
@@ -268,11 +268,11 @@ Options:
   -n, --dry-run        Preview output without running FFmpeg 📝
 
 Examples:
-  filmcut clip.mp4                            # 20% random frame drops
-  filmcut -p 35 recording.mov                 # 35% shorter with jump cuts
-  filmcut -p 25 --mode jumps action.mp4       # 25% chunk jump cuts
-  filmcut -p 20 --jitter --grain vintage.mp4  # with gate weave & film grain
-  filmcut -i                                  # interactive guided wizard
+  vidcuts clip.mp4                            # 20% random frame drops
+  vidcuts -p 35 recording.mov                 # 35% shorter with jump cuts
+  vidcuts -p 25 --mode jumps action.mp4       # 25% chunk jump cuts
+  vidcuts -p 20 --jitter --grain vintage.mp4  # with gate weave & film grain
+  vidcuts -i                                  # interactive guided wizard
 EOF
       ;;
     vid2audio|videoWithoutAudio|wav2mp3|wav2tempo|wavreverse|wavpitch|wavnorm|wavfade|wavtrim|wavfx)
@@ -461,13 +461,13 @@ EOF
 💡 Launcher Tips & Multi-File Selection 🎯
 
 Multi-file Selection in fzf:
-  When you launch 'mytools' and pick a multi-file command (like 'mp4glue' or 'img2webp'):
+  When you launch 'mytools' and pick a multi-file command (like 'vidglue' or 'img2webp'):
   1. Use ↑ / ↓ arrow keys to navigate your files. 🎯
   2. Press [Tab] to mark each file you want to include (a '>' indicator appears). 📌
   3. Press [Enter] to confirm and execute the command! 🚀
 
 Single-file Fallback:
-  If you select 1 file for 'mp4glue', it will ask if you want a cool --bounce loop! 🪃
+  If you select 1 file for 'vidglue', it will ask if you want a cool --bounce loop! 🪃
 EOF
       ;;
     *)
@@ -492,13 +492,13 @@ interactive_guide() {
   topics=$(printf '%s\n' \
     'img2webp — 📸 Convert images to WebP' \
     'ytdl — 📥 Download web media' \
-    'mp4glue — 🎞️ Glue & concatenate MP4 videos' \
+    'vidglue — 🎞️ Glue & concatenate MP4 videos' \
     'vid2webm — 🌐 Convert videos to WebM' \
     'vid2gif — 👾 Create animated GIFs' \
     'videoWithoutAudio — 🔇 Remove audio (optionally preserve tracks)' \
-    'media-optimize — 🚀 Web/social/archive video optimization' \
+    'vidoptim — 🚀 Web/social/archive video optimization' \
     'vidglitch — ⚡ Glitch, CRT, VHS & retro video FX' \
-    'filmcut — ✂️ Erase random frames / cut film (shorter output)' \
+    'vidcuts — ✂️ Erase random frames / cut film (shorter output)' \
     'vid2audio — 🔊 Extract audio from video' \
     'wav2mp3 — 🎧 Convert WAV to MP3' \
     'wav2tempo — 🥁 Retime WAV by BPM' \

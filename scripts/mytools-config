@@ -12,7 +12,7 @@ case "${1:-}" in -h|--help) usage; exit 0;; esac
 if [ "${1:-}" = "--path" ]; then echo "$CONFIG_FILE"; exit 0; fi
 if [ ! -f "$CONFIG_FILE" ]; then
   mkdir -p "$CONFIG_DIR"
-  printf '%s\n' '# mytools user settings' 'default_quality=85' 'default_jobs=1' '' '# media-optimize preset overrides' '[web]' 'codec=libx264' 'crf=23' 'width=1920' '' '[social]' 'codec=libx264' 'crf=25' 'width=1280' '' '[archive]' 'codec=libx265' 'crf=26' 'width=0' > "$CONFIG_FILE"
+  printf '%s\n' '# mytools user settings' 'default_quality=85' 'default_jobs=1' '' '# vidoptim preset overrides' '[web]' 'codec=libx264' 'crf=23' 'width=1920' '' '[social]' 'codec=libx264' 'crf=25' 'width=1280' '' '[archive]' 'codec=libx265' 'crf=26' 'width=0' > "$CONFIG_FILE"
   echo "✅ Created $CONFIG_FILE"
 fi
 case "${1:-}" in --init|"") ;; --list) sed -n '/^\[/p' "$CONFIG_FILE";; *) echo "Unknown option: $1" >&2; usage >&2; exit 1;; esac

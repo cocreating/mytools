@@ -1,4 +1,4 @@
-#compdef mp4glue
+#compdef vidglue
 _arguments \
  '(-o --output)'{-o,--output}'[output MP4 file]:file:_files -g "*.(mp4)(-.)"' \
  '(-b --bounce)'{-b,--bounce}'[glue video forward and reversed]' \

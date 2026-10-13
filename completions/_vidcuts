@@ -1,4 +1,4 @@
-#compdef filmcut
+#compdef vidcuts
 _arguments \
   '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
   '(-p --percent --cut)'{-p,--percent,--cut}'[percentage of frames to erase (1-90)]:percentage' \

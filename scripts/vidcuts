@@ -6,7 +6,7 @@ PERCENT=20; MODE="frames"; SEED=""; JITTER=0; GRAIN=0; FLASH=0; MUTE=0
 OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; START=""; END=""; FILES=(); INTERACTIVE=0
 
 usage() { cat <<'EOF'
-Usage: filmcut [options] <video...>
+Usage: vidcuts [options] <video...>
 
 Erase random frames or chunks to create a cut film / jump-cut effect,
 resulting in a shorter video with synchronized audio.
@@ -33,16 +33,16 @@ Trimming & Output:
   -h, --help              Show help
 
 Examples:
-  filmcut clip.mp4                            # 20% random frame drops
-  filmcut -p 35 recording.mov                 # 35% shorter with jump cuts
-  filmcut -p 25 --mode jumps action.mp4       # 25% chunk jump cuts
-  filmcut -p 20 --jitter --grain vintage.mp4  # with gate weave & film grain
-  filmcut -i                                  # interactive guided wizard
+  vidcuts clip.mp4                            # 20% random frame drops
+  vidcuts -p 35 recording.mov                 # 35% shorter with jump cuts
+  vidcuts -p 25 --mode jumps action.mp4       # 25% chunk jump cuts
+  vidcuts -p 20 --jitter --grain vintage.mp4  # with gate weave & film grain
+  vidcuts -i                                  # interactive guided wizard
 EOF
 }
 
 interactive_wizard() {
-  echo "🎞️ Welcome to the filmcut interactive wizard!"
+  echo "🎞️ Welcome to the vidcuts interactive wizard!"
   echo "────────────────────────────────────────────"
 
   # Step 1: Input files
@@ -52,7 +52,7 @@ interactive_wizard() {
       local cand_files="" selected=""
       cand_files=$(find . -maxdepth 2 -type f 2>/dev/null | grep -Ei '\.(mp4|mov|avi|mkv|webm|m4v)$' | sed 's#^./##' || true)
       if [ -n "$cand_files" ]; then
-        selected=$(printf '%s\n' "$cand_files" | fzf -m --prompt="filmcut files > " --height=50% --layout=reverse --border || true)
+        selected=$(printf '%s\n' "$cand_files" | fzf -m --prompt="vidcuts files > " --height=50% --layout=reverse --border || true)
       fi
       if [ -n "$selected" ]; then
         while IFS= read -r f; do [ -n "$f" ] && FILES+=("$f"); done <<< "$selected"
@@ -230,6 +230,6 @@ done
 
 if [ "$DRY_RUN" -eq 0 ]; then
   echo "✅ Done: $SUCCESS video(s) cut, $FAILED failed, $SKIPPED skipped"
-  [ "$SUCCESS" -eq 0 ] || notify "Cut $SUCCESS video(s) by ${PERCENT}%." "filmcut"
+  [ "$SUCCESS" -eq 0 ] || notify "Cut $SUCCESS video(s) by ${PERCENT}%." "vidcuts"
 fi
 exit "$FAILED"
