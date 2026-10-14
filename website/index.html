@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mytools — The High-Precision macOS Media Terminal Toolbox</title>
+  <meta name="description" content="A minimalist, Bauhaus-brutalist macOS terminal toolbox for media transcoding, audio DSP, video glitch FX, and Finder bookmark workflows. Lightning-fast, zero GUI overhead.">
+  <meta name="keywords" content="macOS, terminal, ffmpeg, webp, bash, audio processing, video editing, vidglitch, img2webp, yt-dlp, CLI, brutalist design">
+  <meta name="theme-color" content="#090b0e">
+
+  <!-- OpenGraph / Social -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="mytools — High-Precision macOS Media Terminal Toolbox">
+  <meta property="og:description" content="Minimalist, Bauhaus-brutalist macOS CLI suite for video, audio, image conversion, and Finder integration.">
+  <meta property="og:image" content="favicon.svg">
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Technical Top Strip -->
+  <aside class="sys-strip" aria-label="System status">
+    <div class="meta-item">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span>SYSTEM: <strong>OPERATIONAL</strong></span>
+    </div>
+    <div class="meta-item">
+      <span>PLATFORM: <strong>macOS 12+ (Apple Silicon &amp; Intel)</strong></span>
+    </div>
+    <div class="meta-item">
+      <span>SHELL: <strong>Bash 3.2+ &amp; Zsh</strong></span>
+    </div>
+    <div class="meta-item">
+      <span>BACKENDS: <strong>FFmpeg, cwebp, aubio, yt-dlp, fzf</strong></span>
+    </div>
+    <div class="meta-item">
+      <span>DEFAULT MODE: <strong>NON-DESTRUCTIVE SAFE</strong></span>
+    </div>
+  </aside>
+
+  <!-- Sticky Bauhaus Navigation Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="#" class="brand-block" aria-label="mytools home">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="4" fill="#090b0e" />
+            <circle cx="8" cy="8" r="3" fill="#ff3344" />
+            <rect x="15" y="5" width="5" height="5" fill="#ffb703" />
+            <polygon points="26,5 29,10 23,10" fill="#2563eb" />
+            <path d="M7 17 L15 23 L7 29" stroke="#00f59b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="18" y1="29" x2="26" y2="29" stroke="#f0f4fc" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="brand-name">
+          mytools
+          <span class="brand-tag">v2.4</span>
+        </div>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="#overview" class="nav-link">Manifesto</a></li>
+          <li><a href="#studio" class="nav-link">Studio</a></li>
+          <li><a href="#visual-labs" class="nav-link">Labs</a></li>
+          <li><a href="#catalog" class="nav-link">Catalog</a></li>
+          <li><a href="#install" class="nav-link">Install</a></li>
+          <li><a href="#quick-actions" class="nav-link">Finder Actions</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <!-- Theme Selector -->
+        <div class="theme-selector" role="group" aria-label="Color theme">
+          <button class="theme-btn active" data-theme="dark" title="Bauhaus Obsidian Dark">DARK</button>
+          <button class="theme-btn" data-theme="light" title="Bauhaus Gallery Light">LIGHT</button>
+          <button class="theme-btn" data-theme="amber" title="Phosphor CRT Amber">AMBER</button>
+        </div>
+
+        <a href="https://github.com/cocreating/mytools" target="_blank" rel="noopener noreferrer" class="github-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrapper">
+
+    <!-- Hero Section (Bauhaus Asymmetric Grid) -->
+    <section class="hero-grid" id="overview">
+      <!-- Left Manifesto -->
+      <div class="hero-manifesto">
+        <div>
+          <div class="hero-label">
+            <span class="status-dot" aria-hidden="true"></span>
+            Aesthetic Media Engineering
+          </div>
+
+          <h1 class="hero-title">
+            The <span class="highlight-blue">macOS Terminal</span> Toolbox for <span class="highlight-red">Media Hacking</span>.
+          </h1>
+
+          <p class="hero-subtitle">
+            Zero GUI bloat. Pure UNIX stream speed. Concatenate video in milliseconds, normalize audio to broadcast LUFS, retime beats with aubio, generate VHS and CRT glitch aesthetics, and convert images to WebP—all with safe non-destructive defaults.
+          </p>
+
+          <div class="hero-quick-pills">
+            <span class="hero-pill">⚡ <strong>Lossless Stream Copy</strong></span>
+            <span class="hero-pill">🎛️ <strong>EBU R128 Loudness</strong></span>
+            <span class="hero-pill">🥁 <strong>Aubio BPM Retiming</strong></span>
+            <span class="hero-pill">👾 <strong>Retro Glitch &amp; Cut-Film</strong></span>
+            <span class="hero-pill">🎯 <strong>fzf Multi-File Selection</strong></span>
+          </div>
+        </div>
+
+        <div class="hero-cta-group">
+          <a href="#catalog" class="btn-primary">
+            <span>Browse 26 Tools</span>
+            <span>→</span>
+          </a>
+          <a href="#studio" class="btn-secondary">
+            <span>Interactive Command Studio</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Right Interactive Terminal Card -->
+      <div class="hero-terminal-card" aria-label="Interactive terminal simulator">
+        <div class="terminal-header">
+          <div class="terminal-buttons" aria-hidden="true">
+            <span class="t-btn close"></span>
+            <span class="t-btn minimize"></span>
+            <span class="t-btn maximize"></span>
+          </div>
+          <div class="terminal-title">
+            <span>zsh — mytools terminal simulator</span>
+          </div>
+          <div class="terminal-actions-quick">
+            <button class="terminal-quick-btn" id="termClearBtn" title="Clear terminal output">CLEAR</button>
+          </div>
+        </div>
+
+        <div class="terminal-body" id="terminalLogs" role="log" aria-live="polite">
+          <!-- Terminal logs injected dynamically -->
+        </div>
+
+        <div class="terminal-prompt-line" style="padding: 0 1.25rem 1rem;">
+          <span class="prompt-symbol">❯</span>
+          <input type="text" class="terminal-input" id="terminalInput" placeholder="Try typing: mytools, doctor, vidglitch, or help..." autocomplete="off" spellcheck="false">
+        </div>
+
+        <div class="terminal-quick-chips">
+          <span>Run sample:</span>
+          <button class="chip-btn" data-cmd="mytools">mytools</button>
+          <button class="chip-btn" data-cmd="mytools doctor">doctor</button>
+          <button class="chip-btn" data-cmd="vidglitch --preset cyberpunk demo.mp4">vidglitch</button>
+          <button class="chip-btn" data-cmd="wav2tempo --target-bpm 128 beat.wav">wav2tempo</button>
+          <button class="chip-btn" data-cmd="img2webp -q 85 photo.jpg">img2webp</button>
+          <button class="chip-btn" data-cmd="vidglue --bounce video.mp4">vidglue --bounce</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bauhaus Divider -->
+    <div class="bauhaus-divider" aria-hidden="true">
+      <span class="accent-dot"></span>
+      <span>ARCHITECTURAL PILLARS</span>
+      <span class="accent-dot"></span>
+    </div>
+
+    <!-- Architectural Pillars Modular Bento Grid -->
+    <section class="pillars-grid">
+      <div class="pillar-card">
+        <span class="pillar-badge badge-blue">Performance</span>
+        <h2 class="pillar-title">Stream-Copy Zero Loss</h2>
+        <p class="pillar-desc">
+          When videos share codecs and frame rates, <code>vidglue</code> and <code>videoWithoutAudio</code> bypass re-encoding entirely. Merging multiple gigabytes finishes in hundreds of milliseconds without generational degradation.
+        </p>
+      </div>
+
+      <div class="pillar-card">
+        <span class="pillar-badge badge-yellow">Safety First</span>
+        <h2 class="pillar-title">Non-Destructive Defaults</h2>
+        <p class="pillar-desc">
+          No tool will ever overwrite an existing destination file unless you pass the explicit <code>--force</code> flag. Preview batch commands safely anytime with <code>--dry-run</code>.
+        </p>
+      </div>
+
+      <div class="pillar-card">
+        <span class="pillar-badge badge-green">Acoustic Precision</span>
+        <h2 class="pillar-title">DSP &amp; Audio Lab</h2>
+        <p class="pillar-desc">
+          Native DSP manipulation: pitch-preserving tempo sync via aubio, -14 LUFS broadcast normalization, semitone pitch shifting, and sample-accurate fade envelopes to eliminate boundary clicks.
+        </p>
+      </div>
+
+      <div class="pillar-card">
+        <span class="pillar-badge badge-red">Terminal Ergonomics</span>
+        <h2 class="pillar-title">Interactive fzf Cockpit</h2>
+        <p class="pillar-desc">
+          Run <code>mytools</code> to launch a full-screen interactive launcher. Press <kbd>Tab</kbd> to mark multiple files in Finder folders, then hit <kbd>Enter</kbd> to execute batch pipelines instantly.
+        </p>
+      </div>
+    </section>
+
+    <!-- Interactive Command Studio (Flag Builder / Generator) -->
+    <section class="studio-section" id="studio">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>
+            Interactive Command Studio
+          </h2>
+          <p class="section-desc">
+            Construct exact, production-ready terminal commands visually. Toggle flags, adjust parameters, and copy instantly.
+          </p>
+        </div>
+      </div>
+
+      <div class="studio-layout">
+        <!-- Tool selector column -->
+        <div class="studio-tool-select" id="studioToolList">
+          <!-- Injected via JavaScript -->
+        </div>
+
+        <!-- Dynamic controls pane -->
+        <div class="studio-controls-pane">
+          <div id="studioControls">
+            <!-- Dynamic tool inputs injected here -->
+          </div>
+
+          <!-- Studio command output & copy bar -->
+          <div class="studio-output-box">
+            <div class="studio-cmd-text" id="studioCmdOutput">
+              <span class="prompt-symbol">❯</span> img2webp -q 85 --width 1200 photo.jpg
+            </div>
+            <button class="studio-copy-btn" id="studioCopyBtn" title="Copy generated command">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              COPY COMMAND
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Visual Labs (Glitch Canvas & Audio Waveform) -->
+    <section class="labs-grid" id="visual-labs">
+      <!-- Glitch Simulator Card -->
+      <div class="lab-card">
+        <div>
+          <h2 class="lab-title">
+            <span>⚡</span>
+            <span>vidglitch Visual Simulator</span>
+          </h2>
+          <p class="lab-desc">
+            Live preview of video shader filters applied by <code>vidglitch</code> via FFmpeg filter graphs.
+          </p>
+        </div>
+
+        <div class="glitch-preview-container">
+          <div class="crt-scanlines-overlay"></div>
+          <div class="glitch-screen-content preset-rgb-split" id="glitchScreenContent">
+            MYTOOLS_CORE
+            <span class="sub">PRESET: RGB-SPLIT [FFMPEG ACTIVE]</span>
+          </div>
+        </div>
+
+        <div class="glitch-buttons">
+          <button class="glitch-btn active" data-preset="rgb-split">RGB Split</button>
+          <button class="glitch-btn" data-preset="vhs">VHS Tape</button>
+          <button class="glitch-btn" data-preset="crt">Arcade CRT</button>
+          <button class="glitch-btn" data-preset="8bit">8-Bit Pixel</button>
+          <button class="glitch-btn" data-preset="cyberpunk">Cyberpunk</button>
+          <button class="glitch-btn" data-preset="badsignal">Bad Signal</button>
+          <button class="glitch-btn" data-preset="tear">Data Tear</button>
+        </div>
+      </div>
+
+      <!-- Audio Waveform Lab Card -->
+      <div class="lab-card">
+        <div>
+          <h2 class="lab-title">
+            <span>🎚️</span>
+            <span>DSP Audio Waveform Lab</span>
+          </h2>
+          <p class="lab-desc">
+            Real-time canvas visualizer illustrating how <code>wavfade</code>, <code>wavtrim</code>, and <code>wavpitch</code> shape waveforms.
+          </p>
+        </div>
+
+        <div class="waveform-canvas-wrapper">
+          <canvas id="waveformCanvas"></canvas>
+        </div>
+
+        <div class="audio-controls-row">
+          <button class="audio-btn active" data-mode="normal">Normal Waveform</button>
+          <button class="audio-btn" data-mode="fade">wavfade (Fade In/Out)</button>
+          <button class="audio-btn" data-mode="trim">wavtrim (Silence Cropped)</button>
+          <button class="audio-btn" data-mode="pitch">wavpitch (Frequency Shift)</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Technical Catalog Section -->
+    <section id="catalog" class="catalog-section">
+      <div class="section-head catalog-header">
+        <div>
+          <h2 class="section-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            Complete Technical Catalog
+          </h2>
+          <p class="section-desc">
+            26 purpose-built CLI commands. Every option, format, and example documented with mathematical precision.
+          </p>
+        </div>
+      </div>
+
+      <!-- Filter Toolbar -->
+      <div class="filter-toolbar">
+        <div class="search-box">
+          <input type="text" class="search-input" id="catalogSearchInput" placeholder="Filter tools, flags, or syntax..." autocomplete="off">
+          <button class="search-clear-btn" id="catalogSearchClearBtn" aria-label="Clear search" title="Clear search">✕</button>
+          <span class="search-shortcut-hint">Press / to search</span>
+        </div>
+
+        <div class="category-tabs" id="categoryTabs">
+          <!-- Injected via JavaScript with live counts -->
+        </div>
+      </div>
+
+      <!-- Cards Grid -->
+      <div class="tools-grid" id="toolsGrid">
+        <!-- Tool Cards injected dynamically via JS -->
+      </div>
+    </section>
+
+    <!-- Bauhaus Divider -->
+    <div class="bauhaus-divider" aria-hidden="true">
+      <span class="accent-dot"></span>
+      <span>DEPLOYMENT &amp; WORKFLOW</span>
+      <span class="accent-dot"></span>
+    </div>
+
+    <!-- Installation & Setup Section -->
+    <section class="install-section" id="install">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Installation &amp; Dependency Health</h2>
+          <p class="section-desc">
+            Zero-friction setup. Pure Bash symlinks in <code>~/.local/bin</code> and automatic Zsh completion integration in <code>~/.zfunc</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <div class="step-title">Clone Repository</div>
+          <p class="step-desc">
+            Clone the repository to your preferred coding directory on macOS.
+          </p>
+          <div class="code-box">
+            <div class="code-content"><span class="code-prompt">❯</span>git clone https://github.com/cocreating/mytools.git</div>
+            <button class="copy-mini-btn" data-copy="git clone https://github.com/cocreating/mytools.git">COPY</button>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <div class="step-title">Run Install Script</div>
+          <p class="step-desc">
+            Links all commands to <code>~/.local/bin</code> and registers completion functions in <code>~/.zshrc</code>.
+          </p>
+          <div class="code-box">
+            <div class="code-content"><span class="code-prompt">❯</span>cd mytools &amp;&amp; ./install.sh</div>
+            <button class="copy-mini-btn" data-copy="cd mytools && ./install.sh">COPY</button>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <div class="step-title">Run Doctor Healthcheck</div>
+          <p class="step-desc">
+            Verifies all dependencies and installs any missing Homebrew packages automatically.
+          </p>
+          <div class="code-box">
+            <div class="code-content"><span class="code-prompt">❯</span>mytools doctor --install</div>
+            <button class="copy-mini-btn" data-copy="mytools doctor --install">COPY</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Doctor Diagnostic Table -->
+      <div class="doctor-table-wrap">
+        <div class="doctor-table-head">
+          <span>DEPENDENCY AUDIT MATRIX</span>
+          <span>MANAGED VIA HOMEBREW</span>
+        </div>
+        <div class="doctor-table-body">
+          <div class="dep-item">
+            <span class="dep-name">ffmpeg / ffprobe</span>
+            <span class="dep-formula">brew install ffmpeg</span>
+          </div>
+          <div class="dep-item">
+            <span class="dep-name">cwebp</span>
+            <span class="dep-formula">brew install webp</span>
+          </div>
+          <div class="dep-item">
+            <span class="dep-name">aubio</span>
+            <span class="dep-formula">brew install aubio</span>
+          </div>
+          <div class="dep-item">
+            <span class="dep-name">yt-dlp</span>
+            <span class="dep-formula">brew install yt-dlp</span>
+          </div>
+          <div class="dep-item">
+            <span class="dep-name">fzf</span>
+            <span class="dep-formula">brew install fzf</span>
+          </div>
+          <div class="dep-item">
+            <span class="dep-name">setWeblocThumb</span>
+            <span class="dep-formula">brew install setweblocthumb</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Finder Quick Actions Section -->
+    <section class="quick-actions-section" id="quick-actions">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">macOS Finder Quick Actions</h2>
+          <p class="section-desc">
+            Convert files directly from Finder's right-click context menu. Ready-to-paste AppleScript templates included in <code>quick-actions/</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="qa-grid">
+        <div class="qa-card">
+          <div class="qa-icon">📸</div>
+          <div class="qa-title">Convert to WebP</div>
+          <div class="qa-desc">
+            Batch encodes selected Finder images into WebP with macOS native completion notifications.
+          </div>
+          <div class="code-box">
+            <div class="code-content"><span class="code-prompt">❯</span>convert-to-webp.applescript</div>
+          </div>
+        </div>
+
+        <div class="qa-card">
+          <div class="qa-icon">🌐</div>
+          <div class="qa-title">Convert to WebM</div>
+          <div class="qa-desc">
+            Encodes video selection into VP9/Opus WebM with zero terminal typing required.
+          </div>
+          <div class="code-box">
+            <div class="code-content"><span class="code-prompt">❯</span>convert-to-webm.applescript</div>
+          </div>
+        </div>
+
+        <div class="qa-card">
+          <div class="qa-icon">👾</div>
+          <div class="qa-title">Convert to GIF</div>
+          <div class="qa-desc">
+            Generates palette-optimized animated GIFs from right-clicked Finder videos.
+          </div>
+          <div class="code-box">
+            <div class="code-content"><span class="code-prompt">❯</span>convert-to-gif.applescript</div>
+          </div>
+        </div>
+
+        <div class="qa-card">
+          <div class="qa-icon">🎧</div>
+          <div class="qa-title">Convert to MP3</div>
+          <div class="qa-desc">
+            Instantly compresses uncompressed WAV files into 192kbps MP3s from Finder.
+          </div>
+          <div class="code-box">
+            <div class="code-content"><span class="code-prompt">❯</span>convert-to-mp3.applescript</div>
+          </div>
+        </div>
+
+        <div class="qa-card">
+          <div class="qa-icon">🔊</div>
+          <div class="qa-title">Extract Audio</div>
+          <div class="qa-desc">
+            Rips audio track directly from movie clips into uncompressed PCM WAV.
+          </div>
+          <div class="code-box">
+            <div class="code-content"><span class="code-prompt">❯</span>extract-audio.applescript</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Technical Modal Dialog for Deep Documentation -->
+  <div class="dialog-backdrop" id="dialogBackdrop" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+    <div class="dialog-card">
+      <div class="dialog-header">
+        <h3 class="dialog-title" id="dialogTitle">Tool Specification</h3>
+        <button class="dialog-close-btn" id="dialogCloseBtn" aria-label="Close dialog">ESC ✕</button>
+      </div>
+      <div class="dialog-body" id="dialogBody">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" aria-live="assertive"></div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div>
+        <strong>mytools</strong> — Minimalist macOS Media Terminal Engineering.
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+          Built for audio designers, video editors, and terminal purists.
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="#overview" class="footer-link">Top</a>
+        <a href="#studio" class="footer-link">Studio</a>
+        <a href="#visual-labs" class="footer-link">Labs</a>
+        <a href="#catalog" class="footer-link">All 26 Tools</a>
+        <a href="https://github.com/cocreating/mytools" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub Repository</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

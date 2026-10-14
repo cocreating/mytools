@@ -36,6 +36,10 @@
   - `media-info`: FFprobe report for codec, resolution, bitrate, duration.
   - `thumloc`: generates Finder thumbnail previews for `.webloc` files.
   - `webloc2md`: creates a structured Markdown index of bookmark URLs.
+- Website & Documentation:
+  - `website/`: minimal, Bauhaus-brutalist and terminal web app showcasing the project and tools.
+  - Interactive CLI emulator, visual Command Studio flag generator, DSP audio waveform canvas, video glitch simulator, and searchable catalog.
+  - Deployed automatically to GitHub Pages (`https://cocreating.github.io/mytools/`) via `.github/workflows/pages.yml`.
 
 ## Conventions
 
@@ -45,3 +49,5 @@
 - Never overwrite media output unless a command’s explicit `--force` is present.
 - Run `bash -n scripts/* scripts/lib/common.sh install.sh` after changing shell files.
 - Keep Quick Action templates in `quick-actions/` and avoid app-specific dependencies beyond macOS.
+- Website assets use pure vanilla HTML/CSS/JS without external build steps or frameworks.
+

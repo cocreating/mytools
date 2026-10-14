@@ -2,6 +2,9 @@
 
 A macOS-first terminal toolbox for everyday media conversion and Finder bookmark work. Each command works directly in a shell; `mytools` adds a searchable `fzf` launcher.
 
+🌐 **Interactive Documentation & Command Studio**: [cocreating.github.io/mytools](https://cocreating.github.io/mytools/)
+*(Minimalist Bauhaus-brutalist terminal design, live CLI simulator, command builder & DSP visualizer)*
+
 ## Install and check dependencies
 
 ```bash
@@ -247,6 +250,26 @@ webloc2md ~/Downloads/Bookmarks bookmarks.md
 ```
 
 `thumloc` populates Finder thumbnails for `.webloc` files. `webloc2md` creates a grouped Markdown index of bookmark URLs.
+
+## Interactive Website
+
+The project includes an interactive web guide in `website/` designed in an ordered Bauhaus-brutalist and terminal aesthetic. It features:
+
+- A live simulated terminal for testing `mytools` commands.
+- An interactive command studio for building flags and commands visually.
+- DSP audio waveform and video glitch shader visualizers.
+- A searchable technical catalog covering all 26 tools with options and examples.
+- Dark, Bauhaus light, and amber phosphor themes.
+
+To run locally:
+
+```bash
+cd website
+python3 -m http.server 8080
+# Open http://localhost:8080 in your browser
+```
+
+The site is automatically deployed to [GitHub Pages](https://cocreating.github.io/mytools/) via GitHub Actions (`.github/workflows/pages.yml`) on pushes to `main`.
 
 ## Finder Quick Actions
 
