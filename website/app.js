@@ -558,7 +558,7 @@ class TerminalSimulator {
     });
 
     // Initial greeting
-    this.appendLine("mytools v2.5 (macOS terminal toolbox — 27 tools)", "color: var(--text-muted);");
+    this.appendLine("mytools v2.5 (macOS terminal toolbox — 27 tools)", "color: var(--text-muted-on-terminal);");
     this.appendLine("Type 'help', 'mytools', or 'videoeffects -i' to test. Click any chip below for quick demo.", "color: var(--color-terminal-green);");
   }
 
@@ -583,7 +583,7 @@ class TerminalSimulator {
 
   execute(cmdText) {
     // Print the command line
-    this.appendLine(`❯ ${cmdText}`, "color: var(--text-primary); font-weight: 600;");
+    this.appendLine(`❯ ${cmdText}`, "color: var(--text-on-terminal); font-weight: 600;");
 
     const parts = cmdText.split(/\s+/);
     const main = parts[0];
@@ -614,7 +614,7 @@ class TerminalSimulator {
   ytdl            - Video/audio clipboard grabber
   media-info      - Quick FFprobe inspector
   thumloc         - Finder .webloc thumbnailer
-  theme [dark|light|amber] - Switch terminal theme`, "color: var(--text-code);");
+  theme [dark|light|amber] - Switch terminal theme`, "color: var(--text-code-on-terminal);");
       return;
     }
 
@@ -649,7 +649,7 @@ class TerminalSimulator {
    media-info        🕵️ FFprobe metadata inspector
    thumloc           🖼️ Finder .webloc thumbnails
 ────────────────────────────────────────────────────────
-💡 Pro Tip: Press [Tab] to mark multiple files with live ffprobe preview!`, "color: var(--text-accent);");
+💡 Pro Tip: Press [Tab] to mark multiple files with live ffprobe preview!`, "color: var(--text-accent-on-terminal);");
       return;
     }
 
@@ -796,7 +796,7 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
     if (matchTool) {
       this.appendLine(`⚙️ [${matchTool.name}] ${matchTool.summary}
 Usage: ${matchTool.signature}
-Run '${matchTool.name} --help' or check the documentation below for options.`, "color: var(--text-code);");
+Run '${matchTool.name} --help' or check the documentation below for options.`, "color: var(--text-code-on-terminal);");
     } else {
       this.appendLine(`❓ Unknown command: ${effectiveMain}. Type 'help' to see all available tools.`, "color: var(--color-bauhaus-red);");
     }
@@ -1591,7 +1591,7 @@ class CatalogController {
     if (filtered.length === 0) {
       this.grid.innerHTML = `
         <div style="grid-column: 1/-1; padding: 3rem; text-align: center; font-family: var(--font-mono); color: var(--text-muted); border: 2px dashed var(--border-bold); border-radius: var(--radius-sm);">
-          🔍 No tools matching "<span style="color: var(--color-terminal-green);">${this.searchQuery}</span>". Press Esc to clear search.
+          🔍 No tools matching "<span style="color: var(--color-accent-green-surface);">${this.searchQuery}</span>". Press Esc to clear search.
         </div>
       `;
       return;
