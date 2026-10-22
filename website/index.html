@@ -55,7 +55,7 @@
         </div>
         <div class="brand-name">
           mytools
-          <span class="brand-tag">v2.4</span>
+          <span class="brand-tag">v2.5</span>
         </div>
       </a>
 
@@ -105,21 +105,21 @@
           </h1>
 
           <p class="hero-subtitle">
-            Zero GUI bloat. Pure UNIX stream speed. Concatenate video in milliseconds, normalize audio to broadcast LUFS, retime beats with aubio, generate VHS and CRT glitch aesthetics, and convert images to WebP—all with safe non-destructive defaults.
+            Zero GUI bloat. Pure UNIX stream speed. Concatenate or crossfade videos, apply cinematic color grading &amp; optical FX with <code>videoeffects</code>, generate VHS/datamosh glitches, cut on the BPM or strip vlog silence, normalize audio to broadcast LUFS, and convert images to WebP—all with live <code>fzf</code> previews and non-destructive defaults.
           </p>
 
           <div class="hero-quick-pills">
-            <span class="hero-pill">⚡ <strong>Lossless Stream Copy</strong></span>
-            <span class="hero-pill">🎛️ <strong>EBU R128 Loudness</strong></span>
-            <span class="hero-pill">🥁 <strong>Aubio BPM Retiming</strong></span>
-            <span class="hero-pill">👾 <strong>Retro Glitch &amp; Cut-Film</strong></span>
-            <span class="hero-pill">🎯 <strong>fzf Multi-File Selection</strong></span>
+            <span class="hero-pill">⚡ <strong>Lossless Stream Copy &amp; xfade</strong></span>
+            <span class="hero-pill">🎬 <strong>Cinematic Color &amp; Optics (vidfx)</strong></span>
+            <span class="hero-pill">👾 <strong>11 Glitch Presets &amp; Audio Crush</strong></span>
+            <span class="hero-pill">✂️ <strong>BPM, Freeze &amp; Silence Cuts</strong></span>
+            <span class="hero-pill">🧙 <strong>Interactive Wizards + Live Preview</strong></span>
           </div>
         </div>
 
         <div class="hero-cta-group">
           <a href="#catalog" class="btn-primary">
-            <span>Browse 26 Tools</span>
+            <span>Browse 27 Tools</span>
             <span>→</span>
           </a>
           <a href="#studio" class="btn-secondary">
@@ -157,10 +157,10 @@
           <span>Run sample:</span>
           <button class="chip-btn" data-cmd="mytools">mytools</button>
           <button class="chip-btn" data-cmd="mytools doctor">doctor</button>
-          <button class="chip-btn" data-cmd="vidglitch --preset cyberpunk demo.mp4">vidglitch</button>
-          <button class="chip-btn" data-cmd="wav2tempo --target-bpm 128 beat.wav">wav2tempo</button>
-          <button class="chip-btn" data-cmd="img2webp -q 85 photo.jpg">img2webp</button>
-          <button class="chip-btn" data-cmd="vidglue --bounce video.mp4">vidglue --bounce</button>
+          <button class="chip-btn" data-cmd="videoeffects --preset cinema --letterbox 2.35 clip.mp4">videoeffects</button>
+          <button class="chip-btn" data-cmd="vidglitch --preset cyberpunk --organic-burst demo.mp4">vidglitch</button>
+          <button class="chip-btn" data-cmd="vidcuts --mode freeze --film-burn clip.mp4">vidcuts</button>
+          <button class="chip-btn" data-cmd="vidglue -t fade part1.mp4 part2.mp4">vidglue</button>
         </div>
       </div>
     </section>
@@ -200,9 +200,9 @@
 
       <div class="pillar-card">
         <span class="pillar-badge badge-red">Terminal Ergonomics</span>
-        <h2 class="pillar-title">Interactive fzf Cockpit</h2>
+        <h2 class="pillar-title">Interactive fzf Cockpit &amp; Wizards</h2>
         <p class="pillar-desc">
-          Run <code>mytools</code> to launch a full-screen interactive launcher. Press <kbd>Tab</kbd> to mark multiple files in Finder folders, then hit <kbd>Enter</kbd> to execute batch pipelines instantly.
+          Run <code>mytools</code> or <code>&lt;tool&gt; -i</code> for guided wizards with live <code>ffprobe</code> file metadata previews, <kbd>Tab</kbd> multi-select checklists, Equivalent Command generation, and direct macOS clipboard (<code>pbcopy</code>) export.
         </p>
       </div>
     </section>
@@ -252,6 +252,64 @@
           </div>
         </div>
       </div>
+
+      <!-- Step-by-Step: How to Apply Custom Commands in Terminal -->
+      <div class="howto-apply-panel" id="how-to-apply">
+        <div class="howto-gotcha-banner">
+          <div class="gotcha-badge">⚠️ COMMON GOTCHA</div>
+          <div class="gotcha-content">
+            <strong>Why didn't <code>mytools img2web -a</code> work?</strong> Two quick reasons:
+            <ol class="gotcha-list">
+              <li><strong>No <code>mytools</code> prefix needed for individual tools:</strong> <code>mytools</code> opens the interactive menu launcher, while each tool (<code>img2webp</code>, <code>vidglue</code>, <code>vid2webm</code>, <code>wav2mp3</code>, etc.) is run <strong>directly by its own name</strong>. <em>(Note: <code>mytools &lt;tool&gt; [flags]</code> now also forwards automatically as a convenience!)</em></li>
+              <li><strong>The image tool ends with a <code>p</code>:</strong> It is named <strong><code>img2webp</code></strong> (for WebP), not <code>img2web</code>.</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="steps-grid" style="margin-top: 1.25rem;">
+          <div class="step-card">
+            <div>
+              <div class="step-number">STEP 01</div>
+              <div class="step-title">Go to Your Files Folder</div>
+              <p class="step-desc">
+                Open Terminal and move into the folder with your media. <em>Tip: Type <code>cd </code> with a space, drag-and-drop your folder from Finder into Terminal, and press Enter.</em>
+              </p>
+            </div>
+            <div class="code-box">
+              <div class="code-content"><span class="code-prompt">❯</span>cd ~/Pictures/MyPhotos</div>
+              <button class="copy-mini-btn" data-copy="cd ~/Pictures/MyPhotos">COPY</button>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div>
+              <div class="step-number">STEP 02</div>
+              <div class="step-title">Run the Tool Directly with Flags</div>
+              <p class="step-desc">
+                Combine custom flags before <code>-a</code> (all files in current folder) or before filenames. Add <code>-n</code> (<code>--dry-run</code>) anytime to preview safely without changing files.
+              </p>
+            </div>
+            <div class="code-box">
+              <div class="code-content"><span class="code-prompt">❯</span>img2webp --width 1200 -q 90 -a</div>
+              <button class="copy-mini-btn" data-copy="img2webp --width 1200 -q 90 -a">COPY</button>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div>
+              <div class="step-number">STEP 03</div>
+              <div class="step-title">Or Use Wizard Mode (<code>-i</code>)</div>
+              <p class="step-desc">
+                Don't want to memorize flags? Run <code>img2webp -i</code>, <code>vidglue -i</code>, <code>vidglitch -i</code>, <code>vidcuts -i</code>, or <code>videoeffects -i</code>. It previews file metadata, walks you through every setting, prints the exact <strong>Equivalent command</strong>, and lets you copy it to clipboard!
+              </p>
+            </div>
+            <div class="code-box">
+              <div class="code-content"><span class="code-prompt">❯</span>videoeffects -i</div>
+              <button class="copy-mini-btn" data-copy="videoeffects -i">COPY</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Interactive Visual Labs (Glitch Canvas & Audio Waveform) -->
@@ -284,6 +342,10 @@
           <button class="glitch-btn" data-preset="cyberpunk">Cyberpunk</button>
           <button class="glitch-btn" data-preset="badsignal">Bad Signal</button>
           <button class="glitch-btn" data-preset="tear">Data Tear</button>
+          <button class="glitch-btn" data-preset="datamosh">Datamosh</button>
+          <button class="glitch-btn" data-preset="nightvision">Nightvision</button>
+          <button class="glitch-btn" data-preset="gameboy">GameBoy</button>
+          <button class="glitch-btn" data-preset="matrix">Matrix</button>
         </div>
       </div>
 
@@ -326,7 +388,7 @@
             Complete Technical Catalog
           </h2>
           <p class="section-desc">
-            26 purpose-built CLI commands. Every option, format, and example documented with mathematical precision.
+            27 purpose-built CLI commands. Every option, format, and example documented with mathematical precision.
           </p>
         </div>
       </div>
@@ -541,7 +603,7 @@
         <a href="#overview" class="footer-link">Top</a>
         <a href="#studio" class="footer-link">Studio</a>
         <a href="#visual-labs" class="footer-link">Labs</a>
-        <a href="#catalog" class="footer-link">All 26 Tools</a>
+        <a href="#catalog" class="footer-link">All 27 Tools</a>
         <a href="https://github.com/cocreating/mytools" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub Repository</a>
       </div>
     </div>

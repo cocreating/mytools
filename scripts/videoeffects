@@ -1,0 +1,591 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+PRESET=""; SPEED=""; SMOOTH_SLOWMO=0; REVERSE=0; STOPMOTION=""; TRAILS=""
+VIGNETTE=0; BLOOM=0; BLUR=""; TILT_SHIFT=0; SHARPEN=0; MIRROR=""; ZOOM=""
+LETTERBOX=""; FADE_IN=""; FADE_OUT=""; ROTATE=""; FLIP=""; MUTE=0
+OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; START=""; END=""; FILES=(); INTERACTIVE=0; HAS_EFFECT=0
+
+usage() { cat <<'EOF'
+Usage: videoeffects [options] <video...>
+       vidfx [options] <video...>
+
+Apply cinematic color grading, temporal/speed effects, lens optics, symmetry,
+and framing transformations to video files. Multiple effects can be combined!
+
+Options:
+  -i, --interactive           Interactive wizard (prompts for effects & files) 🧙
+
+Color Grading & Look Presets:
+  -p, --preset <name>         Apply a color look preset:
+                                • cinema      🎬 Blockbuster teal & orange grade
+                                • noir        🕵️ High-contrast silver-halide B&W + grain
+                                • vintage     🎞️ Warm 1970s faded Kodachrome film
+                                • sepia       📜 Classic archival warm sepia tone
+                                • synthwave   🌆 Neon magenta/cyan split-toning
+                                • thermal     🌡️ Infrared false-color heat vision
+                                • bleach      ⚔️ Gritty desaturated bleach bypass
+                                • kodak       ☀️ Golden-hour 35mm analog film stock
+                                • dream       ✨ Ethereal soft highlight bloom & pastel warmth
+
+Time & Motion Effects:
+  --speed <factor>            Playback speed multiplier (0.25 to 4.0, e.g. 0.5 slow-mo, 2.0 fast)
+  --smooth-slowmo             Enable optical-flow motion interpolation (minterpolate)
+  --reverse                   Reverse video and audio streams backward in time 🔄
+  --stopmotion <fps>          Claymation / anime frame-step look (e.g. 8 or 12 fps)
+  --trails <1-10>             Motion ghosting / psychedelic phosphor trails (e.g. 5)
+
+Lens, Optics & Spatial Effects:
+  --vignette                  Add optical lens vignette darkening at edges
+  --bloom, --glow             Add dreamy halation / soft highlight glow
+  --blur <sigma>              Gaussian blur strength (e.g. 8)
+  --tilt-shift                Miniature toy-world focus effect (blurred top & bottom)
+  --sharpen                   Crisp unsharp mask edge enhancement
+  --mirror <h|v|quad>         Kaleidoscope symmetry (h: horizontal, v: vertical, quad: 4-way)
+  --zoom <in|out>             Smooth cinematic Ken Burns push-in or pull-out
+
+Framing, Geometry & Fades:
+  --letterbox <2.35|1.85|4:3> Add cinema scope bars (2.35, 1.85) or 4:3 pillarbox
+  --fade-in <sec>             Smooth video & audio fade-in from black (e.g. 1.0)
+  --fade-out <sec>            Smooth video & audio fade-out to black (e.g. 1.5)
+  --rotate <90|180|270>       Rotate video clockwise in degrees
+  --flip <h|v>                Flip video horizontally (h) or vertically (v)
+  --mute                      Discard audio track from output video
+
+Trimming & Output:
+  --from <time>               Start timestamp (e.g. 00:00:02)
+  --to <time>                 End timestamp (e.g. 00:00:10)
+  -o, --output-dir <dir>      Write output files to this directory
+  -f, --force                 Overwrite existing output files
+  -n, --dry-run               Show planned output files only
+  -h, --help                  Show help
+
+Examples:
+  videoeffects -i                                             # interactive guided wizard
+  videoeffects --preset cinema --letterbox 2.35 clip.mp4      # widescreen blockbuster look
+  videoeffects --preset noir --vignette --fade-in 1 a.mp4     # classic film noir opening
+  videoeffects --speed 0.5 --smooth-slowmo action.mp4         # silky 2x slow-motion
+  videoeffects --mirror quad --preset synthwave dance.mp4     # 4-way neon kaleidoscope
+  vidfx --reverse --bloom --trails 6 dream.mov                # reversed ethereal motion trails
+EOF
+}
+
+interactive_wizard() {
+  echo "🎬 Welcome to the videoeffects (vidfx) interactive wizard!"
+  echo "──────────────────────────────────────────────────────────"
+
+  # Step 1: Input files with live ffprobe preview
+  wizard_select_files "videoeffects" '\.(mp4|mov|avi|mkv|webm|m4v)$' "💡 [Tab] mark multiple video files • [Enter] confirm"
+
+  # Step 2: Color Look Preset
+  if command -v fzf &>/dev/null; then
+    local p_choice
+    p_choice=$(printf '%s\n' \
+      'cinema — 🎬 Blockbuster teal & orange color grade' \
+      'noir — 🕵️ High-contrast B&W + silver grain + vignette' \
+      'vintage — 🎞️ Warm 1970s faded Kodachrome film' \
+      'kodak — ☀️ Golden-hour 35mm analog film stock' \
+      'dream — ✨ Ethereal highlight bloom & pastel warmth' \
+      'synthwave — 🌆 Neon magenta/cyan split-toning' \
+      'thermal — 🌡️ Infrared false-color heat vision' \
+      'bleach — ⚔️ Gritty desaturated bleach bypass' \
+      'sepia — 📜 Classic archival warm sepia' \
+      'none — ⏭️ Skip color preset (use optical/time effects only)' | fzf --prompt="Select color look preset > " --height=50% --layout=reverse --border || true)
+    local p_val="${p_choice%% *}"
+    if [ -n "$p_val" ] && [ "$p_val" != "none" ]; then
+      PRESET="$p_val"
+      HAS_EFFECT=1
+    fi
+  else
+    printf "Enter color preset (cinema, noir, vintage, kodak, dream, synthwave, thermal, bleach, sepia) [cinema]: "
+    read -r p_in
+    PRESET="${p_in:-cinema}"
+    HAS_EFFECT=1
+  fi
+
+  # Step 3: Multi-select extra optical / temporal / framing effects
+  if command -v fzf &>/dev/null; then
+    echo "✨ Step 3: Select additional effects (press [Tab] to toggle multiple, [Enter] to confirm)"
+    local extras
+    extras=$(printf '%s\n' \
+      'none — ✅ No extra effects (continue)' \
+      'letterbox-235 — 🖼️ 2.35:1 CinemaScope widescreen bars' \
+      'letterbox-185 — 🖼️ 1.85:1 Flat widescreen bars' \
+      'letterbox-43 — 🖼️ 4:3 Pillarbox vertical bars' \
+      'bloom — 🌟 Soft highlight halation glow (--bloom)' \
+      'vignette — 🌑 Optical lens vignette (--vignette)' \
+      'tilt-shift — 🏙️ Miniature toy-world focus band (--tilt-shift)' \
+      'sharpen — 🔪 Crisp unsharp edge enhancement (--sharpen)' \
+      'blur — 🌫️ Gaussian defocus blur (--blur 8)' \
+      'trails — ☄️ Motion ghosting / phosphor trails (--trails 5)' \
+      'slowmo — 🐢 0.5x Half-speed slow motion (--speed 0.5)' \
+      'smooth-slowmo — 🌊 0.5x Optical-flow silky slow motion (--speed 0.5 --smooth-slowmo)' \
+      'fast — ⚡ 2.0x Double-speed fast forward (--speed 2.0)' \
+      'reverse — 🔄 Reverse video & audio backward (--reverse)' \
+      'stopmotion — 🧱 10fps Claymation / anime step look (--stopmotion 10)' \
+      'mirror-h — 🪞 Horizontal bilateral symmetry (--mirror h)' \
+      'mirror-v — 🪞 Vertical reflection symmetry (--mirror v)' \
+      'mirror-quad — 💠 4-way kaleidoscope mirror (--mirror quad)' \
+      'zoom-in — 🔍 Smooth Ken Burns push-in zoom (--zoom in)' \
+      'zoom-out — 🔎 Smooth Ken Burns pull-out zoom (--zoom out)' \
+      'fades — 🌅 Smooth 1s fade-in & fade-out (--fade-in 1.0 --fade-out 1.0)' \
+      'rotate-90 — 🔄 Rotate 90° clockwise (--rotate 90)' \
+      'flip-h — 🔃 Flip horizontally (--flip h)' \
+      'mute — 🔇 Discard audio track (--mute)' \
+      'force — ⚡ Overwrite existing output (--force)' | fzf -m --prompt="Extra effects ([Tab] multi-select) > " --height=60% --layout=reverse --border || true)
+    if [ -n "$extras" ]; then
+      while IFS= read -r line; do
+        case "${line%% *}" in
+          letterbox-235) LETTERBOX="2.35"; HAS_EFFECT=1 ;;
+          letterbox-185) LETTERBOX="1.85"; HAS_EFFECT=1 ;;
+          letterbox-43) LETTERBOX="4:3"; HAS_EFFECT=1 ;;
+          bloom) BLOOM=1; HAS_EFFECT=1 ;;
+          vignette) VIGNETTE=1; HAS_EFFECT=1 ;;
+          tilt-shift) TILT_SHIFT=1; HAS_EFFECT=1 ;;
+          sharpen) SHARPEN=1; HAS_EFFECT=1 ;;
+          blur) BLUR="8"; HAS_EFFECT=1 ;;
+          trails) TRAILS="5"; HAS_EFFECT=1 ;;
+          slowmo) SPEED="0.5"; HAS_EFFECT=1 ;;
+          smooth-slowmo) SPEED="0.5"; SMOOTH_SLOWMO=1; HAS_EFFECT=1 ;;
+          fast) SPEED="2.0"; HAS_EFFECT=1 ;;
+          reverse) REVERSE=1; HAS_EFFECT=1 ;;
+          stopmotion) STOPMOTION="10"; HAS_EFFECT=1 ;;
+          mirror-h) MIRROR="h"; HAS_EFFECT=1 ;;
+          mirror-v) MIRROR="v"; HAS_EFFECT=1 ;;
+          mirror-quad) MIRROR="quad"; HAS_EFFECT=1 ;;
+          zoom-in) ZOOM="in"; HAS_EFFECT=1 ;;
+          zoom-out) ZOOM="out"; HAS_EFFECT=1 ;;
+          fades) FADE_IN="1.0"; FADE_OUT="1.0"; HAS_EFFECT=1 ;;
+          rotate-90) ROTATE="90"; HAS_EFFECT=1 ;;
+          flip-h) FLIP="h"; HAS_EFFECT=1 ;;
+          mute) MUTE=1 ;;
+          force) FORCE=1 ;;
+        esac
+      done <<< "$extras"
+    fi
+  fi
+
+  # Default to cinema if user skipped everything
+  if [ "$HAS_EFFECT" -eq 0 ]; then
+    PRESET="cinema"
+    HAS_EFFECT=1
+  fi
+
+  local eq_cmd="videoeffects"
+  [ -n "$PRESET" ] && eq_cmd+=" --preset $PRESET"
+  [ -n "$SPEED" ] && eq_cmd+=" --speed $SPEED"
+  [ "$SMOOTH_SLOWMO" -eq 1 ] && eq_cmd+=" --smooth-slowmo"
+  [ "$REVERSE" -eq 1 ] && eq_cmd+=" --reverse"
+  [ -n "$STOPMOTION" ] && eq_cmd+=" --stopmotion $STOPMOTION"
+  [ -n "$TRAILS" ] && eq_cmd+=" --trails $TRAILS"
+  [ "$VIGNETTE" -eq 1 ] && eq_cmd+=" --vignette"
+  [ "$BLOOM" -eq 1 ] && eq_cmd+=" --bloom"
+  [ -n "$BLUR" ] && eq_cmd+=" --blur $BLUR"
+  [ "$TILT_SHIFT" -eq 1 ] && eq_cmd+=" --tilt-shift"
+  [ "$SHARPEN" -eq 1 ] && eq_cmd+=" --sharpen"
+  [ -n "$MIRROR" ] && eq_cmd+=" --mirror $MIRROR"
+  [ -n "$ZOOM" ] && eq_cmd+=" --zoom $ZOOM"
+  [ -n "$LETTERBOX" ] && eq_cmd+=" --letterbox $LETTERBOX"
+  [ -n "$FADE_IN" ] && eq_cmd+=" --fade-in $FADE_IN"
+  [ -n "$FADE_OUT" ] && eq_cmd+=" --fade-out $FADE_OUT"
+  [ -n "$ROTATE" ] && eq_cmd+=" --rotate $ROTATE"
+  [ -n "$FLIP" ] && eq_cmd+=" --flip $FLIP"
+  [ "$MUTE" -eq 1 ] && eq_cmd+=" --mute"
+  [ "$FORCE" -eq 1 ] && eq_cmd+=" --force"
+  [ -n "$OUTPUT_DIR" ] && eq_cmd+=" -o \"$OUTPUT_DIR\""
+  for f in "${FILES[@]}"; do eq_cmd+=" \"$f\""; done
+
+  wizard_confirm_and_run "videoeffects" "$eq_cmd" \
+    "Files (${#FILES[@]})   : ${FILES[*]}" \
+    "Color Preset  : ${PRESET:-none}" \
+    "Time / Motion : speed=${SPEED:-1.0x}, reverse=$REVERSE, stopmotion=${STOPMOTION:-off}, trails=${TRAILS:-off}" \
+    "Optics/Frame  : bloom=$BLOOM, vignette=$VIGNETTE, tilt-shift=$TILT_SHIFT, mirror=${MIRROR:-off}, letterbox=${LETTERBOX:-off}"
+}
+
+while [ "$#" -gt 0 ]; do case "$1" in
+  -i|--interactive) INTERACTIVE=1; shift;;
+  -p|--preset|--look) PRESET="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
+  --speed) SPEED="${2:?$1 requires a value}"; SPEED="${SPEED//,/.}"; HAS_EFFECT=1; shift 2;;
+  --smooth-slowmo|--interpolate) SMOOTH_SLOWMO=1; HAS_EFFECT=1; shift;;
+  --reverse) REVERSE=1; HAS_EFFECT=1; shift;;
+  --stopmotion) STOPMOTION="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
+  --trails|--ghost) TRAILS="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
+  --vignette) VIGNETTE=1; HAS_EFFECT=1; shift;;
+  --bloom|--glow) BLOOM=1; HAS_EFFECT=1; shift;;
+  --blur) BLUR="${2:?$1 requires a value}"; BLUR="${BLUR//,/.}"; HAS_EFFECT=1; shift 2;;
+  --tilt-shift) TILT_SHIFT=1; HAS_EFFECT=1; shift;;
+  --sharpen) SHARPEN=1; HAS_EFFECT=1; shift;;
+  --mirror) MIRROR="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
+  --zoom) ZOOM="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
+  --letterbox) LETTERBOX="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
+  --fade-in) FADE_IN="${2:?$1 requires a value}"; FADE_IN="${FADE_IN//,/.}"; HAS_EFFECT=1; shift 2;;
+  --fade-out) FADE_OUT="${2:?$1 requires a value}"; FADE_OUT="${FADE_OUT//,/.}"; HAS_EFFECT=1; shift 2;;
+  --rotate) ROTATE="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
+  --flip) FLIP="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
+  --mute) MUTE=1; shift;;
+  --from) START="${2:?$1 requires a value}"; shift 2;;
+  --to) END="${2:?$1 requires a value}"; shift 2;;
+  -o|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;;
+  -f|--force) FORCE=1; shift;;
+  -n|--dry-run) DRY_RUN=1; shift;;
+  -h|--help) usage; exit 0;;
+  -*) echo "Unknown option: $1" >&2; usage >&2; exit 1;;
+  *) FILES+=("$1"); shift;;
+esac; done
+
+if [ "$INTERACTIVE" -eq 1 ] || { [ "${#FILES[@]}" -eq 0 ] && [ -t 0 ]; }; then
+  interactive_wizard
+fi
+
+[ "${#FILES[@]}" -gt 0 ] || { usage >&2; exit 1; }
+if [ "$HAS_EFFECT" -eq 0 ]; then
+  PRESET="cinema"
+  HAS_EFFECT=1
+fi
+
+require_commands ffmpeg ffprobe
+
+# Validate options
+if [ -n "$PRESET" ]; then
+  case "$PRESET" in
+    cinema|noir|vintage|sepia|synthwave|thermal|bleach|kodak|dream) ;;
+    *) echo "❌ Unknown preset '$PRESET'. Choose from: cinema, noir, vintage, sepia, synthwave, thermal, bleach, kodak, dream" >&2; exit 1 ;;
+  esac
+fi
+
+if [ -n "$SPEED" ]; then
+  awk -v s="$SPEED" 'BEGIN { if (s+0 < 0.25 || s+0 > 4.0) exit 1 }' || {
+    echo "❌ Error: --speed must be between 0.25 and 4.0." >&2; exit 1;
+  }
+fi
+
+if [ -n "$MIRROR" ]; then
+  case "$MIRROR" in
+    h|horizontal|left|v|vertical|top|quad|4x) ;;
+    *) echo "❌ Error: --mirror must be h, v, or quad." >&2; exit 1 ;;
+  esac
+fi
+
+if [ -n "$ZOOM" ]; then
+  case "$ZOOM" in
+    in|out) ;;
+    *) echo "❌ Error: --zoom must be 'in' or 'out'." >&2; exit 1 ;;
+  esac
+fi
+
+if [ -n "$ROTATE" ]; then
+  case "$ROTATE" in
+    90|180|270) ;;
+    *) echo "❌ Error: --rotate must be 90, 180, or 270." >&2; exit 1 ;;
+  esac
+fi
+
+if [ -n "$FLIP" ]; then
+  case "$FLIP" in
+    h|v|horizontal|vertical) ;;
+    *) echo "❌ Error: --flip must be h or v." >&2; exit 1 ;;
+  esac
+fi
+
+TAG="${PRESET:-fx}"
+[ -z "$PRESET" ] && [ "$REVERSE" -eq 1 ] && TAG="reversed"
+[ -z "$PRESET" ] && [ -n "$MIRROR" ] && TAG="mirror-${MIRROR}"
+[ -z "$PRESET" ] && [ -n "$SPEED" ] && TAG="speed-${SPEED}x"
+
+[ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+
+SUCCESS=0; FAILED=0; SKIPPED=0
+for input in "${FILES[@]}"; do
+  if [ ! -f "$input" ]; then
+    echo "⚠️  Not a file: $input" >&2
+    FAILED=$((FAILED + 1))
+    continue
+  fi
+
+  base="$(basename "${input%.*}")"
+  out="${OUTPUT_DIR:-$(dirname "$input")}/${base}-${TAG}.mp4"
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "📝 Would create: $out ($TAG)"
+    continue
+  fi
+
+  if ! output_is_safe "$out" "$FORCE"; then
+    SKIPPED=$((SKIPPED + 1))
+    continue
+  fi
+
+  # Probe dimensions and duration
+  probe_wh=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$input" 2>/dev/null | head -n1 || echo "1920x1080")
+  VW="${probe_wh%x*}"
+  VH="${probe_wh#*x}"
+  [[ "$VW" =~ ^[0-9]+$ ]] || VW=1920
+  [[ "$VH" =~ ^[0-9]+$ ]] || VH=1080
+  VW=$(( (VW / 2) * 2 ))
+  VH=$(( (VH / 2) * 2 ))
+
+  DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$input" 2>/dev/null | head -n1 || echo "5.0")
+  [[ "$DUR" =~ ^[0-9]+(\.[0-9]+)?$ ]] || DUR="5.0"
+
+  HAS_AUDIO=0
+  if [ "$MUTE" -eq 0 ]; then
+    AUDIO_STREAM=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of default=nw=1:nk=1 "$input" 2>/dev/null | head -n1 || true)
+    [ "$AUDIO_STREAM" = "audio" ] && HAS_AUDIO=1
+  fi
+
+  # Build sequential filter chain stages (using labeled links in filter_complex so split/blend/overlay work cleanly)
+  V_STEPS=()
+  step_idx=0
+  cur_v="[0:v]"
+  next_v() {
+    step_idx=$((step_idx + 1))
+    printf "[v%d]" "$step_idx"
+  }
+
+  # 1. Geometry: Rotate & Flip
+  if [ -n "$ROTATE" ]; then
+    nv=$(next_v)
+    case "$ROTATE" in
+      90)  V_STEPS+=("${cur_v}transpose=1${nv}") ;;
+      180) V_STEPS+=("${cur_v}hflip,vflip${nv}") ;;
+      270) V_STEPS+=("${cur_v}transpose=2${nv}") ;;
+    esac
+    cur_v="$nv"
+  fi
+
+  if [ -n "$FLIP" ]; then
+    nv=$(next_v)
+    case "$FLIP" in
+      h|horizontal) V_STEPS+=("${cur_v}hflip${nv}") ;;
+      v|vertical)   V_STEPS+=("${cur_v}vflip${nv}") ;;
+    esac
+    cur_v="$nv"
+  fi
+
+  # 2. Mirror / Kaleidoscope symmetry
+  if [ -n "$MIRROR" ]; then
+    nv=$(next_v)
+    s="$step_idx"
+    case "$MIRROR" in
+      h|horizontal|left)
+        V_STEPS+=("${cur_v}scale=${VW}:${VH},split=2[mh0_${s}][mh1_${s}];[mh0_${s}]crop=iw/2:ih:0:0[mhl_${s}];[mh1_${s}]crop=iw/2:ih:0:0,hflip[mhr_${s}];[mhl_${s}][mhr_${s}]hstack${nv}")
+        ;;
+      v|vertical|top)
+        V_STEPS+=("${cur_v}scale=${VW}:${VH},split=2[mv0_${s}][mv1_${s}];[mv0_${s}]crop=iw:ih/2:0:0[mvt_${s}];[mv1_${s}]crop=iw:ih/2:0:0,vflip[mvb_${s}];[mvt_${s}][mvb_${s}]vstack${nv}")
+        ;;
+      quad|4x)
+        V_STEPS+=("${cur_v}scale=${VW}:${VH},crop=iw/2:ih/2:0:0,split=2[mq0_${s}][mq1_${s}];[mq1_${s}]hflip[mqr_${s}];[mq0_${s}][mqr_${s}]hstack,split=2[mqt_${s}][mqb0_${s}];[mqb0_${s}]vflip[mqb_${s}];[mqt_${s}][mqb_${s}]vstack${nv}")
+        ;;
+    esac
+    cur_v="$nv"
+  fi
+
+  # 3. Zoom (Ken Burns push-in / pull-out)
+  if [ -n "$ZOOM" ]; then
+    nv=$(next_v)
+    if [ "$ZOOM" = "in" ]; then
+      V_STEPS+=("${cur_v}zoompan=z='min(zoom+0.0015,1.35)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${VW}x${VH}:fps=30${nv}")
+    else
+      V_STEPS+=("${cur_v}zoompan=z='if(eq(on,1),1.35,max(zoom-0.0015,1.0))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${VW}x${VH}:fps=30${nv}")
+    fi
+    cur_v="$nv"
+  fi
+
+  # 4. Color Look Preset
+  if [ -n "$PRESET" ]; then
+    nv=$(next_v)
+    s="$step_idx"
+    case "$PRESET" in
+      cinema)
+        V_STEPS+=("${cur_v}colorbalance=rs=-0.12:gs=-0.04:bs=0.18:rm=0.08:gm=0.02:bm=-0.08:rh=0.14:gh=0.05:bh=-0.12,eq=contrast=1.14:saturation=1.12:brightness=-0.01${nv}")
+        ;;
+      noir)
+        V_STEPS+=("${cur_v}hue=s=0,eq=contrast=1.42:brightness=-0.03:gamma=0.92,noise=alls=8:allf=t+u,vignette=PI/4${nv}")
+        ;;
+      vintage)
+        V_STEPS+=("${cur_v}colorchannelmixer=.92:.12:.04:0:.06:.88:.06:0:.04:.10:.78,eq=contrast=1.06:saturation=0.85:brightness=0.02,vignette=PI/4.5${nv}")
+        ;;
+      sepia)
+        V_STEPS+=("${cur_v}colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131,eq=contrast=1.08${nv}")
+        ;;
+      synthwave)
+        V_STEPS+=("${cur_v}colorbalance=rs=0.22:bs=0.35:gs=-0.15:rh=0.28:bh=0.25:gh=-0.10,eq=contrast=1.22:saturation=1.55${nv}")
+        ;;
+      thermal)
+        V_STEPS+=("${cur_v}pseudocolor=preset=magma,eq=contrast=1.15${nv}")
+        ;;
+      bleach)
+        V_STEPS+=("${cur_v}eq=contrast=1.38:saturation=0.42:gamma=0.88,unsharp=5:5:0.8:5:5:0.0${nv}")
+        ;;
+      kodak)
+        V_STEPS+=("${cur_v}colorbalance=rs=0.05:bs=-0.06:rm=0.08:gm=0.03:bm=-0.07:rh=0.12:gh=0.06:bh=-0.10,eq=contrast=1.10:saturation=1.18,noise=alls=5:allf=t${nv}")
+        ;;
+      dream)
+        V_STEPS+=("${cur_v}format=yuv420p,split=2[dm_${s}][db_${s}];[db_${s}]gblur=sigma=18,eq=brightness=0.06:contrast=1.15[dg_${s}];[dm_${s}][dg_${s}]blend=all_mode=screen:all_opacity=0.35,eq=saturation=1.15,vignette=PI/4.5${nv}")
+        ;;
+    esac
+    cur_v="$nv"
+  fi
+
+  # 5. Optical Filters: Tilt-Shift, Blur, Bloom, Sharpen, Vignette
+  if [ "$TILT_SHIFT" -eq 1 ]; then
+    nv=$(next_v)
+    s="$step_idx"
+    # Keep middle 40% sharp over a blurred background
+    V_STEPS+=("${cur_v}split=2[ts_bg_${s}][ts_fg_${s}];[ts_bg_${s}]gblur=sigma=14[ts_blur_${s}];[ts_fg_${s}]crop=iw:ih*0.42:0:ih*0.29[ts_sharp_${s}];[ts_blur_${s}][ts_sharp_${s}]overlay=0:H*0.29,eq=saturation=1.25:contrast=1.08${nv}")
+    cur_v="$nv"
+  fi
+
+  if [ -n "$BLUR" ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}gblur=sigma=${BLUR}${nv}")
+    cur_v="$nv"
+  fi
+
+  if [ "$BLOOM" -eq 1 ] && [ "$PRESET" != "dream" ]; then
+    nv=$(next_v)
+    s="$step_idx"
+    V_STEPS+=("${cur_v}format=yuv420p,split=2[blm_${s}][blb_${s}];[blb_${s}]gblur=sigma=18,eq=brightness=0.06[blg_${s}];[blm_${s}][blg_${s}]blend=all_mode=screen:all_opacity=0.35${nv}")
+    cur_v="$nv"
+  fi
+
+  if [ "$SHARPEN" -eq 1 ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}unsharp=5:5:1.1:5:5:0.0${nv}")
+    cur_v="$nv"
+  fi
+
+  if [ "$VIGNETTE" -eq 1 ] && [ "$PRESET" != "noir" ] && [ "$PRESET" != "vintage" ] && [ "$PRESET" != "dream" ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}vignette=PI/4${nv}")
+    cur_v="$nv"
+  fi
+
+  # 6. Temporal & Motion FX: Trails, Stopmotion, Reverse, Speed, Smooth-Slowmo
+  if [ -n "$TRAILS" ]; then
+    nv=$(next_v)
+    T_FRAMES="$TRAILS"
+    [[ "$T_FRAMES" =~ ^[0-9]+$ && "$T_FRAMES" -ge 2 ]] || T_FRAMES=5
+    [ "$T_FRAMES" -gt 12 ] && T_FRAMES=12
+    V_STEPS+=("${cur_v}lagfun=decay=0.92,tmix=frames=${T_FRAMES}${nv}")
+    cur_v="$nv"
+  fi
+
+  if [ -n "$STOPMOTION" ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}fps=${STOPMOTION},fps=30${nv}")
+    cur_v="$nv"
+  fi
+
+  if [ "$REVERSE" -eq 1 ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}reverse${nv}")
+    cur_v="$nv"
+  fi
+
+  if [ -n "$SPEED" ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}setpts=PTS/${SPEED}${nv}")
+    cur_v="$nv"
+    DUR=$(awk -v d="$DUR" -v s="$SPEED" 'BEGIN { printf "%.3f", d / s }')
+  fi
+
+  if [ "$SMOOTH_SLOWMO" -eq 1 ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bidir${nv}")
+    cur_v="$nv"
+  fi
+
+  # 7. Framing: Letterbox & Fades
+  if [ -n "$LETTERBOX" ]; then
+    nv=$(next_v)
+    case "$LETTERBOX" in
+      2.35|2.39|scope|cinemascope)
+        V_STEPS+=("${cur_v}drawbox=x=0:y=0:w=iw:h=ih*0.12:c=black:t=fill,drawbox=x=0:y=ih*0.88:w=iw:h=ih*0.13:c=black:t=fill${nv}")
+        ;;
+      1.85|flat)
+        V_STEPS+=("${cur_v}drawbox=x=0:y=0:w=iw:h=ih*0.05:c=black:t=fill,drawbox=x=0:y=ih*0.95:w=iw:h=ih*0.06:c=black:t=fill${nv}")
+        ;;
+      4:3|pillarbox)
+        V_STEPS+=("${cur_v}drawbox=x=0:y=0:w=iw*0.125:h=ih:c=black:t=fill,drawbox=x=iw*0.875:y=0:w=iw*0.13:h=ih:c=black:t=fill${nv}")
+        ;;
+      *)
+        V_STEPS+=("${cur_v}drawbox=x=0:y=0:w=iw:h=ih*0.12:c=black:t=fill,drawbox=x=0:y=ih*0.88:w=iw:h=ih*0.13:c=black:t=fill${nv}")
+        ;;
+    esac
+    cur_v="$nv"
+  fi
+
+  if [ -n "$FADE_IN" ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}fade=t=in:st=0:d=${FADE_IN}${nv}")
+    cur_v="$nv"
+  fi
+
+  if [ -n "$FADE_OUT" ]; then
+    nv=$(next_v)
+    FO_START=$(awk -v d="$DUR" -v f="$FADE_OUT" 'BEGIN { s = d - f; if (s < 0) s = 0; printf "%.3f", s }')
+    V_STEPS+=("${cur_v}fade=t=out:st=${FO_START}:d=${FADE_OUT}${nv}")
+    cur_v="$nv"
+  fi
+
+  # Final pixel format normalization
+  V_STEPS+=("${cur_v}format=yuv420p[vout]")
+
+  # Build audio filter chain if audio exists
+  AF_CHAIN=()
+  if [ "$HAS_AUDIO" -eq 1 ]; then
+    [ "$REVERSE" -eq 1 ] && AF_CHAIN+=("areverse")
+    if [ -n "$SPEED" ]; then
+      ATEMPO_STR=$(awk -v s="$SPEED" 'BEGIN {
+        if (s < 0.5) {
+          printf "atempo=0.5,atempo=%.4f", s / 0.5
+        } else if (s > 2.0) {
+          printf "atempo=2.0,atempo=%.4f", s / 2.0
+        } else {
+          printf "atempo=%.4f", s
+        }
+      }')
+      AF_CHAIN+=("$ATEMPO_STR")
+    fi
+    [ -n "$FADE_IN" ] && AF_CHAIN+=("afade=t=in:st=0:d=${FADE_IN}")
+    if [ -n "$FADE_OUT" ]; then
+      FO_START=$(awk -v d="$DUR" -v f="$FADE_OUT" 'BEGIN { s = d - f; if (s < 0) s = 0; printf "%.3f", s }')
+      AF_CHAIN+=("afade=t=out:st=${FO_START}:d=${FADE_OUT}")
+    fi
+  fi
+
+  IFS=';'; FILTER_COMPLEX="${V_STEPS[*]}"; unset IFS
+
+  args=(-hide_banner -loglevel error -stats)
+  [ -n "$START" ] && args+=(-ss "$START")
+  args+=(-i "$input")
+  [ -n "$END" ] && args+=(-to "$END")
+
+  if [ "$HAS_AUDIO" -eq 1 ]; then
+    if [ "${#AF_CHAIN[@]}" -gt 0 ]; then
+      IFS=','; AF_STR="${AF_CHAIN[*]}"; unset IFS
+      FILTER_COMPLEX="${FILTER_COMPLEX};[0:a]${AF_STR}[aout]"
+      args+=(-filter_complex "$FILTER_COMPLEX" -map "[vout]" -map "[aout]" -c:v libx264 -crf 20 -preset medium -c:a aac -b:a 192k)
+    else
+      args+=(-filter_complex "$FILTER_COMPLEX" -map "[vout]" -map "0:a:0" -c:v libx264 -crf 20 -preset medium -c:a aac -b:a 192k)
+    fi
+  else
+    args+=(-filter_complex "$FILTER_COMPLEX" -map "[vout]" -c:v libx264 -crf 20 -preset medium -an)
+  fi
+  args+=("$out")
+
+  echo "▶️  $input → $out ($TAG)"
+  if ffmpeg "${args[@]}"; then
+    SUCCESS=$((SUCCESS + 1))
+  else
+    FAILED=$((FAILED + 1))
+  fi
+done
+
+if [ "$DRY_RUN" -eq 0 ]; then
+  echo "✅ Done: $SUCCESS video(s) processed, $FAILED failed, $SKIPPED skipped"
+  [ "$SUCCESS" -eq 0 ] || notify "Applied FX to $SUCCESS video(s)." "videoeffects"
+fi
+exit "$FAILED"

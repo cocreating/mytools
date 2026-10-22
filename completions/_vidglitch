@@ -1,13 +1,18 @@
-#compdef vidglitch
+#compdef vidglitch videoglitch
 _arguments \
   '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
-  '(-p --preset)'{-p,--preset}'[glitch preset]:preset:(rgb-split vhs crt 8bit cyberpunk badsignal tear)' \
+  '(-p --preset)'{-p,--preset}'[glitch preset]:preset:(rgb-split vhs crt 8bit cyberpunk badsignal tear datamosh nightvision gameboy matrix)' \
+  '(-I --intensity)'{-I,--intensity}'[effect intensity]:intensity:(low med high 25 50 75 100)' \
   '--rgb-split[shift red and blue color channels in px]:offset' \
   '--scanlines[add CRT scanlines overlay]' \
   '--noise[add analog video noise]:level' \
   '--pixelate[pixelate video into blocks]:factor' \
   '--tear[add horizontal data glitch tearing]' \
   '--burst[pulse glitch intermittently]' \
+  '--organic-burst[trigger glitch in erratic organic hardware bursts]' \
+  '(-A --audio-glitch)'{-A,--audio-glitch}'[corrupt audio stream in sync with visual preset]' \
+  '--tracking[add scrolling VHS tracking distortion bar]' \
+  '--osd[add retro camcorder viewfinder HUD and REC indicator]' \
   '--mute[discard audio track]' \
   '--from[trim start time]:time' \
   '--to[trim end time]:time' \

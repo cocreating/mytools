@@ -1,0 +1,28 @@
+#compdef videoeffects vidfx
+_arguments \
+  '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
+  '(-p --preset --look)'{-p,--preset,--look}'[color look preset]:preset:(cinema noir vintage sepia synthwave thermal bleach kodak dream)' \
+  '--speed[playback speed multiplier (0.25 to 4.0)]:factor:(0.5 0.75 1.25 1.5 2.0 3.0)' \
+  '--smooth-slowmo[enable optical-flow motion interpolation]' \
+  '--reverse[reverse video and audio streams backward]' \
+  '--stopmotion[claymation/anime frame-step FPS]:fps:(8 10 12 15)' \
+  '--trails[motion ghosting / phosphor trails (1-10)]:frames' \
+  '--vignette[add optical lens vignette]' \
+  '(--bloom --glow)'{--bloom,--glow}'[add soft highlight halation glow]' \
+  '--blur[Gaussian blur sigma]:sigma' \
+  '--tilt-shift[miniature toy-world focus effect]' \
+  '--sharpen[crisp unsharp mask edge enhancement]' \
+  '--mirror[kaleidoscope symmetry mode]:mode:(h v quad)' \
+  '--zoom[smooth Ken Burns push-in or pull-out]:direction:(in out)' \
+  '--letterbox[cinematic aspect ratio bars]:ratio:(2.35 1.85 4:3)' \
+  '--fade-in[smooth video and audio fade-in from black (sec)]:seconds' \
+  '--fade-out[smooth video and audio fade-out to black (sec)]:seconds' \
+  '--rotate[rotate clockwise in degrees]:degrees:(90 180 270)' \
+  '--flip[flip horizontally or vertically]:axis:(h v)' \
+  '--mute[discard audio track]' \
+  '--from[trim start time]:time' \
+  '--to[trim end time]:time' \
+  '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \
+  '(-f --force)'{-f,--force}'[overwrite existing output]' \
+  '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+  '*:video file:_files -g "*.(mp4|mov|avi|mkv|webm|m4v)(-.)"'

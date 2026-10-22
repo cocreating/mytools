@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"
+exec "$SCRIPT_DIR/vidglue" "$@"

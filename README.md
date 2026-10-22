@@ -30,6 +30,29 @@ mytools config          # create/show ~/.config/mytools/config
 All conversion tools avoid overwriting an existing output by default. Use `--force` only when replacing it is intentional, and `--dry-run` to preview batch operations.
 `mytools config` creates editable overrides for the built-in `vidoptim` presets; change `codec`, `crf`, or `width` within a named preset section.
 
+### Step-by-Step: How to Use Any Tool with Custom Commands
+
+> **Two key observations when running custom commands:**
+> 1. **You don't need `mytools` in front of individual tool commands** — `mytools` is the interactive menu launcher, while each tool (`img2webp`, `vidglue`, `vid2webm`, `wav2mp3`, etc.) is run **directly by its own name** (though `mytools <tool> [options]` also forwards commands as a convenience).
+> 2. **Watch the exact tool name** — for example, the image converter ends with a `p`: **`img2webp`** (not `img2web`).
+
+1. **Step 1: Go to the folder where your files are**  
+   In Terminal, move into the folder containing the images, videos, or audio you want to process *(Tip: type `cd ` with a space, drag-and-drop your folder from Finder into Terminal, and press Enter)*:
+   ```bash
+   cd ~/Pictures/MyPhotos
+   ```
+2. **Step 2: Run the tool directly with your custom flags**  
+   Combine options before `-a` (all files in current folder) or before specific filenames:
+   ```bash
+   img2webp -a                                  # convert all images in current folder
+   img2webp --width 1200 -q 90 -a               # resize to 1200px wide at 90% quality
+   img2webp -q 80 photo.jpg                     # convert one specific file
+   img2webp -q 90 -o ./webp-output -a           # save into a separate subfolder
+   img2webp --width 1200 -q 90 -a -n            # test safely first (-n / --dry-run)
+   ```
+3. **Step 3: Use Interactive Wizard Mode (`-i`) to learn custom commands effortlessly**  
+   If you don't want to memorize flags, run `img2webp -i`, `vidglue -i`, `vidglitch -i`, `vidcuts -i`, or `videoeffects -i`. It previews file metadata (`ffprobe`), walks you through every setting step by step, prints the exact **Equivalent command**, and lets you copy it directly to your macOS clipboard (`pbcopy`).
+
 ## Image tools
 
 ### Images: `img2webp`
@@ -58,17 +81,20 @@ If no URL is supplied, the command uses a URL in the clipboard or prompts for on
 
 ## Video tools
 
-### Glue MP4 videos: `vidglue`
+### Glue, crossfade & collage MP4 videos: `vidglue`
 
 ```bash
-vidglue part1.mp4 part2.mp4
+vidglue -i                                         # interactive guided wizard
+vidglue part1.mp4 part2.mp4                        # fast lossless stream copy
 vidglue -o combined.mp4 clip1.mp4 clip2.mp4 clip3.mp4
-vidglue --bounce video1.mp4 video2.mp4       # video1 forward, video2 reversed
-vidglue --bounce video.mp4                 # video forward + video reversed (bounce effect)
-vidglue --reencode -o merged.mp4 mixed1.mp4 mixed2.mov
+vidglue --bounce video.mp4                         # video forward + video reversed (bounce effect)
+vidglue --bounce -l 3 video.mp4                    # bounce loop repeated 3x
+vidglue --reencode --fit blur horiz.mp4 vert.mp4   # mix horizontal & vertical with blurred background
+vidglue -t fade --transition-duration 0.8 a.mp4 b.mp4 # smooth crossfade transition
+vidglue --layout hstack left.mp4 right.mp4         # side-by-side split-screen collage
 ```
 
-Glues multiple video files into a single MP4 file. Uses fast stream copy (`-c copy`) by default, or `--reencode` to re-encode streams into standard H.264/AAC MP4 when source files have different resolutions or codecs. Pass `-b` / `--bounce` to play videos forward and reversed.
+Glues multiple video files into a single MP4 file. Uses fast stream copy (`-c copy`) by default, or `--reencode` to normalize mixed resolutions/aspect ratios (`--fit pad|crop|blur`) and automatically synthesize silent audio for muted clips. Supports crossfade transitions (`-t fade|fadeblack|wipeleft|pixelize|radial...`), spatial collages (`--layout hstack|vstack|2x2`), and Boomerang loops (`-b` / `--bounce` and `-l` / `--loop`).
 
 ### Video to WebM: `vid2webm`
 
@@ -114,30 +140,47 @@ vidoptim --preset archive --dry-run footage.mp4
 - `social`: H.264, CRF 25, capped to 720p
 - `archive`: H.265, CRF 26, source dimensions
 
-### Glitch & retro video FX: `vidglitch`
+### Glitch & retro video/audio FX: `vidglitch`
 
 ```bash
-vidglitch -i                                       # interactive guided wizard
-vidglitch clip.mp4                                 # RGB chromatic aberration (default)
-vidglitch --preset vhs recording.mov               # analog VHS tape noise & vignette
-vidglitch --preset cyberpunk --burst promo.mp4     # pulsing neon glitch & scanlines
-vidglitch --preset 8bit -o ./glitched *.mp4        # retro pixelated look
-vidglitch --rgb-split 16 --scanlines intro.mp4     # custom RGB shift & CRT scanlines
+vidglitch -i                                              # interactive guided wizard
+vidglitch clip.mp4                                        # RGB chromatic aberration (default)
+vidglitch --preset vhs --audio-glitch --osd recording.mov # VHS tape + tape flutter audio + camcorder HUD
+vidglitch --preset cyberpunk --organic-burst promo.mp4    # erratic neon glitch & scanlines
+vidglitch --preset datamosh -I high dance.mp4             # intense motion pixel smear & ghost trails
+vidglitch --preset 8bit -A -o ./glitched *.mp4            # retro pixelated look + 8-bit chiptune audio
+vidglitch --rgb-split 16 --scanlines intro.mp4            # custom RGB shift & CRT scanlines
 ```
 
-Applies customizable analog and digital glitch effects using FFmpeg. Built-in presets: `rgb-split`, `vhs`, `crt`, `8bit`, `cyberpunk`, `badsignal`, and `tear`. Pass `--burst` to pulse the glitch periodically instead of applying a static overlay.
+Applies customizable analog and digital glitch effects using FFmpeg. Built-in presets: `rgb-split`, `vhs`, `crt`, `8bit`, `cyberpunk`, `badsignal`, `tear`, `datamosh`, `nightvision`, `gameboy`, and `matrix`. Supports intensity scaling (`-I low|med|high|1-100`), periodic (`--burst`) or erratic (`--organic-burst`) glitch triggers, camcorder viewfinder HUD (`--osd`), and synchronized audio corruption (`-A` / `--audio-glitch`).
 
-### Cut film & jump cuts: `vidcuts`
+### Cut film, BPM beat cuts & silence remover: `vidcuts`
 
 ```bash
-vidcuts clip.mp4                                   # 20% random frame excision (default)
-vidcuts -p 35 recording.mov                        # 35% shorter video with jump cuts
-vidcuts -p 25 --mode jumps action.mp4              # 25% chunk jump cuts (~0.2s each)
-vidcuts -p 20 --jitter --grain vintage.mp4         # with projector jitter & film grain
-vidcuts -i                                         # interactive guided wizard
+vidcuts clip.mp4                                         # 20% random frame excision (default)
+vidcuts -p 35 recording.mov                              # 35% shorter video with jump cuts
+vidcuts -p 25 --mode jumps action.mp4                    # 25% chunk jump cuts (~0.2s each)
+vidcuts -p 40 --mode freeze --film-burn musicvideo.mp4   # freeze-cuts keeping original duration & song intact
+vidcuts --mode beat --bpm 128 --flash dance.mp4          # rhythmic cuts synced to 128 BPM
+vidcuts --mode silence interview.mp4                     # auto-strip silent pauses (vlogger jump cuts)
+vidcuts -p 20 --jitter --grain --scratches --super8 v.mp4 # full 16mm/Super-8 damaged film look
+vidcuts -i                                               # interactive guided wizard
 ```
 
-Erases a chosen percentage of random frames or micro-chunks from the timeline, producing a shorter video with authentic physical cut-film and jump-cut aesthetics. Audio is trimmed in lockstep to maintain perfect synchronization across all cuts.
+Erases a chosen percentage of random frames, rhythmic BPM beats, or silent dead-air pauses from the timeline. Supports timeline-shortening cuts (with audio trimmed in lockstep) or constant-duration `--mode freeze` cuts that hold frames so the original audio track remains untouched.
+
+### Cinematic color grading, speed & optical FX: `videoeffects` (`vidfx`)
+
+```bash
+videoeffects -i                                           # interactive multi-effect wizard
+videoeffects --preset cinema --letterbox 2.35 clip.mp4    # widescreen blockbuster teal & orange look
+videoeffects --preset noir --vignette --fade-in 1 a.mp4   # high-contrast film noir opening
+videoeffects --speed 0.5 --smooth-slowmo action.mp4       # silky 2x optical-flow slow motion
+videoeffects --mirror quad --preset synthwave dance.mp4   # 4-way neon kaleidoscope
+vidfx --reverse --bloom --trails 6 dream.mov              # reversed ethereal motion trails
+```
+
+The video counterpart to `wavfx`. Combines color grading presets (`cinema`, `noir`, `vintage`, `kodak`, `dream`, `synthwave`, `thermal`, `bleach`, `sepia`), temporal speed/reverse/stop-motion/trails, optical lens effects (`--bloom`, `--vignette`, `--tilt-shift`, `--blur`, `--sharpen`, `--mirror`, `--zoom`), and widescreen framing (`--letterbox`, `--fade-in`, `--fade-out`) in a single pass.
 
 ## Audio tools
 
@@ -258,7 +301,7 @@ The project includes an interactive web guide in `website/` designed in an order
 - A live simulated terminal for testing `mytools` commands.
 - An interactive command studio for building flags and commands visually.
 - DSP audio waveform and video glitch shader visualizers.
-- A searchable technical catalog covering all 26 tools with options and examples.
+- A searchable technical catalog covering all 27 tools with options and examples.
 - Dark, Bauhaus light, and amber phosphor themes.
 
 To run locally:

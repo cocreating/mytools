@@ -2,17 +2,27 @@
 set -euo pipefail
 
 usage() { cat <<'EOF'
-Usage: mytools [command]
+Usage:
+  mytools                     Open the interactive fzf launcher menu (with live preview)
+  <tool> [options] [files]    Run any tool directly with custom flags (recommended)
+  <tool> -i                   Launch interactive guided wizard for a tool
+  mytools <tool> [options]    Convenience wrapper that forwards to <tool>
 
-Open the interactive launcher, or run one of:
+Built-in commands:
   help [tool]  Print overview or detailed guide for a tool
-  guide        Interactive help browser & cheat-sheets
+  guide        Interactive help browser & cheat-sheets (with wizard launcher)
   doctor       Check dependencies
   config       Show/create the presets configuration
 
-Tools: img2webp, ytdl, vidglue, vid2webm, vid2gif, videoWithoutAudio, vidoptim, vidglitch, vidcuts,
-vid2audio, wav2mp3, wav2tempo, wavreverse, wavpitch, wavnorm, wavfade, wavtrim, wavfx,
-media-info, thumloc, webloc2md.
+Step-by-Step Custom Command Usage:
+  1. Go to your files folder:   cd ~/Pictures/MyPhotos
+  2. Run the tool directly:     img2webp --width 1200 -q 90 -a
+     (Note: no 'mytools' prefix is required, and image tool is 'img2webp' with a 'p')
+  3. Or use interactive wizard: img2webp -i | vidglue -i | vidglitch -i | vidcuts -i | videoeffects -i
+
+Tools: img2webp, ytdl, vidglue (videoglue), vid2webm, vid2gif, videoWithoutAudio, vidoptim,
+vidglitch (videoglitch), vidcuts (videocuts), videoeffects (vidfx), vid2audio, wav2mp3,
+wav2tempo, wavreverse, wavpitch, wavnorm, wavfade, wavtrim, wavfx, media-info, thumloc, webloc2md.
 EOF
 }
 SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"
@@ -21,64 +31,154 @@ case "${1:-}" in
   guide|g) exec "$SCRIPT_DIR/mytools-guide" --interactive;;
   doctor) exec "$SCRIPT_DIR/mytools-doctor" "${@:2}";;
   config) exec "$SCRIPT_DIR/mytools-config" "${@:2}";;
+  img2web)
+    echo "💡 Note: The image tool is named 'img2webp' (with a 'p'). You can also run it directly without 'mytools': img2webp ${*:2}" >&2
+    exec "$SCRIPT_DIR/img2webp" "${@:2}"
+    ;;
+  videoglue) exec "$SCRIPT_DIR/vidglue" "${@:2}" ;;
+  videoglitch) exec "$SCRIPT_DIR/vidglitch" "${@:2}" ;;
+  videocuts) exec "$SCRIPT_DIR/vidcuts" "${@:2}" ;;
+  vidfx) exec "$SCRIPT_DIR/videoeffects" "${@:2}" ;;
   "") ;;
-  *) echo "Unknown mytools command: $1" >&2; exec "$SCRIPT_DIR/mytools-guide";;
+  *)
+    if [ -x "$SCRIPT_DIR/$1" ] && [ "$1" != "mytools" ]; then
+      echo "💡 Tip: Each tool is a standalone command — you can run '$1 ${*:2}' directly without 'mytools' in front." >&2
+      exec "$SCRIPT_DIR/$1" "${@:2}"
+    fi
+    echo "Unknown mytools command: $1" >&2
+    echo "💡 Tip: Run tools directly by name (e.g. 'img2webp -a', 'vidglue a.mp4 b.mp4') or run 'mytools' for the interactive menu." >&2
+    exec "$SCRIPT_DIR/mytools-guide"
+    ;;
 esac
 command -v fzf >/dev/null 2>&1 || { "$SCRIPT_DIR/mytools-guide"; echo "💡 Install fzf for the interactive launcher: brew install fzf"; exit 0; }
 if [ -t 1 ]; then
   CURRENT_LINES=$(tput lines 2>/dev/null || echo 0)
   CURRENT_COLS=$(tput cols 2>/dev/null || echo 80)
-  if [ "$CURRENT_LINES" -gt 0 ] && [ "$CURRENT_LINES" -lt 30 ]; then
-    printf '\e[8;%d;%dt' 30 "$CURRENT_COLS"
+  if [ "$CURRENT_LINES" -gt 0 ] && [ "$CURRENT_LINES" -lt 32 ]; then
+    printf '\e[8;%d;%dt' 32 "$CURRENT_COLS"
     sleep 0.05 2>/dev/null || true
   fi
 fi
 OPTION=$(printf '%s\n' \
-  'img2webp — 📸 Image to WebP' \
-  'ytdl — 📥 Download web media' \
-  'vidglue — 🎞️ Glue MP4 videos' 'vid2webm — 🌐 Video to WebM' 'vid2gif — 👾 Video to GIF' 'videoWithoutAudio — 🔇 Remove video audio (optional preserve tracks)' 'vidoptim — 🚀 Optimize video (web/social/archive)' 'vidglitch — ⚡ Glitch & retro visual FX' 'vidcuts — ✂️ Erase random frames / cut film' \
-  'vid2audio — 🔊 Extract video audio' 'wav2mp3 — 🎧 Audio to MP3' 'wav2tempo — 🥁 Retime WAV by BPM' 'wavreverse — 🔄 Reverse WAV audio' 'wavpitch — 🎼 Shift WAV pitch' 'wavnorm — 🎚️ Normalize WAV volume' 'wavfade — 📈 Apply fade in/out' 'wavtrim — ✂️ Strip WAV silence' 'wavfx — 🎛️ WAV audio effects' \
-  'media-info — 🕵️ Inspect media file' \
-  'thumloc — 🖼️ Finder bookmark thumbnails' 'webloc2md — 📑 Bookmark index' \
-  'guide — 📖 Interactive guide & cheat-sheets' 'doctor — 🩺 Dependency health check' 'config — ⚙️ User presets & config' | fzf --prompt='mytools > ' --height=~100% --layout=reverse --border)
+  'img2webp — 📸 Image to WebP (wizard & batch converter)' \
+  'ytdl — 📥 Download web media (yt-dlp + clipboard)' \
+  'vidglue — 🎞️ Glue, crossfade & collage MP4 videos (videoglue)' \
+  'vidglitch — ⚡ Glitch, VHS & retro visual/audio FX (videoglitch)' \
+  'vidcuts — ✂️ Cut film, BPM beat cuts & silence remover (videocuts)' \
+  'videoeffects — 🎬 Cinematic color grading, speed & optical FX (vidfx)' \
+  'vidoptim — 🚀 Optimize video (web / social / archive presets)' \
+  'vid2webm — 🌐 Video to VP9/Opus WebM' \
+  'vid2gif — 👾 Video to palette-optimized GIF' \
+  'videoWithoutAudio — 🔇 Remove video audio (optional preserve tracks)' \
+  'vid2audio — 🔊 Extract video audio to WAV / MP3' \
+  'wav2mp3 — 🎧 Convert WAV audio to MP3' \
+  'wav2tempo — 🥁 Retime WAV by BPM (aubio)' \
+  'wavreverse — 🔄 Reverse WAV audio sample-accurately' \
+  'wavpitch — 🎼 Shift WAV pitch by semitones / varispeed' \
+  'wavnorm — 🎚️ Normalize WAV loudness (-14 LUFS / Peak)' \
+  'wavfade — 📈 Apply smooth fade-in & fade-out envelopes' \
+  'wavtrim — ✂️ Strip leading & trailing WAV silence' \
+  'wavfx — 🎛️ WAV audio DSP effects (reverb, delay, EQ)' \
+  'media-info — 🕵️ Inspect media file codecs & metadata' \
+  'thumloc — 🖼️ Finder bookmark thumbnails' \
+  'webloc2md — 📑 Bookmark Markdown index' \
+  'guide — 📖 Interactive guide & cheat-sheets' \
+  'doctor — 🩺 Dependency health check & auto-installer' \
+  'config — ⚙️ User presets & configuration' | fzf \
+  --prompt='mytools > ' \
+  --header='🎯 Select a tool ([Enter] launch wizard / file picker • [Esc] exit)' \
+  --height=~100% \
+  --layout=reverse \
+  --border \
+  --preview="bash \"$SCRIPT_DIR/mytools-guide\" preview {1}" \
+  --preview-window=right:54%:wrap)
 [ -n "$OPTION" ] || exit 0
 TOOL="${OPTION%% *}"
 case "$TOOL" in
-  guide) exec "$SCRIPT_DIR/mytools-guide" --interactive;; doctor) exec "$SCRIPT_DIR/mytools-doctor";; config) exec "$SCRIPT_DIR/mytools-config";;
+  guide) exec "$SCRIPT_DIR/mytools-guide" --interactive;;
+  doctor) exec "$SCRIPT_DIR/mytools-doctor";;
+  config) exec "$SCRIPT_DIR/mytools-config";;
   thumloc|webloc2md|ytdl) exec "$SCRIPT_DIR/$TOOL";;
+  img2webp|vidglue|vidglitch|vidcuts|videoeffects)
+    # Delegate directly to each tool's full interactive wizard (-i)
+    exec "$SCRIPT_DIR/$TOOL" -i
+    ;;
 esac
-FILES=$(find . -maxdepth 1 -type f -print | sed 's#^./##' | fzf -m --prompt="${TOOL} files > " --header='💡 Press [Tab] to mark multiple files, then press [Enter] to confirm' --height=60% --layout=reverse --border)
+
+# Filter candidate files by tool category with fallback to all files
+EXT_FILTER='.'
+case "$TOOL" in
+  vid2webm|vid2gif|videoWithoutAudio|vidoptim|vid2audio)
+    EXT_FILTER='\.(mp4|mov|avi|mkv|webm|m4v)$'
+    ;;
+  wav2mp3|wav2tempo|wavreverse|wavpitch|wavnorm|wavfade|wavtrim|wavfx)
+    EXT_FILTER='\.(wav)$'
+    ;;
+esac
+
+CAND_FILES=$(find . -maxdepth 1 -type f 2>/dev/null | sed 's#^./##' | grep -Ei "$EXT_FILTER" | sort || true)
+if [ -z "$CAND_FILES" ]; then
+  CAND_FILES=$(find . -maxdepth 2 -type f 2>/dev/null | sed 's#^./##' | grep -Ei "$EXT_FILTER" | sort || true)
+fi
+if [ -z "$CAND_FILES" ]; then
+  CAND_FILES=$(find . -maxdepth 1 -type f 2>/dev/null | sed 's#^./##' | sort || true)
+fi
+
+FILES=$(printf '%s\n' "$CAND_FILES" | fzf -m \
+  --prompt="${TOOL} files > " \
+  --header='💡 Press [Tab] to mark multiple files, then press [Enter] to confirm' \
+  --height=65% \
+  --layout=reverse \
+  --border \
+  --preview="bash \"$SCRIPT_DIR/lib/common.sh\" --preview {}" \
+  --preview-window=right:48%:wrap)
 [ -n "$FILES" ] || { echo 'Canceled.'; exit 0; }
-FILE_ARRAY=(); while IFS= read -r file; do FILE_ARRAY+=("$file"); done <<< "$FILES"
-if [ "$TOOL" = "vidglitch" ]; then
-  PRESET_CHOICE=$(printf '%s\n' \
-    'rgb-split — 🌈 Chromatic aberration (default)' \
-    'vhs — 📼 Analog tape noise & vignette' \
-    'crt — 📺 Arcade scanlines & RGB offset' \
-    '8bit — 🕹️ Retro pixelated gaming blocks' \
-    'cyberpunk — 🌆 Neon RGB split & tearing' \
-    'badsignal — 📡 Heavy static & signal loss' \
-    'tear — ⚡ Digital data block displacement' | fzf --prompt='vidglitch preset > ' --height=50% --layout=reverse --border || true)
-  if [ -n "$PRESET_CHOICE" ]; then
-    PRESET="${PRESET_CHOICE%% *}"
-    TIMING_CHOICE=$(printf '%s\n' \
-      'constant — 🌊 Continuous glitch (always on)' \
-      'burst — 💓 Intermittent pulse/burst mode (every 2s)' | fzf --prompt='vidglitch timing > ' --height=40% --layout=reverse --border || true)
-    EXTRA_FLAGS=()
-    [ "${TIMING_CHOICE%% *}" = "burst" ] && EXTRA_FLAGS+=("--burst")
-    exec "$SCRIPT_DIR/vidglitch" --preset "$PRESET" "${EXTRA_FLAGS[@]}" "${FILE_ARRAY[@]}"
-  fi
-fi
-if [ "$TOOL" = "vidcuts" ]; then
-  CUT_CHOICE=$(printf '%s\n' \
-    '20% — ✂️ Balanced cut film (20% shorter, default)' \
-    '10% — 🎞️ Subtle missing frames (10% shorter)' \
-    '30% — 🎬 Energetic jump cuts (30% shorter)' \
-    '50% — ⚡ Frantic staccato cuts (50% shorter)' | fzf --prompt='vidcuts percentage > ' --height=40% --layout=reverse --border || true)
-  if [ -n "$CUT_CHOICE" ]; then
-    PCT="${CUT_CHOICE%% *}"
-    PCT="${PCT%\%}"
-    exec "$SCRIPT_DIR/vidcuts" --percent "$PCT" "${FILE_ARRAY[@]}"
-  fi
-fi
+FILE_ARRAY=(); while IFS= read -r file; do [ -n "$file" ] && FILE_ARRAY+=("$file"); done <<< "$FILES"
+
+case "$TOOL" in
+  vidoptim)
+    P_CHOICE=$(printf '%s\n' \
+      'web — 🌐 H.264, CRF 23, max 1080p (default)' \
+      'social — 📱 H.264, CRF 25, max 720p' \
+      'archive — 📦 H.265/HEVC, CRF 26, native resolution' | fzf --prompt='vidoptim preset > ' --height=35% --layout=reverse --border || true)
+    [ -n "$P_CHOICE" ] && exec "$SCRIPT_DIR/vidoptim" --preset "${P_CHOICE%% *}" "${FILE_ARRAY[@]}"
+    ;;
+  wavfx)
+    FX_CHOICE=$(printf '%s\n' \
+      'room — 🏠 Warm studio room reverb' \
+      'hall — 🏛️ Spacious concert hall reverb' \
+      'space — 🌌 Deep cosmic space reverb' \
+      'delay-250 — 🔁 250ms slapback echo delay' \
+      'lofi-800 — 📻 Warm 800Hz low-pass filter' | fzf --prompt='wavfx preset > ' --height=40% --layout=reverse --border || true)
+    case "${FX_CHOICE%% *}" in
+      room|hall|space) exec "$SCRIPT_DIR/wavfx" --reverb "${FX_CHOICE%% *}" "${FILE_ARRAY[@]}" ;;
+      delay-250) exec "$SCRIPT_DIR/wavfx" --delay 250 "${FILE_ARRAY[@]}" ;;
+      lofi-800) exec "$SCRIPT_DIR/wavfx" --lowpass 800 "${FILE_ARRAY[@]}" ;;
+    esac
+    ;;
+  wavpitch)
+    SEMI_CHOICE=$(printf '%s\n' \
+      '+2 — ⬆️ Up 2 semitones (tempo preserved)' \
+      '+5 — ⬆️ Up 5 semitones (fourth up)' \
+      '-2 — ⬇️ Down 2 semitones (tempo preserved)' \
+      '-5 — ⬇️ Down 5 semitones (deep vocal)' \
+      'tape — 📼 -4 semitones Varispeed (slow tape drop)' | fzf --prompt='wavpitch shift > ' --height=40% --layout=reverse --border || true)
+    case "${SEMI_CHOICE%% *}" in
+      tape) exec "$SCRIPT_DIR/wavpitch" --varispeed -s -4 "${FILE_ARRAY[@]}" ;;
+      +2|+5|-2|-5) exec "$SCRIPT_DIR/wavpitch" -s "${SEMI_CHOICE%% *}" "${FILE_ARRAY[@]}" ;;
+    esac
+    ;;
+  wavfade)
+    FADE_CHOICE=$(printf '%s\n' \
+      'micro — ⚡ 0.1s in / 0.2s out (de-click sample boundaries)' \
+      'smooth — 🌊 0.5s in / 1.0s out (musical pad envelope)' \
+      'long — 🌅 1.5s in / 2.0s out (cinematic swell)' | fzf --prompt='wavfade envelope > ' --height=35% --layout=reverse --border || true)
+    case "${FADE_CHOICE%% *}" in
+      smooth) exec "$SCRIPT_DIR/wavfade" -i 0.5 -o 1.0 "${FILE_ARRAY[@]}" ;;
+      long) exec "$SCRIPT_DIR/wavfade" -i 1.5 -o 2.0 "${FILE_ARRAY[@]}" ;;
+      *) exec "$SCRIPT_DIR/wavfade" -i 0.1 -o 0.2 "${FILE_ARRAY[@]}" ;;
+    esac
+    ;;
+esac
+
 exec "$SCRIPT_DIR/$TOOL" "${FILE_ARRAY[@]}"

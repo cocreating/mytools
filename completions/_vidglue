@@ -1,8 +1,16 @@
-#compdef vidglue
+#compdef vidglue videoglue
 _arguments \
- '(-o --output)'{-o,--output}'[output MP4 file]:file:_files -g "*.(mp4)(-.)"' \
- '(-b --bounce)'{-b,--bounce}'[glue video forward and reversed]' \
- '(-r --reencode)'{-r,--reencode}'[re-encode streams]' \
- '(-f --force)'{-f,--force}'[overwrite output]' \
- '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
- '*:video file:_files -g "*.(mp4|mov|avi|mkv|webm)(-.)"'
+  '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
+  '(-o --output)'{-o,--output}'[output MP4 file]:file:_files -g "*.(mp4)(-.)"' \
+  '(-b --bounce)'{-b,--bounce}'[glue video forward and reversed]' \
+  '(-r --reencode)'{-r,--reencode}'[re-encode and normalize streams]' \
+  '--fit[aspect ratio fit mode when normalizing]:fit:(pad crop blur)' \
+  '--resolution[target resolution when re-encoding]:resolution:(auto 1080p 720p vertical square)' \
+  '(-t --transition --xfade)'{-t,--transition,--xfade}'[crossfade transition between clips]:transition:(fade fadeblack fadewhite dissolve wipeleft wiperight slideup slidedown circleopen pixelize radial)' \
+  '--transition-duration[transition duration in seconds]:seconds' \
+  '(--layout --grid)'{--layout,--grid}'[spatial split-screen collage layout]:layout:(hstack vstack 2x2)' \
+  '(-l --loop)'{-l,--loop}'[repeat glued sequence N times]:count' \
+  '--mute[discard audio track]' \
+  '(-f --force)'{-f,--force}'[overwrite output]' \
+  '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+  '*:video file:_files -g "*.(mp4|mov|avi|mkv|webm|m4v)(-.)"'

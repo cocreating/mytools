@@ -13,13 +13,14 @@ show_overview() {
   ytdl           Grab video/audio from web URLs via yt-dlp 🌐
 
 🎞️ VIDEO TOOLS 🎬
-  vidglue        Glue/concatenate MP4 files (fast copy, re-encode, or 🪃 --bounce)
+  vidglue        Glue, crossfade & collage MP4 files (copy, normalize, xfade, 🪃 --bounce, --layout)
   vid2webm       Convert video to modern VP9/Opus WebM 🌐
   vid2gif        Convert video clips to high-quality animated GIFs 👾
   videoWithoutAudio  Create a muted video (optionally preserve audio tracks) 🔇
   vidoptim       Re-encode videos for web, social, or archive presets 🚀
-  vidglitch      Apply glitch, CRT, VHS, 8-bit & retro visual effects ⚡
-  vidcuts        Erase random frames for cut film & jump-cut effect (shorter output) ✂️
+  vidglitch      Apply glitch, CRT, VHS, datamosh, nightvision & audio glitch FX ⚡
+  vidcuts        Cut film, BPM beat cuts, freeze-cuts & auto-silence jump-cuts ✂️
+  videoeffects   Cinematic color grading, speed/slow-mo, optics, mirror & framing FX (alias: vidfx) 🎬
 
 🎵 AUDIO TOOLS 🎧
   vid2audio      Extract crisp audio streams from video (WAV / MP3) 🔊
@@ -44,10 +45,27 @@ show_overview() {
   config         Show/edit user configuration presets (~/.config/mytools/config) 🛠️
   guide          Interactive help browser & cheat-sheets 📖
 
+🧭 STEP-BY-STEP: HOW TO USE TOOLS WITH CUSTOM COMMANDS
+  ⚠️  Two Common Gotchas:
+      1. No 'mytools' prefix needed — each tool is a standalone command (run 'img2webp -a',
+         not 'mytools img2web -a'; though 'mytools <tool> [args]' also forwards for convenience).
+      2. Watch the exact tool name — the image tool ends with a 'p': 'img2webp' (not 'img2web').
+
+  Step 1: Go to the folder with your files in Terminal
+          cd ~/Pictures/MyPhotos   (Tip: type 'cd ' and drag-and-drop a folder from Finder)
+  Step 2: Run the tool directly with custom flags
+          img2webp -a                              # all images in current folder
+          img2webp --width 1200 -q 90 -a           # resize to 1200px & 90% quality
+          img2webp -q 80 photo.jpg                 # single file
+          img2webp --width 1200 -q 90 -a -n        # preview safely first (-n / --dry-run)
+  Step 3: Or use Interactive Wizard Mode (-i) to build commands step-by-step
+          img2webp -i   |   vidglitch -i   |   vidcuts -i
+          (Walks you through every option and prints the exact custom command for next time!)
+
 💡 PRO TIPS 🚀
   • Run 'mytools' for the interactive launcher menu 🎯
   • In launcher file selection: Press [Tab] to mark multiple files, then [Enter] to confirm! 📌
-  • Run 'mytools help <tool>' (e.g., 'mytools help vidglue') for a detailed guide 📖
+  • Run 'mytools help <tool>' (e.g., 'mytools help img2webp') for a detailed guide 📖
   • Run 'mytools guide' (or 'mytools g') to interactively browse help & cheat-sheets 🔍
 EOF
 }
@@ -55,39 +73,46 @@ EOF
 show_tool_help() {
   local tool="$1"
   case "$tool" in
-    vidglue|mp4glue)
+    vidglue|videoglue|mp4glue)
       cat <<'EOF'
-🎞️ vidglue — Glue & Concatenate MP4 Video Files 🧲
+🎞️ vidglue — Glue, Crossfade & Collage MP4 Video Files 🧲
 
 Usage:
   vidglue [options] <video1> <video2...>
   vidglue --bounce [options] <video>
 
 Description:
-  Fuses multiple MP4 video files into a single seamless output file! 🎬
-  Uses lightning-fast stream copy (-c copy) by default when inputs share codecs,
-  or --reencode to normalize mixed video formats.
-  Pass -b/--bounce for instant Boomerang-style forward-and-rewind magic! 🪃
+  Fuses multiple video files into a single seamless MP4 output file! 🎬
+  Uses lightning-fast stream copy (-c copy) by default, or auto-normalizes mixed
+  resolutions/aspect ratios (--fit pad|crop|blur) and missing audio tracks.
+  Supports smooth xfade transitions (-t), spatial split-screen collages (--layout),
+  and instant Boomerang forward-and-rewind loops (--bounce / --loop)! 🪃
 
 Options:
-  -o, --output <file>  Output MP4 file path (default: <first-video>-glued.mp4) 💾
-  -b, --bounce         Play 1st video forward and 2nd reversed (or forward + reversed for 1 video) 🪃
-  -r, --reencode       Force stream re-encoding (H.264/AAC) for mixed inputs ⚙️
-  -f, --force          Overwrite existing output file ⚡
-  -n, --dry-run        Preview planned output without running FFmpeg 📝
+  -i, --interactive            Interactive guided wizard 🧙
+  -o, --output <file>          Output MP4 file path (default: <first-video>-glued.mp4) 💾
+  -b, --bounce                 Play 1st video forward and 2nd reversed (or forward + reversed for 1 video) 🪃
+  -r, --reencode               Force stream re-encoding & smart resolution/audio normalization ⚙️
+  --fit <pad|crop|blur>        How to fit mixed aspect ratios (pad, crop, or blurred background) 🖼️
+  --resolution <res>           Target resolution (auto, 1080p, 720p, vertical, square, or WxH) 📐
+  -t, --transition <type>      Crossfade transition (fade, fadeblack, fadewhite, dissolve, wipeleft, pixelize, radial...) ✨
+  --transition-duration <sec>  Transition duration in seconds (default: 0.5) ⏱️
+  --layout, --grid <mode>      Spatial collage layout: hstack (side-by-side), vstack (top/bottom), 2x2 (quad) ◫
+  -l, --loop <N>               Repeat the glued sequence N times 🔁
+  --mute                       Discard audio from the output video 🔇
+  -f, --force                  Overwrite existing output file ⚡
+  -n, --dry-run                Preview planned output without running FFmpeg 📝
 
 Examples:
-  vidglue clip1.mp4 clip2.mp4
-  vidglue -o combined.mp4 intro.mp4 main.mp4 outro.mp4
-  vidglue --bounce clip.mp4                      # 🪃 forward + reversed bounce loop
-  vidglue --bounce -o joined.mp4 part1.mp4 part2.mp4  # part1 forward, part2 reversed
-
-💡 Launcher Tip:
-  In 'mytools' interactive launcher, press [Tab] on each file to mark multiple files,
-  then press [Enter] to confirm selection! 📌
+  vidglue -i                                         # launch interactive wizard
+  vidglue clip1.mp4 clip2.mp4                        # fast stream copy
+  vidglue --bounce -l 3 clip.mp4                     # 🪃 bounce loop repeated 3x
+  vidglue --reencode --fit blur horiz.mp4 vert.mp4   # mix horizontal & vertical with blurred background
+  vidglue -t fade --transition-duration 0.8 a.mp4 b.mp4
+  vidglue --layout hstack left.mp4 right.mp4         # side-by-side split screen
 EOF
       ;;
-    img2webp)
+    img2webp|img2web)
       cat <<'EOF'
 📸 img2webp — Image to WebP Converter 🪄
 
@@ -96,6 +121,7 @@ Usage:
 
 Description:
   Converts JPEG, PNG, GIF, TIFF, HEIC to lightweight, ultra-optimized WebP images! ⚡
+  ⚠️ Note: Run 'img2webp' directly (no 'mytools' prefix needed, and note the 'p' at the end — not 'img2web').
 
 Options:
   -i, --interactive      Interactive wizard (prompts for settings & files) 🧙
@@ -112,9 +138,15 @@ Options:
   -d, --delete-original  Delete original after conversion 🗑️
   -n, --dry-run          Preview conversions without running 📝
 
+Step-by-Step How to Apply:
+  1. Move to your images folder:  cd ~/Pictures/MyPhotos
+  2. Run with custom flags:       img2webp --width 1200 -q 90 -a
+  3. Or launch guided wizard:     img2webp -i  (prints equivalent command at the end!)
+
 Examples:
   img2webp -i                             # launch interactive wizard
-  img2webp --width 1200 -q 90 -a          # convert all images in current folder
+  img2webp -a                             # convert all images in current folder
+  img2webp --width 1200 -q 90 -a          # convert all images in current folder (1200px, q90)
   img2webp -width 1200 -q 90 .            # single-dash flags supported
   img2webp photo.jpg
   img2webp -q 80 --width 1200 photo.png
@@ -193,86 +225,156 @@ Examples:
   vidoptim --preset social -o ./social *.mov
 EOF
       ;;
-    vidglitch)
+    vidglitch|videoglitch)
       cat <<'EOF'
-⚡ vidglitch — Glitch & Retro Visual Effects Generator 👾
+⚡ vidglitch — Glitch, VHS & Retro Visual/Audio Effects Generator 👾
 
 Usage:
   vidglitch [options] <video...>
 
 Description:
   Applies stylish digital and analog glitch effects directly to video files! 🎨
-  Features presets for RGB channel splitting (chromatic aberration), VHS tape decay,
-  arcade CRT scanlines, 8-bit pixelation, cyberpunk neon tearing, and signal loss.
+  Includes 11 presets, adjustable intensity, organic hardware bursts, camcorder HUD (--osd),
+  and synchronized audio bitcrushing/tape-flutter corruption (--audio-glitch).
 
 Presets:
   🌈 rgb-split    Chromatic aberration (red/blue channel shift) (default)
-  📼 vhs          Analog tape noise, color bleed, contrast boost, and vignette
+  📼 vhs          Analog tape noise, scrolling tracking bar, color bleed & vignette
   📺 crt          Retro arcade scanlines with subtle chromatic shift
   🕹️ 8bit         Pixelated block retro gaming aesthetic
   🌆 cyberpunk    Neon chromatic aberration, scanlines, and intermittent tearing
   📡 badsignal    Heavy static noise, extreme channel shifts, and data distortion
   ⚡ tear         Horizontal data glitch displacement
+  🌊 datamosh     Motion pixel smear & frame persistence ghosting trails
+  🟢 nightvision  Tactical green phosphor monochrome, high-ISO grain & scanlines
+  🟩 gameboy      4-shade retro handheld LCD green pixel matrix
+  💻 matrix       Digital green code phosphor & vertical block displacement
 
 Options:
+  -i, --interactive       Interactive guided wizard 🧙
   -p, --preset <name>     Select glitch preset (default: rgb-split) ⚙️
+  -I, --intensity <level> Strength: low, med, high, or 1-100 (default: med) 🔥
+  --burst                 Pulse glitch periodically every ~2s 💓
+  --organic-burst         Trigger glitch in erratic, organic hardware bursts ⚡
+  -A, --audio-glitch      Corrupt audio in sync with visual preset (bitcrush / tape flutter) 🔊
+  --tracking              Add scrolling VHS tracking distortion bar 📼
+  --osd                   Add retro camcorder viewfinder HUD & blinking REC indicator 🔴
   --rgb-split <px>        Shift red/blue color channels (e.g. 15) 🌈
   --scanlines             Add CRT scanline overlay 📺
   --noise <level>         Add analog video noise (1-100, e.g. 15) 📻
   --pixelate <factor>     Pixelate video into blocks (e.g. 10) 🕹️
   --tear                  Add horizontal data glitch tearing ⚡
-  --burst                 Pulse glitch intermittently instead of constant 💓
   --mute                  Discard audio track from output video 🔇
-  --from <time>           Start timestamp (e.g. 00:00:02) ✂️
-  --to <time>             End timestamp (e.g. 00:00:10) ✂️
+  --from / --to <time>    Start/end timestamps ✂️
   -o, --output-dir <d>    Write output files to directory 📂
   -f, --force             Overwrite existing output ⚡
   -n, --dry-run           Preview output without running FFmpeg 📝
 
 Examples:
+  vidglitch -i                                              # interactive guided wizard
   vidglitch clip.mp4
-  vidglitch --preset vhs recording.mov
-  vidglitch --preset cyberpunk --burst promo.mp4
-  vidglitch --rgb-split 15 --scanlines intro.mp4
-  vidglitch --preset 8bit -o ./glitched *.mp4
+  vidglitch --preset vhs --audio-glitch --osd recording.mov # VHS + tape flutter + camcorder HUD
+  vidglitch --preset cyberpunk --organic-burst promo.mp4
+  vidglitch --preset datamosh -I high dance.mp4
+  vidglitch --preset 8bit -A -o ./glitched *.mp4
 EOF
       ;;
-    vidcuts|filmcut)
+    vidcuts|videocuts|filmcut)
       cat <<'EOF'
-✂️ vidcuts — Cut Film & Random Frame Excision Generator 🎞️
+✂️ vidcuts — Cut Film, Jump-Cuts, Beat Cuts & Silence Remover 🎞️
 
 Usage:
   vidcuts [options] <video...>
 
 Description:
-  Erases a chosen percentage of random frames or micro-chunks from the timeline,
-  producing a shorter video with authentic physical cut-film and jump-cut aesthetics!
-  Audio is trimmed in lockstep to maintain synchronization across all cuts.
+  Erases a chosen percentage of random frames, rhythmic BPM beats, or silent pauses!
+  Supports shorter jump-cut timelines, constant-duration freeze-cuts (--mode freeze),
+  BPM-synced music cuts (--mode beat), and automatic vlog silence stripping (--mode silence).
 
 Options:
   -p, --percent <N>    Percentage of frames to cut out (1-90, default: 20) 🎯
-  -m, --mode <mode>    Cut style: frames, jumps, stutter (default: frames) 🎬
+  -m, --mode <mode>    Cut style (default: frames) 🎬
                        • frames:  Erase random single frames (missing celluloid)
                        • jumps:   Excise micro-chunks (~0.2s jump cuts)
                        • stutter: Rapid 2-frame skips (projector chatter)
+                       • freeze:  Drop frames & freeze-hold survivors (keeps original duration & audio!)
+                       • beat:    Cut rhythmically in sync with BPM (--bpm or aubio auto-detect)
+                       • silence: Auto-strip silent pauses (vlogger / podcast jump-cut editor)
   -i, --interactive    Interactive wizard (prompts for settings & files) 🧙
+  --bpm <N>            Target BPM for '--mode beat' 🥁
+  --threshold <dB>     Silence threshold in dB for '--mode silence' (default: -38) 🎙️
+  --keep-audio         Keep continuous original audio without cutting it 🎵
   --seed <int>         Seed for random cut pattern (reproducible cuts) 🎲
   --jitter             Add mechanical film projector gate weave/jitter 📽️
   --grain              Add analog 16mm/35mm film grain 🎞️
   --flash              Add occasional white splice tape flashes ⚡
+  --film-burn          Add warm orange/amber celluloid light-leak burn flashes 🔥
+  --scratches          Add vertical 16mm film scratches 🎞️
+  --super8             Add dark Super-8 film gate border & optical vignette 🎥
   --mute               Discard audio track from output 🔇
-  --from <time>        Start timestamp (e.g. 00:00:02) ✂️
-  --to <time>          End timestamp (e.g. 00:00:10) ✂️
+  --from / --to <time> Start/end timestamps ✂️
   -o, --output-dir <d> Write output files to directory 📂
   -f, --force          Overwrite existing output ⚡
   -n, --dry-run        Preview output without running FFmpeg 📝
 
 Examples:
-  vidcuts clip.mp4                            # 20% random frame drops
-  vidcuts -p 35 recording.mov                 # 35% shorter with jump cuts
-  vidcuts -p 25 --mode jumps action.mp4       # 25% chunk jump cuts
-  vidcuts -p 20 --jitter --grain vintage.mp4  # with gate weave & film grain
-  vidcuts -i                                  # interactive guided wizard
+  vidcuts clip.mp4                                         # 20% random frame drops
+  vidcuts -p 35 --mode jumps recording.mov                 # 35% shorter with chunk jump cuts
+  vidcuts -p 40 --mode freeze --film-burn musicvideo.mp4   # freeze-cuts keeping original song intact
+  vidcuts --mode beat --bpm 128 --flash dance.mp4          # rhythmic cuts synced to 128 BPM
+  vidcuts --mode silence interview.mp4                     # auto-remove dead air from talking head video
+  vidcuts -p 20 --jitter --grain --scratches --super8 v.mp4 # full 16mm/Super-8 damaged film look
+EOF
+      ;;
+    videoeffects|vidfx)
+      cat <<'EOF'
+🎬 videoeffects (vidfx) — Cinematic Color Grading, Speed, Optics & Spatial FX ✨
+
+Usage:
+  videoeffects [options] <video...>
+  vidfx [options] <video...>
+
+Description:
+  Modular video effects suite for color grading looks, speed/slow-motion, reverse playback,
+  optical bloom/tilt-shift, kaleidoscope mirrors, Ken Burns zoom, and cinema letterboxing!
+  Combine multiple flags in a single pass.
+
+Presets (-p, --preset):
+  🎬 cinema       Blockbuster teal & orange color grade
+  🕵️ noir         High-contrast silver-halide B&W + grain + vignette
+  🎞️ vintage      Warm 1970s faded Kodachrome film
+  ☀️ kodak        Golden-hour 35mm analog film stock
+  ✨ dream        Ethereal soft highlight bloom & pastel warmth
+  🌆 synthwave    Neon magenta/cyan split-toning
+  🌡️ thermal      Infrared false-color heat vision
+  ⚔️ bleach       Gritty desaturated bleach bypass
+  📜 sepia        Classic archival warm sepia tone
+
+Time, Optics & Framing Options:
+  -i, --interactive           Interactive guided multi-effect wizard 🧙
+  --speed <0.25..4.0>         Playback speed multiplier (e.g. 0.5 slow-mo, 2.0 fast) ⏱️
+  --smooth-slowmo             Optical-flow motion interpolation (minterpolate) 🌊
+  --reverse                   Reverse video and audio streams backward 🔄
+  --stopmotion <fps>          Claymation / anime frame-step look (e.g. 8 or 12 fps) 🧱
+  --trails <1-10>             Motion ghosting / phosphor trails ☄️
+  --vignette                  Optical lens vignette darkening 🌑
+  --bloom, --glow             Soft highlight halation glow 🌟
+  --blur <sigma>              Gaussian blur strength 🌫️
+  --tilt-shift                Miniature toy-world focus band 🏙️
+  --sharpen                   Crisp unsharp mask edge enhancement 🔪
+  --mirror <h|v|quad>         Kaleidoscope symmetry (horizontal, vertical, or 4-way quad) 🪞
+  --zoom <in|out>             Smooth Ken Burns push-in or pull-out 🔍
+  --letterbox <2.35|1.85|4:3> CinemaScope widescreen bars or 4:3 pillarbox 🖼️
+  --fade-in / --fade-out <s>  Smooth video & audio fade from/to black 🌅
+  --rotate <90|180|270>       Rotate clockwise in degrees 🔄
+  --flip <h|v>                Flip horizontally or vertically 🔃
+
+Examples:
+  videoeffects -i                                           # interactive guided wizard
+  videoeffects --preset cinema --letterbox 2.35 clip.mp4    # widescreen blockbuster look
+  videoeffects --speed 0.5 --smooth-slowmo action.mp4       # silky 2x slow-motion
+  videoeffects --mirror quad --preset synthwave dance.mp4   # 4-way neon kaleidoscope
+  vidfx --reverse --bloom --trails 6 dream.mov              # reversed ethereal motion trails
 EOF
       ;;
     vid2audio|videoWithoutAudio|wav2mp3|wav2tempo|wavreverse|wavpitch|wavnorm|wavfade|wavtrim|wavfx)
@@ -456,18 +558,40 @@ EOF
           ;;
       esac
       ;;
-    launcher-tips)
+    custom-commands|how-to-apply|launcher-tips)
       cat <<'EOF'
-💡 Launcher Tips & Multi-File Selection 🎯
+🧭 Step-by-Step: Custom Commands & Launcher Tips 🎯
 
-Multi-file Selection in fzf:
-  When you launch 'mytools' and pick a multi-file command (like 'vidglue' or 'img2webp'):
-  1. Use ↑ / ↓ arrow keys to navigate your files. 🎯
-  2. Press [Tab] to mark each file you want to include (a '>' indicator appears). 📌
-  3. Press [Enter] to confirm and execute the command! 🚀
+⚠️ Two Important Observations When Running Custom Commands:
+  1. You do NOT need 'mytools' in front of individual tool commands!
+     • 'mytools' is the interactive menu launcher.
+     • Each tool ('img2webp', 'vidglue', 'vid2webm', 'wav2mp3', etc.) is run directly by its own name.
+       (Though 'mytools <tool> [options]' also works and forwards automatically.)
+  2. Watch the exact tool name:
+     • The image converter ends with a 'p': 'img2webp' (not 'img2web').
 
-Single-file Fallback:
-  If you select 1 file for 'vidglue', it will ask if you want a cool --bounce loop! 🪃
+Step-by-Step Workflow in Terminal:
+  Step 1: Go to the folder where your files are
+          cd ~/Pictures/MyPhotos
+          (Tip: Type 'cd ' with a space, drag-and-drop your folder from Finder into Terminal, and press Enter.)
+
+  Step 2: Run the tool directly with your flags
+          img2webp -a                                # convert all images in current folder
+          img2webp --width 1200 -q 90 -a             # resize to 1200px wide at 90% quality
+          img2webp -q 80 photo.jpg                   # convert one specific file
+          img2webp -q 90 -o ./webp-output -a         # save into a separate subfolder
+          img2webp --width 1200 -q 90 -a -n          # preview safely first (-n / --dry-run)
+
+  Step 3: Easiest Way to Learn Custom Commands — Use Wizard Mode (-i)
+          img2webp -i   |   vidglitch -i   |   vidcuts -i
+          Walks you through every setting step by step and prints the exact 'Equivalent command'
+          before running so you can copy it for next time!
+
+Multi-file Selection in 'mytools' Interactive Launcher:
+  1. Run 'mytools' and pick a tool.
+  2. Use ↑ / ↓ arrow keys to navigate your files. 🎯
+  3. Press [Tab] to mark each file you want to include (a '>' indicator appears). 📌
+  4. Press [Enter] to confirm and execute! 🚀
 EOF
       ;;
     *)
@@ -490,15 +614,17 @@ interactive_guide() {
   
   local topics
   topics=$(printf '%s\n' \
-    'img2webp — 📸 Convert images to WebP' \
+    'custom-commands — 🧭 Step-by-step: How to apply tools with custom flags' \
+    'img2webp — 📸 Convert images to WebP (wizard: img2webp -i)' \
     'ytdl — 📥 Download web media' \
-    'vidglue — 🎞️ Glue & concatenate MP4 videos' \
+    'vidglue — 🎞️ Glue, crossfade & collage MP4 videos (wizard: vidglue -i)' \
+    'vidglitch — ⚡ Glitch, CRT, VHS, datamosh & retro FX (wizard: vidglitch -i)' \
+    'vidcuts — ✂️ Cut film, BPM beat cuts & silence remover (wizard: vidcuts -i)' \
+    'videoeffects — 🎬 Cinematic color grading, speed & optical FX (wizard: videoeffects -i)' \
+    'vidoptim — 🚀 Web/social/archive video optimization' \
     'vid2webm — 🌐 Convert videos to WebM' \
     'vid2gif — 👾 Create animated GIFs' \
     'videoWithoutAudio — 🔇 Remove audio (optionally preserve tracks)' \
-    'vidoptim — 🚀 Web/social/archive video optimization' \
-    'vidglitch — ⚡ Glitch, CRT, VHS & retro video FX' \
-    'vidcuts — ✂️ Erase random frames / cut film (shorter output)' \
     'vid2audio — 🔊 Extract audio from video' \
     'wav2mp3 — 🎧 Convert WAV to MP3' \
     'wav2tempo — 🥁 Retime WAV by BPM' \
@@ -516,19 +642,65 @@ interactive_guide() {
     'launcher-tips — 💡 Multi-file selection & keybindings' \
   )
 
-  local choice
-  choice=$(echo "$topics" | fzf \
-    --prompt='mytools guide > ' \
-    --header='💡 Select a tool or topic to view detailed guide & examples' \
-    --height=80% \
-    --layout=reverse \
-    --border \
-    --preview="bash \"$SOURCE_PATH\" preview {1}" \
-    --preview-window=right:60%:wrap)
-  
-  [ -n "$choice" ] || exit 0
-  local tool="${choice%% *}"
-  show_tool_help "$tool"
+  while true; do
+    local choice
+    choice=$(echo "$topics" | fzf \
+      --prompt='mytools guide > ' \
+      --header='💡 Select a tool or topic to view detailed guide & launch wizard ([Esc] exit)' \
+      --height=85% \
+      --layout=reverse \
+      --border \
+      --preview="bash \"$SOURCE_PATH\" preview {1}" \
+      --preview-window=right:60%:wrap || true)
+    
+    [ -n "$choice" ] || exit 0
+    local tool="${choice%% *}"
+    show_tool_help "$tool"
+    echo ""
+
+    if [ -t 0 ]; then
+      case "$tool" in
+        img2webp|vidglue|vidglitch|vidcuts|videoeffects)
+          local next_act
+          next_act=$(printf '%s\n' \
+            "wizard — 🧙 Launch '$tool -i' interactive wizard right now" \
+            "back — 🔙 Back to guide browser" \
+            "exit — 👋 Exit guide" | fzf --prompt="$tool > " --height=30% --layout=reverse --border || true)
+          case "${next_act%% *}" in
+            wizard) exec "$SCRIPT_DIR/$tool" -i ;;
+            back) continue ;;
+            *) exit 0 ;;
+          esac
+          ;;
+        doctor|config)
+          local next_act
+          next_act=$(printf '%s\n' \
+            "run — 🚀 Run 'mytools $tool' now" \
+            "back — 🔙 Back to guide browser" \
+            "exit — 👋 Exit guide" | fzf --prompt="$tool > " --height=30% --layout=reverse --border || true)
+          case "${next_act%% *}" in
+            run) exec "$SCRIPT_DIR/mytools-$tool" ;;
+            back) continue ;;
+            *) exit 0 ;;
+          esac
+          ;;
+        *)
+          local next_act
+          next_act=$(printf '%s\n' \
+            "back — 🔙 Back to guide browser" \
+            "launcher — 🧰 Open 'mytools' interactive launcher" \
+            "exit — 👋 Exit guide" | fzf --prompt="guide > " --height=30% --layout=reverse --border || true)
+          case "${next_act%% *}" in
+            back) continue ;;
+            launcher) exec "$SCRIPT_DIR/mytools" ;;
+            *) exit 0 ;;
+          esac
+          ;;
+      esac
+    else
+      break
+    fi
+  done
 }
 
 case "${1:-}" in

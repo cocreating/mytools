@@ -18,14 +18,15 @@ const TOOLS_DATA = [
       { flag: "help [tool]", desc: "Print categorized overview or detailed tool guide" },
       { flag: "guide", desc: "Interactive fzf help browser and cheat-sheets" },
       { flag: "doctor", desc: "Check and auto-install required Homebrew dependencies" },
-      { flag: "config", desc: "Show or initialize preset configuration in ~/.config/mytools/config" }
+      { flag: "config", desc: "Show or initialize preset configuration in ~/.config/mytools/config" },
+      { flag: "<tool> [options]", desc: "Convenience wrapper that forwards custom flags to <tool>" }
     ],
     examples: [
       { cmd: "mytools", note: "Launch interactive menu with automatic terminal height expansion" },
-      { cmd: "mytools help vidglue", note: "View dedicated documentation for vidglue" },
+      { cmd: "mytools help img2webp", note: "View dedicated documentation for img2webp" },
       { cmd: "mytools doctor --install", note: "Automatically install all missing Homebrew tools" }
     ],
-    details: "mytools serves as your primary terminal cockpit. It detects whether you have 30+ terminal rows available, expanding if necessary. Within the launcher, use arrow keys to navigate and press [Tab] to mark multiple files simultaneously before hitting [Enter]."
+    details: "mytools serves as your primary interactive terminal cockpit. Note: You do NOT need to type 'mytools' in front of individual tool commands when using custom flags—each tool (img2webp, vidglue, vid2webm, wav2mp3, etc.) is a standalone command that runs directly by its own name (though 'mytools <tool> [options]' also forwards automatically). Within the interactive launcher, use arrow keys to navigate and press [Tab] to mark multiple files simultaneously before hitting [Enter]."
   },
   {
     id: "img2webp",
@@ -34,6 +35,7 @@ const TOOLS_DATA = [
     signature: "img2webp [options] [image... or dir]",
     summary: "High-performance batch image transcoder for JPEG, PNG, GIF, TIFF, and HEIC into modern WebP.",
     flags: [
+      { flag: "-i, --interactive", desc: "Interactive setup wizard (walks through options & prints equivalent command)" },
       { flag: "-q, --quality <0-100>", desc: "Compression quality (default: 85)" },
       { flag: "-w, --width <px>", desc: "Downscale image to maximum width" },
       { flag: "-H, --height <px>", desc: "Downscale image to maximum height" },
@@ -46,12 +48,13 @@ const TOOLS_DATA = [
       { flag: "-n, --dry-run", desc: "Preview conversion count without processing" }
     ],
     examples: [
-      { cmd: "img2webp -i", note: "Interactive setup wizard" },
-      { cmd: "img2webp --width 1200 -q 85 -a", note: "Batch convert all images in folder to 1200px" },
+      { cmd: "img2webp -i", note: "Interactive setup wizard (easiest way to learn custom commands)" },
+      { cmd: "img2webp -a", note: "Batch convert all images in current folder (run directly, no 'mytools' prefix needed)" },
+      { cmd: "img2webp --width 1200 -q 90 -a", note: "Batch convert all images in folder to 1200px at 90% quality" },
       { cmd: "img2webp -R -j 4 -o ./webp ~/Pictures/Wallpapers", note: "Recursive 4-job parallel conversion" },
       { cmd: "img2webp -l artwork.png", note: "Lossless crisp PNG conversion" }
     ],
-    details: "Supports JPEG, PNG, GIF, TIFF, HEIC/HEIF, and WebP. Never overwrites existing files without `--force`. Includes single-dash compatibility for rapid terminal typing."
+    details: "Supports JPEG, PNG, GIF, TIFF, HEIC/HEIF, and WebP. Important: Run 'img2webp' directly by name (no 'mytools' prefix required, and note the 'p' at the end — 'img2webp', not 'img2web'). First 'cd' into your images folder, then run 'img2webp -a' or 'img2webp -i' for the interactive wizard. Never overwrites existing files without `--force`."
   },
   {
     id: "ytdl",
@@ -77,22 +80,26 @@ const TOOLS_DATA = [
     id: "vidglue",
     name: "vidglue",
     category: "video",
-    signature: "vidglue [options] <video1> <video2...>",
-    summary: "Fuses multiple MP4 videos into a single file with zero-reencoding stream copy, or Boomerang bounce loops.",
+    signature: "vidglue [options] <video1> [video2...]",
+    summary: "Fuses multiple videos with zero-reencoding stream copy, smart resolution/audio normalization, xfade transitions, split-screen collages, or Boomerang bounce loops.",
     flags: [
+      { flag: "-i, --interactive", desc: "Interactive guided setup wizard" },
       { flag: "-b, --bounce", desc: "Play forward then reverse (Boomerang loop effect)" },
-      { flag: "-r, --reencode", desc: "Force H.264/AAC re-encode for mismatched inputs" },
-      { flag: "-o, --output <file>", desc: "Target MP4 filename" },
-      { flag: "-f, --force", desc: "Overwrite existing output" },
-      { flag: "-n, --dry-run", desc: "Preview FFmpeg command and file list" }
+      { flag: "-r, --reencode", desc: "Auto-normalize mixed resolutions, FPS & missing audio streams" },
+      { flag: "--fit <pad|crop|blur>", desc: "Aspect ratio fit for mixed dimensions (black bars, crop, or blurred fill)" },
+      { flag: "-t, --transition <type>", desc: "Crossfade transition (fade, fadeblack, wipeleft, pixelize, radial...)" },
+      { flag: "--layout <hstack|vstack|2x2>", desc: "Spatial split-screen or 2x2 quad collage" },
+      { flag: "-l, --loop <N>", desc: "Repeat the final glued sequence N times" },
+      { flag: "-o, --output <file>", desc: "Target MP4 filename" }
     ],
     examples: [
       { cmd: "vidglue intro.mp4 main.mp4 outro.mp4", note: "Lightning stream-copy merge (-c copy)" },
-      { cmd: "vidglue --bounce video.mp4", note: "Play forward + reversed bounce loop" },
-      { cmd: "vidglue --reencode -o merged.mp4 clip1.mp4 clip2.mov", note: "Normalize mixed video formats" },
-      { cmd: "vidglue --bounce -o loop.mp4 part1.mp4 part2.mp4", note: "Part 1 forward, part 2 reversed" }
+      { cmd: "vidglue --bounce -l 3 video.mp4", note: "Forward + reversed bounce loop repeated 3x" },
+      { cmd: "vidglue --reencode --fit blur horiz.mp4 vert.mp4", note: "Mix horizontal & vertical clips with blurred background" },
+      { cmd: "vidglue -t fade --transition-duration 0.8 a.mp4 b.mp4", note: "Smooth 0.8s crossfade transition" },
+      { cmd: "vidglue --layout hstack left.mp4 right.mp4", note: "Side-by-side split-screen collage" }
     ],
-    details: "By default, vidglue inspects files and performs ultra-fast stream copy without losing a single generation of quality. When inputs differ in codec, dimensions, or framerate, pass `--reencode`."
+    details: "By default, vidglue performs ultra-fast stream copy without losing quality. When inputs differ in codec, dimensions, or audio tracks, `--reencode`, `-t`, or `--layout` automatically normalizes resolution and synthesizes silent audio for muted clips."
   },
   {
     id: "vid2webm",
@@ -176,47 +183,75 @@ const TOOLS_DATA = [
     name: "vidglitch",
     category: "video",
     signature: "vidglitch [options] <video...>",
-    summary: "Applies digital and analog visual effects: chromatic aberration, VHS noise, CRT scanlines, 8-bit, cyberpunk, and signal tearing.",
+    summary: "Applies 11 digital/analog visual & audio glitch presets: RGB split, VHS tracking, CRT, 8-bit, cyberpunk, datamosh, nightvision, gameboy & matrix.",
     flags: [
-      { flag: "-p, --preset <name>", desc: "Preset: rgb-split | vhs | crt | 8bit | cyberpunk | badsignal | tear" },
-      { flag: "--rgb-split <px>", desc: "Horizontal offset for red/blue color channels" },
-      { flag: "--scanlines", desc: "Overlay authentic CRT raster lines" },
-      { flag: "--noise <level>", desc: "Add analog noise static (1-100)" },
-      { flag: "--pixelate <factor>", desc: "Mosaic downscaling for retro pixel graphics" },
-      { flag: "--burst", desc: "Pulse the glitch intermittently (every 2s) instead of constant" },
-      { flag: "--mute", desc: "Discard audio track" },
+      { flag: "-p, --preset <name>", desc: "Preset: rgb-split | vhs | crt | 8bit | cyberpunk | badsignal | tear | datamosh | nightvision | gameboy | matrix" },
+      { flag: "-I, --intensity <level>", desc: "Effect intensity: low, med, high, or 1-100" },
+      { flag: "--organic-burst", desc: "Erratic, organic hardware fault bursts" },
+      { flag: "-A, --audio-glitch", desc: "Synchronized audio bitcrushing / tape flutter corruption" },
+      { flag: "--tracking", desc: "Add scrolling VHS tracking distortion bar" },
+      { flag: "--osd", desc: "Add retro camcorder viewfinder HUD & blinking REC indicator" },
+      { flag: "--burst", desc: "Periodic pulse every 2s" },
       { flag: "-i, --interactive", desc: "Guided preset selection wizard" }
     ],
     examples: [
       { cmd: "vidglitch clip.mp4", note: "Default RGB chromatic aberration" },
-      { cmd: "vidglitch --preset vhs recording.mov", note: "Analog tape color bleed, noise & vignette" },
-      { cmd: "vidglitch --preset cyberpunk --burst promo.mp4", note: "Pulsing neon chromatic glitch" },
-      { cmd: "vidglitch --preset 8bit -o ./glitched *.mp4", note: "Retro arcade pixelation" }
+      { cmd: "vidglitch --preset vhs --audio-glitch --osd recording.mov", note: "VHS tape + tape flutter audio + camcorder HUD" },
+      { cmd: "vidglitch --preset cyberpunk --organic-burst promo.mp4", note: "Erratic neon chromatic glitches" },
+      { cmd: "vidglitch --preset datamosh -I high dance.mp4", note: "Intense motion pixel smear & ghost trails" }
     ],
-    details: "Constructed using advanced FFmpeg filter graphs (`colorchannelmixer`, `curves`, `noise`, `scale`). Periodic burst mode activates effects periodically for a dynamic music video aesthetic."
+    details: "Constructed using advanced FFmpeg video and audio filter graphs. Combine visual presets with `--audio-glitch` for synchronized bitcrushed 8-bit audio or analog VHS tape wow-and-flutter."
   },
   {
     id: "vidcuts",
     name: "vidcuts",
     category: "video",
     signature: "vidcuts [options] <video...>",
-    summary: "Physical cut-film and random frame excision generator producing shorter, energetic jump-cut videos with in-sync audio.",
+    summary: "Physical cut-film, BPM beat cutter, freeze-cut stop-motion, and automatic vlog silence jump-cut generator.",
     flags: [
       { flag: "-p, --percent <N>", desc: "Percentage of frames to remove (1-90, default: 20)" },
-      { flag: "-m, --mode <mode>", desc: "Cut mode: frames (single frames) | jumps (~0.2s chunks) | stutter" },
-      { flag: "--jitter", desc: "Add mechanical film projector gate weave" },
-      { flag: "--grain", desc: "Add celluloid 16mm/35mm grain" },
-      { flag: "--flash", desc: "Add occasional white splice tape flashes" },
-      { flag: "--seed <int>", desc: "Seed for deterministic, reproducible cut patterns" },
+      { flag: "-m, --mode <mode>", desc: "Mode: frames | jumps | stutter | freeze (keeps duration) | beat (BPM sync) | silence (vlog auto-cut)" },
+      { flag: "--bpm <N>", desc: "Target BPM for rhythmic '--mode beat' cuts" },
+      { flag: "--film-burn", desc: "Warm orange/amber celluloid light-leak burn flashes" },
+      { flag: "--scratches", desc: "Vertical 16mm film scratches" },
+      { flag: "--super8", desc: "Dark Super-8 film gate border & vignette" },
+      { flag: "--jitter / --grain / --flash", desc: "Projector gate weave, film grain & white splice flashes" },
       { flag: "-i, --interactive", desc: "Guided excision wizard" }
     ],
     examples: [
       { cmd: "vidcuts clip.mp4", note: "20% random missing celluloid frames" },
-      { cmd: "vidcuts -p 35 recording.mov", note: "35% shorter video with authentic jump cuts" },
-      { cmd: "vidcuts -p 25 --mode jumps action.mp4", note: "Excise micro-chunks for rapid action pacing" },
-      { cmd: "vidcuts -p 20 --jitter --grain vintage.mp4", note: "Vintage film projector look with gate jitter" }
+      { cmd: "vidcuts -p 40 --mode freeze --film-burn musicvideo.mp4", note: "Freeze-cuts keeping original duration & song intact" },
+      { cmd: "vidcuts --mode beat --bpm 128 --flash dance.mp4", note: "Rhythmic cuts synced to 128 BPM" },
+      { cmd: "vidcuts --mode silence interview.mp4", note: "Automatically strip silent dead-air pauses" }
     ],
-    details: "Unlike blind cutters, vidcuts calculates frame timestamps and trims audio in perfect lockstep, avoiding audio-video drift across hundreds of micro-edits."
+    details: "Supports both timeline-shortening jump cuts (with audio trimmed in lockstep) and constant-duration `--mode freeze` cuts that hold frames so background music stays 100% continuous."
+  },
+  {
+    id: "videoeffects",
+    name: "videoeffects",
+    category: "video",
+    signature: "videoeffects [options] <video...>  (alias: vidfx)",
+    summary: "Modular cinematic color grading, speed/slow-mo, reverse playback, optical bloom, tilt-shift, kaleidoscope mirrors & CinemaScope framing.",
+    flags: [
+      { flag: "-p, --preset <name>", desc: "Look: cinema | noir | vintage | kodak | dream | synthwave | thermal | bleach | sepia" },
+      { flag: "--speed <0.25..4.0>", desc: "Playback speed multiplier with synced audio tempo" },
+      { flag: "--smooth-slowmo", desc: "Optical-flow motion interpolation (minterpolate)" },
+      { flag: "--reverse", desc: "Reverse video and audio streams backward in time" },
+      { flag: "--stopmotion <fps>", desc: "Claymation / anime frame-step look (e.g. 8 or 12 fps)" },
+      { flag: "--trails <1-10>", desc: "Motion ghosting / phosphor persistence trails" },
+      { flag: "--bloom / --vignette / --tilt-shift", desc: "Soft highlight glow, optical vignette & miniature focus band" },
+      { flag: "--mirror <h|v|quad>", desc: "Bilateral symmetry or 4-way kaleidoscope mirror" },
+      { flag: "--zoom <in|out>", desc: "Smooth Ken Burns push-in or pull-out" },
+      { flag: "--letterbox <2.35|1.85|4:3>", desc: "CinemaScope widescreen bars or 4:3 pillarbox" },
+      { flag: "--fade-in / --fade-out <sec>", desc: "Smooth video & audio fade from/to black" }
+    ],
+    examples: [
+      { cmd: "videoeffects --preset cinema --letterbox 2.35 clip.mp4", note: "Widescreen blockbuster teal & orange look" },
+      { cmd: "videoeffects --speed 0.5 --smooth-slowmo action.mp4", note: "Silky 2x optical-flow slow motion" },
+      { cmd: "videoeffects --mirror quad --preset synthwave dance.mp4", note: "4-way neon kaleidoscope" },
+      { cmd: "vidfx --reverse --bloom --trails 6 dream.mov", note: "Reversed ethereal motion trails" }
+    ],
+    details: "The video counterpart to wavfx. Chain color presets, temporal speed ramps, lens optics, symmetry mirrors, and widescreen letterboxing in a single FFmpeg filtergraph."
   },
   {
     id: "vid2audio",
@@ -523,14 +558,14 @@ class TerminalSimulator {
     });
 
     // Initial greeting
-    this.appendLine("mytools v2.4 (macOS terminal toolbox)", "color: var(--text-muted);");
-    this.appendLine("Type 'help' or 'mytools' to launch the menu. Click any chip below for quick demo.", "color: var(--color-terminal-green);");
+    this.appendLine("mytools v2.5 (macOS terminal toolbox — 27 tools)", "color: var(--text-muted);");
+    this.appendLine("Type 'help', 'mytools', or 'videoeffects -i' to test. Click any chip below for quick demo.", "color: var(--color-terminal-green);");
   }
 
   autocomplete() {
     const val = this.input.value.trim();
     if (!val) return;
-    const candidates = TOOLS_DATA.map(t => t.name).concat(["help", "clear", "doctor", "config", "guide"]);
+    const candidates = TOOLS_DATA.map(t => t.name).concat(["vidfx", "videoglue", "videoglitch", "videocuts", "help", "clear", "doctor", "config", "guide"]);
     const match = candidates.find(c => c.startsWith(val));
     if (match) {
       this.input.value = match;
@@ -561,14 +596,15 @@ class TerminalSimulator {
 
     if (cmdText === "help") {
       this.appendLine(`Available commands:
-  mytools         - Interactive fzf media launcher
+  mytools         - Interactive fzf media launcher with live preview
   mytools doctor  - Dependency diagnostic health check
-  mytools guide   - Interactive help browser
+  mytools guide   - Interactive help browser & wizard launcher
   mytools config  - View/edit presets (~/.config/mytools/config)
-  img2webp        - Batch image to WebP converter
-  vidglue         - Concatenate MP4s or --bounce loop
-  vidglitch       - Analog/digital glitch FX
-  vidcuts         - Frame excision & cut film generator
+  img2webp        - Batch image to WebP converter (supports -i wizard)
+  vidglue         - Glue, crossfade (-t), collage (--layout) or --bounce (alias: videoglue)
+  vidglitch       - 11 analog/digital visual & audio glitch presets (alias: videoglitch)
+  vidcuts         - Frame, BPM beat, freeze & silence jump-cut generator (alias: videocuts)
+  videoeffects    - Cinematic color grading, speed, optics & mirrors (alias: vidfx)
   wav2tempo       - Aubio BPM retiming
   wavnorm         - EBU R128 LUFS volume normalizer
   wavpitch        - Pitch shifter & varispeed tape drop
@@ -593,12 +629,13 @@ class TerminalSimulator {
     }
 
     if (cmdText === "mytools" || cmdText === "mytools guide") {
-      this.appendLine(`🧰 MYTOOLS LAUNCHER (fzf simulated)
+      this.appendLine(`🧰 MYTOOLS LAUNCHER (fzf simulated + live right-hand preview)
 ────────────────────────────────────────────────────────
- > img2webp          📸 Image to WebP batch transcoder
-   vidglue           🎞️ Glue MP4 videos or --bounce loop
-   vidglitch         ⚡ Glitch & retro visual FX
-   vidcuts           ✂️ Erase random frames / cut film
+ > videoeffects      🎬 Cinematic color grading, speed & optical FX (vidfx)
+   vidglue           🎞️ Glue, crossfade & collage MP4 videos (videoglue)
+   vidglitch         ⚡ Glitch, VHS & retro visual/audio FX (videoglitch)
+   vidcuts           ✂️ Cut film, BPM beat cuts & silence remover (videocuts)
+   img2webp          📸 Image to WebP batch transcoder
    vid2webm          🌐 Video to VP9 WebM
    vid2gif           👾 Video to palette-optimized GIF
    vid2audio         🔊 Extract audio to WAV / MP3
@@ -612,7 +649,7 @@ class TerminalSimulator {
    media-info        🕵️ FFprobe metadata inspector
    thumloc           🖼️ Finder .webloc thumbnails
 ────────────────────────────────────────────────────────
-💡 Pro Tip: In interactive mode, press [Tab] to mark multiple files!`, "color: var(--text-accent);");
+💡 Pro Tip: Press [Tab] to mark multiple files with live ffprobe preview!`, "color: var(--text-accent);");
       return;
     }
 
@@ -630,27 +667,64 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
       return;
     }
 
-    if (cmdText.startsWith("vidglitch")) {
-      this.appendLine(`⚡ [vidglitch] Analyzing video stream...
-  - Input: video.mp4 (1920x1080 @ 60fps)
-  - Applying filter chain: colorchannelmixer + rgb-split + scanlines
+    // Handle 'mytools <tool> ...' or 'img2web' typo with helpful hints
+    let effectiveCmd = cmdText;
+    if (main === "mytools" && sub && sub !== "help" && sub !== "config") {
+      const rest = parts.slice(1).join(" ");
+      if (sub === "img2web") {
+        const fixedRest = ["img2webp", ...parts.slice(2)].join(" ");
+        this.appendLine(`💡 Note: The image tool ends with a 'p' ('img2webp'), and each tool runs directly without 'mytools' in front: ${fixedRest}`, "color: var(--color-bauhaus-yellow);");
+        effectiveCmd = fixedRest;
+      } else {
+        this.appendLine(`💡 Tip: Each tool is a standalone command — you can run '${rest}' directly without 'mytools' in front!`, "color: var(--color-bauhaus-yellow);");
+        effectiveCmd = rest;
+      }
+    } else if (main === "img2web") {
+      effectiveCmd = ["img2webp", ...parts.slice(1)].join(" ");
+      this.appendLine(`💡 Note: The image tool ends with a 'p' — running '${effectiveCmd}'`, "color: var(--color-bauhaus-yellow);");
+    }
+
+    if ( effectiveCmd.startsWith("videoeffects") || effectiveCmd.startsWith("vidfx") ) {
+      this.appendLine(`🎬 [videoeffects] Building cinematic filtergraph...
+  - Input: clip.mp4 (1920x1080 @ 30fps)
+  - Active pipeline: preset=cinema + letterbox=2.35 + bloom
   - Progress: [====================] 100%
-  ✅ Output saved: video-glitched.mp4 (18.4 MB)
+  ✅ Output saved: clip-cinema.mp4
+  ✨ Cinematic grade and optics applied!`, "color: var(--color-bauhaus-yellow);");
+      return;
+    }
+
+    if (effectiveCmd.startsWith("vidcuts") || effectiveCmd.startsWith("videocuts")) {
+      this.appendLine(`✂️ [vidcuts] Processing timeline cuts...
+  - Input: clip.mp4 (1920x1080 @ 30fps, stereo audio)
+  - Mode: freeze-hold + film-burn + Super-8 gate
+  - Progress: [====================] 100%
+  ✅ Output saved: clip-freezecut20.mp4
+  🎞️ Celluloid cut-film aesthetic complete!`, "color: var(--color-bauhaus-red);");
+      return;
+    }
+
+    if (effectiveCmd.startsWith("vidglitch") || effectiveCmd.startsWith("videoglitch")) {
+      this.appendLine(`⚡ [vidglitch] Analyzing video & audio streams...
+  - Input: demo.mp4 (1920x1080 @ 60fps)
+  - Active preset: cyberpunk (organic-burst + rgbashift + shufflepixels)
+  - Progress: [====================] 100%
+  ✅ Output saved: demo-cyberpunk.mp4 (18.4 MB)
   🎉 Glitch effects applied seamlessly!`, "color: var(--color-terminal-magenta);");
       return;
     }
 
-    if (cmdText.startsWith("vidglue")) {
-      this.appendLine(`🎞️ [vidglue] Concatenating media streams...
-  - Mode: Stream copy (-c copy, lossless)
-  - Concatenating 2 clips into combined.mp4
-  - Progress: [====================] 100% (0.42s)
-  ✅ Output saved: combined.mp4
-  🚀 Finished in 420ms without quality loss!`, "color: var(--color-terminal-cyan);");
+    if (effectiveCmd.startsWith("vidglue") || effectiveCmd.startsWith("videoglue")) {
+      this.appendLine(`🎞️ [vidglue] Fusing media streams...
+  - Mode: Crossfade transition (fade, 0.5s, auto-normalized 1080p)
+  - Merging part1.mp4 + part2.mp4 → part1-xfade.mp4
+  - Progress: [====================] 100%
+  ✅ Output saved: part1-xfade.mp4
+  🚀 Seamless transition complete!`, "color: var(--color-terminal-cyan);");
       return;
     }
 
-    if (cmdText.startsWith("img2webp")) {
+    if (effectiveCmd.startsWith("img2webp")) {
       this.appendLine(`📸 [img2webp] Processing batch conversion...
   - Input: photo.jpg (4.2 MB, JPEG 4032x3024)
   - Options: quality=85 width=1200
@@ -660,7 +734,7 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
       return;
     }
 
-    if (cmdText.startsWith("wav2tempo")) {
+    if (effectiveCmd.startsWith("wav2tempo")) {
       this.appendLine(`🥁 [wav2tempo] Running aubio tempo detector...
   - Estimated source tempo: 112.4 BPM
   - Target requested tempo: 128.0 BPM
@@ -671,7 +745,7 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
       return;
     }
 
-    if (cmdText.startsWith("wavnorm")) {
+    if (effectiveCmd.startsWith("wavnorm")) {
       this.appendLine(`🎚️ [wavnorm] Analyzing integrated loudness...
   - Measured: -21.4 LUFS (LRA 8.2 LU)
   - Target: -14.0 LUFS (EBU R128)
@@ -681,7 +755,7 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
       return;
     }
 
-    if (cmdText.startsWith("wavpitch")) {
+    if (effectiveCmd.startsWith("wavpitch")) {
       this.appendLine(`🎼 [wavpitch] Applying semitone shift...
   - Shift: +2 semitones
   - Mode: Pitch-shift (tempo preserved)
@@ -689,7 +763,7 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
       return;
     }
 
-    if (cmdText.startsWith("wavfade")) {
+    if (effectiveCmd.startsWith("wavfade")) {
       this.appendLine(`📈 [wavfade] Applying fade envelopes...
   - Fade-in: 0.10s (qsin curve)
   - Fade-out: 0.20s (qsin curve)
@@ -698,7 +772,7 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
       return;
     }
 
-    if (cmdText.startsWith("wavtrim")) {
+    if (effectiveCmd.startsWith("wavtrim")) {
       this.appendLine(`✂️ [wavtrim] Scanning for silence...
   - Threshold: -50dB
   - Trimmed leading: 0.45s
@@ -707,7 +781,7 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
       return;
     }
 
-    if (cmdText.startsWith("ytdl")) {
+    if (effectiveCmd.startsWith("ytdl")) {
       this.appendLine(`📥 [ytdl] Inspecting clipboard URL...
   - Found: https://example.com/stream
   - Fetching bestvideo+bestaudio...
@@ -717,13 +791,14 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
     }
 
     // Fallback response for other tools
-    const matchTool = TOOLS_DATA.find(t => t.id === main || t.name === main);
+    const effectiveMain = effectiveCmd.split(/\s+/)[0];
+    const matchTool = TOOLS_DATA.find(t => t.id === effectiveMain || t.name === effectiveMain);
     if (matchTool) {
       this.appendLine(`⚙️ [${matchTool.name}] ${matchTool.summary}
 Usage: ${matchTool.signature}
 Run '${matchTool.name} --help' or check the documentation below for options.`, "color: var(--text-code);");
     } else {
-      this.appendLine(`❓ Unknown command: ${main}. Type 'help' to see all available tools.`, "color: var(--color-bauhaus-red);");
+      this.appendLine(`❓ Unknown command: ${effectiveMain}. Type 'help' to see all available tools.`, "color: var(--color-bauhaus-red);");
     }
   }
 }
@@ -756,7 +831,7 @@ class CommandStudio {
   }
 
   renderToolSelector() {
-    const featured = ["img2webp", "vidglue", "vidglitch", "vidcuts", "vidoptim", "wav2tempo", "wavpitch", "wavnorm", "wavfade", "wavtrim", "wavfx", "ytdl"];
+    const featured = ["img2webp", "vidglue", "vidglitch", "vidcuts", "videoeffects", "vidoptim", "wav2tempo", "wavpitch", "wavnorm", "wavfade", "wavtrim", "wavfx", "ytdl"];
     this.selectContainer.innerHTML = "";
 
     featured.forEach(id => {
@@ -825,21 +900,27 @@ class CommandStudio {
           <select class="control-select" id="c_mode">
             <option value="concat">Concatenate Files (Fast copy)</option>
             <option value="bounce">Bounce Loop (--bounce)</option>
-            <option value="reencode">Re-encode Mixed (--reencode)</option>
+            <option value="reencode">Smart Normalize (--reencode)</option>
+            <option value="xfade">Crossfade Transition (-t fade)</option>
+            <option value="hstack">Side-by-Side Split (--layout hstack)</option>
+            <option value="2x2">Quad 2x2 Grid (--layout 2x2)</option>
           </select>
         </div>
         <div class="control-group">
-          <label class="control-label">Output Filename:</label>
-          <input type="text" class="control-input" id="c_output" value="merged.mp4">
+          <label class="control-label">Aspect Fit (when re-encoding):</label>
+          <select class="control-select" id="c_fit">
+            <option value="pad">Black Bars (pad)</option>
+            <option value="crop">Center Fill (crop)</option>
+            <option value="blur">Blurred Background (blur)</option>
+          </select>
         </div>
         <div class="control-group">
           <label class="control-label">Input Files:</label>
           <input type="text" class="control-input" id="c_input" value="part1.mp4 part2.mp4">
         </div>
-        <div class="control-group" style="justify-content: center;">
-          <label class="control-checkbox-label">
-            <input type="checkbox" id="c_force"> Force overwrite (-f)
-          </label>
+        <div class="control-group">
+          <label class="control-label">Loop Count (-l):</label>
+          <input type="number" class="control-input" id="c_loop" min="1" max="10" value="1">
         </div>
       `;
     } else if (tool.id === "vidglitch") {
@@ -848,12 +929,24 @@ class CommandStudio {
           <label class="control-label">Preset:</label>
           <select class="control-select" id="c_preset">
             <option value="rgb-split">RGB Split (Chromatic Aberration)</option>
-            <option value="vhs">VHS Analog Tape Noise</option>
+            <option value="vhs">VHS Analog Tape + Tracking</option>
             <option value="crt">Arcade CRT Scanlines</option>
             <option value="8bit">8-bit Pixelated Retro</option>
             <option value="cyberpunk">Cyberpunk Neon Tearing</option>
             <option value="badsignal">Bad Signal Heavy Noise</option>
             <option value="tear">Data Glitch Tear</option>
+            <option value="datamosh">Datamosh Motion Trails</option>
+            <option value="nightvision">Tactical Nightvision</option>
+            <option value="gameboy">GameBoy 4-Shade LCD</option>
+            <option value="matrix">Matrix Code Phosphor</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Intensity:</label>
+          <select class="control-select" id="c_intensity">
+            <option value="med">Medium (Default)</option>
+            <option value="low">Low (Subtle)</option>
+            <option value="high">High (Extreme)</option>
           </select>
         </div>
         <div class="control-group">
@@ -862,15 +955,13 @@ class CommandStudio {
         </div>
         <div class="control-group" style="justify-content: center;">
           <label class="control-checkbox-label">
-            <input type="checkbox" id="c_burst" checked> Pulse Glitch (--burst)
+            <input type="checkbox" id="c_organic_burst" checked> Organic Burst (--organic-burst)
           </label>
           <label class="control-checkbox-label" style="margin-top: 8px;">
-            <input type="checkbox" id="c_scanlines"> Add Scanlines
+            <input type="checkbox" id="c_audio_glitch"> Audio Glitch (--audio-glitch)
           </label>
-        </div>
-        <div class="control-group" style="justify-content: center;">
-          <label class="control-checkbox-label">
-            <input type="checkbox" id="c_mute"> Mute Audio (--mute)
+          <label class="control-checkbox-label" style="margin-top: 8px;">
+            <input type="checkbox" id="c_osd"> Camcorder HUD (--osd)
           </label>
         </div>
       `;
@@ -881,11 +972,14 @@ class CommandStudio {
           <input type="range" class="control-input" id="c_pct" min="5" max="80" value="25">
         </div>
         <div class="control-group">
-          <label class="control-label">Excise Mode:</label>
+          <label class="control-label">Cut Mode:</label>
           <select class="control-select" id="c_cut_mode">
             <option value="frames">Single Random Frames (Celluloid drops)</option>
             <option value="jumps">Micro-Chunks (~0.2s jump cuts)</option>
             <option value="stutter">Rapid Stutter Skips</option>
+            <option value="freeze">Freeze-Hold (Keeps duration & audio!)</option>
+            <option value="beat">BPM Rhythmic Cuts (--mode beat)</option>
+            <option value="silence">Auto Strip Silence (--mode silence)</option>
           </select>
         </div>
         <div class="control-group">
@@ -894,11 +988,53 @@ class CommandStudio {
         </div>
         <div class="control-group" style="justify-content: center;">
           <label class="control-checkbox-label">
-            <input type="checkbox" id="c_jitter" checked> Projector Gate Jitter
+            <input type="checkbox" id="c_jitter" checked> Gate Jitter (--jitter)
           </label>
           <label class="control-checkbox-label" style="margin-top: 8px;">
-            <input type="checkbox" id="c_grain" checked> Film Grain
+            <input type="checkbox" id="c_burn"> Film Burn (--film-burn)
           </label>
+          <label class="control-checkbox-label" style="margin-top: 8px;">
+            <input type="checkbox" id="c_super8"> Super-8 Gate (--super8)
+          </label>
+        </div>
+      `;
+    } else if (tool.id === "videoeffects") {
+      html += `
+        <div class="control-group">
+          <label class="control-label">Color Look Preset:</label>
+          <select class="control-select" id="c_fx_preset">
+            <option value="cinema">Cinema (Teal & Orange)</option>
+            <option value="noir">Film Noir (High-Contrast B&W)</option>
+            <option value="vintage">Vintage 1970s Kodachrome</option>
+            <option value="kodak">Kodak Golden 35mm</option>
+            <option value="dream">Dreamy Highlight Bloom</option>
+            <option value="synthwave">Synthwave Neon Split</option>
+            <option value="thermal">Thermal Infrared Vision</option>
+            <option value="bleach">Gritty Bleach Bypass</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Speed / Motion:</label>
+          <select class="control-select" id="c_fx_speed">
+            <option value="">1.0x Normal Speed</option>
+            <option value="0.5">0.5x Slow Motion</option>
+            <option value="2.0">2.0x Fast Forward</option>
+            <option value="reverse">Reverse Playback (--reverse)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Mirror / Framing:</label>
+          <select class="control-select" id="c_fx_extra">
+            <option value="letterbox">2.35:1 CinemaScope Bars</option>
+            <option value="mirror-quad">4-Way Kaleidoscope (--mirror quad)</option>
+            <option value="tilt-shift">Miniature Tilt-Shift (--tilt-shift)</option>
+            <option value="zoom-in">Ken Burns Push-In (--zoom in)</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Video Input:</label>
+          <input type="text" class="control-input" id="c_input" value="cinema.mp4">
         </div>
       `;
     } else if (tool.id === "wav2tempo") {
@@ -1079,26 +1215,30 @@ class CommandStudio {
       if (!all && inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "vidglue") {
       const mode = document.getElementById("c_mode")?.value;
-      const out = document.getElementById("c_output")?.value;
-      const force = document.getElementById("c_force")?.checked;
+      const fit = document.getElementById("c_fit")?.value;
+      const loop = document.getElementById("c_loop")?.value;
       const inp = document.getElementById("c_input")?.value || "part1.mp4 part2.mp4";
 
       if (mode === "bounce") cmd += " --bounce";
       if (mode === "reencode") cmd += " --reencode";
-      if (out) cmd += ` -o ${out}`;
-      if (force) cmd += " -f";
+      if (mode === "xfade") cmd += " -t fade";
+      if (mode === "hstack" || mode === "2x2") cmd += ` --layout ${mode}`;
+      if (fit && fit !== "pad" && mode !== "concat") cmd += ` --fit ${fit}`;
+      if (loop && parseInt(loop, 10) > 1) cmd += ` -l ${loop}`;
       if (inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "vidglitch") {
       const preset = document.getElementById("c_preset")?.value || "rgb-split";
-      const burst = document.getElementById("c_burst")?.checked;
-      const scanlines = document.getElementById("c_scanlines")?.checked;
-      const mute = document.getElementById("c_mute")?.checked;
+      const intensity = document.getElementById("c_intensity")?.value || "med";
+      const orgBurst = document.getElementById("c_organic_burst")?.checked;
+      const audioGlitch = document.getElementById("c_audio_glitch")?.checked;
+      const osd = document.getElementById("c_osd")?.checked;
       const inp = document.getElementById("c_input")?.value || "promo.mp4";
 
       cmd += ` --preset ${preset}`;
-      if (burst) cmd += " --burst";
-      if (scanlines) cmd += " --scanlines";
-      if (mute) cmd += " --mute";
+      if (intensity !== "med") cmd += ` -I ${intensity}`;
+      if (orgBurst) cmd += " --organic-burst";
+      if (audioGlitch) cmd += " --audio-glitch";
+      if (osd) cmd += " --osd";
       if (inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "vidcuts") {
       const pct = document.getElementById("c_pct")?.value || "25";
@@ -1107,13 +1247,29 @@ class CommandStudio {
 
       const mode = document.getElementById("c_cut_mode")?.value;
       const jitter = document.getElementById("c_jitter")?.checked;
-      const grain = document.getElementById("c_grain")?.checked;
+      const burn = document.getElementById("c_burn")?.checked;
+      const super8 = document.getElementById("c_super8")?.checked;
       const inp = document.getElementById("c_input")?.value || "action.mp4";
 
-      cmd += ` -p ${pct}`;
+      if (mode !== "silence") cmd += ` -p ${pct}`;
       if (mode && mode !== "frames") cmd += ` --mode ${mode}`;
       if (jitter) cmd += " --jitter";
-      if (grain) cmd += " --grain";
+      if (burn) cmd += " --film-burn";
+      if (super8) cmd += " --super8";
+      if (inp) cmd += ` ${inp}`;
+    } else if (this.currentTool === "videoeffects") {
+      const preset = document.getElementById("c_fx_preset")?.value || "cinema";
+      const speed = document.getElementById("c_fx_speed")?.value || "";
+      const extra = document.getElementById("c_fx_extra")?.value || "";
+      const inp = document.getElementById("c_input")?.value || "cinema.mp4";
+
+      if (preset) cmd += ` --preset ${preset}`;
+      if (speed === "reverse") cmd += " --reverse";
+      else if (speed) cmd += ` --speed ${speed}`;
+      if (extra === "letterbox") cmd += " --letterbox 2.35";
+      else if (extra === "mirror-quad") cmd += " --mirror quad";
+      else if (extra === "tilt-shift") cmd += " --tilt-shift";
+      else if (extra === "zoom-in") cmd += " --zoom in";
       if (inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "wav2tempo") {
       const tbpm = document.getElementById("c_target_bpm")?.value;

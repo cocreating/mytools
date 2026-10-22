@@ -974,6 +974,71 @@ body {
   border-color: var(--color-terminal-green);
 }
 
+/* Step-by-Step How to Apply Custom Commands Panel */
+.howto-apply-panel {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px dashed var(--border-bold);
+}
+
+.howto-gotcha-banner {
+  background: var(--bg-surface-elevated);
+  border: 2px solid var(--color-bauhaus-yellow);
+  border-left: 6px solid var(--color-bauhaus-yellow);
+  border-radius: var(--radius-sm);
+  padding: 1.15rem 1.35rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+@media (max-width: 700px) {
+  .howto-gotcha-banner {
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+}
+
+.gotcha-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--color-bauhaus-yellow);
+  color: #090b0e;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+.gotcha-content {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.gotcha-content strong {
+  color: var(--text-primary);
+}
+
+.gotcha-content code {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-code);
+  background: var(--bg-canvas);
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid var(--border-subtle);
+}
+
+.gotcha-list {
+  margin: 0.45rem 0 0 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 /* ==========================================================================
    Interactive Visual Labs (Glitch Canvas & Audio Waveform)
    ========================================================================== */
@@ -1088,6 +1153,31 @@ body {
 .preset-tear {
   clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%, 0 45%, 100% 45%, 100% 100%, 0 100%);
   transform: skewX(-4deg);
+}
+
+.preset-datamosh {
+  text-shadow: -8px 0 2px rgba(255, 0, 128, 0.7), 8px 0 4px rgba(0, 255, 255, 0.7), 0 4px 8px rgba(255, 255, 0, 0.5);
+  filter: contrast(135%) saturate(160%);
+  transform: skewX(6deg) scaleX(1.03);
+}
+
+.preset-nightvision {
+  color: #22ff66 !important;
+  text-shadow: 0 0 12px rgba(34, 255, 102, 0.9), 0 0 24px rgba(34, 255, 102, 0.4);
+  filter: contrast(130%) brightness(115%);
+}
+
+.preset-gameboy {
+  color: #9bbc0f !important;
+  text-shadow: 3px 3px 0 #306230;
+  letter-spacing: 0.22em;
+  font-family: var(--font-mono) !important;
+}
+
+.preset-matrix {
+  color: #00ff41 !important;
+  text-shadow: 0 -6px 4px rgba(0, 255, 65, 0.65), 0 6px 4px rgba(0, 143, 17, 0.8);
+  letter-spacing: 0.14em;
 }
 
 .crt-scanlines-overlay {

@@ -1,12 +1,18 @@
-#compdef vidcuts
+#compdef vidcuts videocuts
 _arguments \
   '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
   '(-p --percent --cut)'{-p,--percent,--cut}'[percentage of frames to erase (1-90)]:percentage' \
-  '(-m --mode)'{-m,--mode}'[cut mode]:mode:(frames jumps stutter)' \
+  '(-m --mode)'{-m,--mode}'[cut mode]:mode:(frames jumps stutter freeze beat silence)' \
+  '--bpm[target BPM for beat mode]:bpm' \
+  '--threshold[silence threshold in dB for silence mode]:db' \
   '--seed[seed for random cut pattern]:integer' \
+  '--keep-audio[keep continuous original audio using freeze-cut timing]' \
   '--jitter[add mechanical film projector gate weave/jitter]' \
   '--grain[add analog film grain]' \
   '--flash[add occasional white splice tape flashes]' \
+  '--film-burn[add warm orange/amber celluloid light-leak burn flashes]' \
+  '--scratches[add vertical 16mm film scratches]' \
+  '--super8[add dark Super-8 film gate border and vignette]' \
   '--mute[discard audio track]' \
   '--from[trim start time]:time' \
   '--to[trim end time]:time' \

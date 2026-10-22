@@ -7,44 +7,264 @@ FORCE=0
 DRY_RUN=0
 REENCODE=0
 BOUNCE=0
+INTERACTIVE=0
+FIT="pad"
+RESOLUTION="auto"
+TRANSITION=""
+TRANSITION_DUR="0.5"
+LAYOUT=""
+LOOP=1
+MUTE=0
 FILES=()
 
-usage() { cat <<EOF
+usage() { cat <<'EOF'
 Usage: vidglue [options] <video1> [video2...]
-Glue (concatenate) MP4 video files into a single MP4.
+Glue (concatenate or collage) video files into a single MP4.
 
 Options:
-  -o, --output <file>  Output MP4 file path (default: <first-video>-glued.mp4)
-  -b, --bounce         Play 1st video forward and 2nd reversed (or forward + reversed for 1 video)
-  -r, --reencode       Re-encode streams (useful if inputs have different codecs/resolutions)
-  -f, --force          Overwrite existing output file
-  -n, --dry-run        Show planned operation without running FFmpeg
-  -h, --help           Show this help message
+  -i, --interactive               Interactive guided wizard 🧙
+  -o, --output <file>             Output MP4 file path (default: <first-video>-glued.mp4)
+  -b, --bounce                    Play 1st video forward and 2nd reversed (or forward + reversed for 1 video)
+  -r, --reencode                  Re-encode & normalize streams (auto-matches resolution, FPS & audio)
+  --fit <pad|crop|blur>           Aspect ratio fit when normalizing mixed dimensions (default: pad)
+                                  • pad:  Letterbox/pillarbox with black bars
+                                  • crop: Center-crop to fill target frame
+                                  • blur: Fill background with blurred copy of clip
+  --resolution <res>              Target resolution when re-encoding (auto, 1080p, 720p, vertical, or WxH)
+  -t, --transition <type>         Smooth crossfade transition between clips (auto-enables --reencode)
+                                  Available: fade, fadeblack, fadewhite, dissolve, wipeleft, wiperight,
+                                             slideup, slidedown, circleopen, pixelize, radial
+  --transition-duration <sec>     Transition duration in seconds (default: 0.5)
+  --layout, --grid <mode>         Spatial split-screen collage instead of sequential glue:
+                                  • hstack: Side-by-side horizontal split
+                                  • vstack: Top-and-bottom vertical split
+                                  • 2x2:    Quad 2x2 grid collage
+  -l, --loop <N>                  Repeat the final glued sequence N times (default: 1)
+  --mute                          Discard audio from the output video
+  -f, --force                     Overwrite existing output file
+  -n, --dry-run                   Show planned operation without running FFmpeg
+  -h, --help                      Show this help message
+
+Examples:
+  vidglue -i                                         # interactive guided wizard
+  vidglue part1.mp4 part2.mp4                        # fast lossless stream copy
+  vidglue --bounce clip.mp4                          # forward + reversed boomerang loop
+  vidglue --reencode --fit blur horiz.mp4 vert.mp4   # mix horizontal & vertical with blurred fill
+  vidglue -t fade --transition-duration 0.8 a.mp4 b.mp4
+  vidglue --layout hstack left.mp4 right.mp4         # side-by-side split screen
+  vidglue --bounce -l 3 short.mp4                    # bounce loop repeated 3x
 EOF
+}
+
+interactive_wizard() {
+  echo "🎞️ Welcome to the vidglue interactive wizard!"
+  echo "────────────────────────────────────────────"
+
+  # Step 1: Input files with live ffprobe preview
+  wizard_select_files "vidglue" '\.(mp4|mov|avi|mkv|webm|m4v)$' "💡 [Tab] mark files (1 file = bounce/loop, 2+ = glue/xfade/collage) • [Enter] confirm"
+
+  # Step 2: Glue Mode
+  if [ "${#FILES[@]}" -eq 1 ]; then
+    if command -v fzf &>/dev/null; then
+      local single_choice
+      single_choice=$(printf '%s\n' \
+        'bounce — 🪃 Forward + Reversed boomerang loop (default)' \
+        'hstack-bounce — ◫ Side-by-side split screen (Forward left, Reversed right)' \
+        'loop-only — 🔁 Repeat forward clip N times (--loop)' | fzf --prompt="1 file selected — choose mode > " --height=35% --layout=reverse --border || true)
+      case "${single_choice%% *}" in
+        hstack-bounce) BOUNCE=1; LAYOUT="hstack"; REENCODE=1 ;;
+        loop-only) BOUNCE=0; LOOP=3 ;;
+        *) BOUNCE=1; REENCODE=1 ;;
+      esac
+    else
+      BOUNCE=1
+      REENCODE=1
+    fi
+  else
+    if command -v fzf &>/dev/null; then
+      local mode_choice
+      mode_choice=$(printf '%s\n' \
+        'fast-copy — ⚡ Fast lossless stream copy (same codec/resolution)' \
+        'reencode — ⚙️ Smart normalize & re-encode (mixed resolutions/formats)' \
+        'transition — ✨ Crossfade transition between clips (xfade)' \
+        'bounce — 🪃 Alternating forward & reversed clips' \
+        'hstack — ◫ Side-by-side split screen (horizontal collage)' \
+        'vstack — ⊟ Top-and-bottom split screen (vertical collage)' \
+        '2x2 — ⊞ Quad 2x2 grid collage' | fzf --prompt="Select glue mode > " --height=45% --layout=reverse --border || true)
+      case "${mode_choice%% *}" in
+        reencode) REENCODE=1 ;;
+        transition)
+          REENCODE=1
+          local t_choice
+          t_choice=$(printf '%s\n' \
+            'fade — Smooth cross-dissolve (default)' \
+            'fadeblack — Dip to black' \
+            'fadewhite — Flash to white' \
+            'dissolve — Dithered pixel dissolve' \
+            'wipeleft — Wipe right to left' \
+            'wiperight — Wipe left to right' \
+            'slideup — Slide upward' \
+            'slidedown — Slide downward' \
+            'pixelize — Digital pixel block transition' \
+            'circleopen — Iris circle opening' \
+            'radial — Clockwise radar wipe' | fzf --prompt="Select transition style > " --height=50% --layout=reverse --border || true)
+          TRANSITION="${t_choice%% *}"
+          TRANSITION="${TRANSITION:-fade}"
+
+          local td_choice
+          td_choice=$(printf '%s\n' \
+            '0.5 — ⏱️ 0.5s Balanced crossfade (default)' \
+            '0.3 — ⚡ 0.3s Snappy quick cut-fade' \
+            '0.8 — 🌊 0.8s Smooth cinematic dissolve' \
+            '1.2 — 🌅 1.2s Slow dreamy transition' | fzf --prompt="Select transition duration > " --height=35% --layout=reverse --border || true)
+          [ -n "$td_choice" ] && TRANSITION_DUR="${td_choice%% *}"
+          ;;
+        bounce) BOUNCE=1; REENCODE=1 ;;
+        hstack|vstack|2x2) LAYOUT="${mode_choice%% *}"; REENCODE=1 ;;
+      esac
+    else
+      printf "Re-encode and normalize resolutions? [y/N]: "
+      read -r r_ans
+      case "$r_ans" in [yY]*) REENCODE=1 ;; esac
+    fi
+  fi
+
+  # Step 3: Fit mode & Resolution if re-encoding multiple files
+  if [ "$REENCODE" -eq 1 ] && [ -z "$LAYOUT" ] && [ "${#FILES[@]}" -gt 1 ] && command -v fzf &>/dev/null; then
+    local fit_choice
+    fit_choice=$(printf '%s\n' \
+      'pad — ⬛ Black letterbox/pillarbox bars (default)' \
+      'blur — 🌫️ Blurred background fill (ideal for mixing vertical + horizontal)' \
+      'crop — ✂️ Center-crop to fill frame' | fzf --prompt="Aspect ratio fit > " --height=35% --layout=reverse --border || true)
+    [ -n "$fit_choice" ] && FIT="${fit_choice%% *}"
+
+    local res_choice
+    res_choice=$(printf '%s\n' \
+      'auto — 📐 Match first video resolution (default)' \
+      '1080p — 🖥️ Full HD Landscape (1920x1080)' \
+      '720p — 💻 HD Landscape (1280x720)' \
+      'vertical — 📱 Social Vertical 9:16 (1080x1920)' \
+      'square — ⏹️ Square 1:1 (1080x1080)' | fzf --prompt="Target resolution > " --height=40% --layout=reverse --border || true)
+    [ -n "$res_choice" ] && RESOLUTION="${res_choice%% *}"
+  fi
+
+  # Step 4: Extra options (Loop, Mute, Force, Custom Output)
+  if command -v fzf &>/dev/null; then
+    local extras
+    extras=$(printf '%s\n' \
+      'none — ✅ Keep default options (continue)' \
+      'loop-2 — 🔁 Repeat sequence 2x (--loop 2)' \
+      'loop-3 — 🔁 Repeat sequence 3x (--loop 3)' \
+      'loop-custom — 🔢 Enter custom loop count' \
+      'mute — 🔇 Discard audio track (--mute)' \
+      'force — ⚡ Overwrite existing output file (--force)' \
+      'output — 💾 Specify custom output filename (-o)' | fzf -m --prompt="Extra options ([Tab] multi-select) > " --height=45% --layout=reverse --border || true)
+    if [ -n "$extras" ]; then
+      while IFS= read -r line; do
+        case "${line%% *}" in
+          loop-2) LOOP=2 ;;
+          loop-3) LOOP=3 ;;
+          loop-custom)
+            printf "Enter loop count [1]: "
+            read -r l_in
+            [[ "$l_in" =~ ^[0-9]+$ && "$l_in" -ge 1 ]] && LOOP="$l_in"
+            ;;
+          mute) MUTE=1 ;;
+          force) FORCE=1 ;;
+          output)
+            printf "Enter output filename (e.g. merged.mp4): "
+            read -r out_in
+            [ -n "$out_in" ] && OUTPUT="$out_in"
+            ;;
+        esac
+      done <<< "$extras"
+    fi
+  fi
+
+  # Build equivalent command & summary
+  local eq_cmd="vidglue"
+  [ "$BOUNCE" -eq 1 ] && eq_cmd+=" --bounce"
+  [ -n "$TRANSITION" ] && eq_cmd+=" --transition $TRANSITION --transition-duration $TRANSITION_DUR"
+  [ -n "$LAYOUT" ] && eq_cmd+=" --layout $LAYOUT"
+  [ "$REENCODE" -eq 1 ] && [ "$BOUNCE" -eq 0 ] && [ -z "$TRANSITION" ] && [ -z "$LAYOUT" ] && eq_cmd+=" --reencode"
+  [ "$FIT" != "pad" ] && eq_cmd+=" --fit $FIT"
+  [ "$RESOLUTION" != "auto" ] && eq_cmd+=" --resolution $RESOLUTION"
+  [ "$LOOP" -gt 1 ] && eq_cmd+=" --loop $LOOP"
+  [ "$MUTE" -eq 1 ] && eq_cmd+=" --mute"
+  [ "$FORCE" -eq 1 ] && eq_cmd+=" --force"
+  [ -n "$OUTPUT" ] && eq_cmd+=" -o \"$OUTPUT\""
+  for f in "${FILES[@]}"; do eq_cmd+=" \"$f\""; done
+
+  local mode_desc="Fast lossless stream copy (-c copy)"
+  [ "$REENCODE" -eq 1 ] && mode_desc="Smart normalize & re-encode (fit: $FIT, res: $RESOLUTION)"
+  [ "$BOUNCE" -eq 1 ] && mode_desc="Bounce loop (forward + reversed)"
+  [ -n "$TRANSITION" ] && mode_desc="Crossfade transition ($TRANSITION, ${TRANSITION_DUR}s, fit: $FIT)"
+  [ -n "$LAYOUT" ] && mode_desc="Spatial collage ($LAYOUT)"
+
+  wizard_confirm_and_run "vidglue" "$eq_cmd" \
+    "Files (${#FILES[@]})   : ${FILES[*]}" \
+    "Mode          : $mode_desc" \
+    "Loop          : ${LOOP}x" \
+    "Audio         : $([ "$MUTE" -eq 1 ] && echo "Muted" || echo "Preserved / Auto-synced")"
 }
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    -i|--interactive) INTERACTIVE=1; shift;;
     -o|--output) OUTPUT="${2:?$1 requires a value}"; shift 2;;
     -b|--bounce) BOUNCE=1; REENCODE=1; shift;;
     -r|--reencode) REENCODE=1; shift;;
+    --fit) FIT="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
+    --resolution) RESOLUTION="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
+    -t|--transition|--xfade) TRANSITION="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
+    --transition-duration) TRANSITION_DUR="${2:?$1 requires a value}"; shift 2;;
+    --layout|--grid) LAYOUT="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
+    -l|--loop) LOOP="${2:?$1 requires a value}"; shift 2;;
+    --mute) MUTE=1; shift;;
     -f|--force) FORCE=1; shift;;
     -n|--dry-run) DRY_RUN=1; shift;;
     -h|--help) usage; exit 0;;
-    -*) echo "Unknown option: $1" >&2; exit 1;;
+    -*) echo "Unknown option: $1" >&2; usage >&2; exit 1;;
     *) FILES+=("$1"); shift;;
   esac
 done
 
-if [ "$BOUNCE" -eq 1 ]; then
+if [ "$INTERACTIVE" -eq 1 ] || { [ "${#FILES[@]}" -eq 0 ] && [ -t 0 ]; }; then
+  interactive_wizard
+fi
+
+case "$FIT" in
+  pad|crop|blur) ;;
+  *) echo "❌ Error: Unknown --fit mode '$FIT' (choose: pad, crop, blur)" >&2; exit 1 ;;
+esac
+
+if [ -n "$LAYOUT" ]; then
+  case "$LAYOUT" in
+    hstack|vstack|2x2) ;;
+    *) echo "❌ Error: Unknown --layout '$LAYOUT' (choose: hstack, vstack, 2x2)" >&2; exit 1 ;;
+  esac
+fi
+
+if [ -n "$TRANSITION" ]; then
+  case "$TRANSITION" in
+    fade|fadeblack|fadewhite|dissolve|wipeleft|wiperight|slideup|slidedown|circleopen|pixelize|radial|smoothleft|smoothright) ;;
+    *) echo "❌ Error: Unknown --transition '$TRANSITION'" >&2; exit 1 ;;
+  esac
+fi
+
+[[ "$LOOP" =~ ^[0-9]+$ && "$LOOP" -ge 1 ]] || { echo "❌ Error: --loop must be an integer >= 1" >&2; exit 1; }
+TRANSITION_DUR="${TRANSITION_DUR//,/.}"
+[[ "$TRANSITION_DUR" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "❌ Error: --transition-duration must be a positive number" >&2; exit 1; }
+
+if [ "$BOUNCE" -eq 1 ] || [ "$LOOP" -gt 1 ]; then
   if [ "${#FILES[@]}" -lt 1 ]; then
-    echo "❌ Error: vidglue --bounce requires at least 1 input file." >&2
+    echo "❌ Error: vidglue requires at least 1 input file." >&2
     usage >&2
     exit 1
   fi
 else
   if [ "${#FILES[@]}" -lt 2 ]; then
-    if [ "${#FILES[@]}" -eq 1 ] && [ -t 0 ]; then
+    if [ "${#FILES[@]}" -eq 1 ] && [ -t 0 ] && [ "$DRY_RUN" -eq 0 ]; then
       printf '💡 Only 1 file provided (%s).\n' "${FILES[0]}" >&2
       printf '   Would you like to process it in --bounce mode (forward + reversed)? [Y/n] ' >&2
       read -r reply || reply=""
@@ -53,7 +273,7 @@ else
         *) BOUNCE=1; REENCODE=1;;
       esac
     else
-      echo "❌ Error: vidglue requires at least 2 input files (or pass -b/--bounce for 1 file)." >&2
+      echo "❌ Error: vidglue requires at least 2 input files (or pass -b/--bounce or -l/--loop for 1 file)." >&2
       echo "💡 In the 'mytools' launcher, press [Tab] on each file to mark multiple files before pressing [Enter]." >&2
       usage >&2
       exit 1
@@ -61,7 +281,7 @@ else
   fi
 fi
 
-require_commands ffmpeg
+require_commands ffmpeg ffprobe
 
 for input in "${FILES[@]}"; do
   if [ ! -f "$input" ]; then
@@ -73,7 +293,11 @@ done
 first_file="${FILES[0]}"
 if [ -z "$OUTPUT" ]; then
   filename=$(basename "$first_file")
-  OUTPUT="$(dirname "$first_file")/${filename%.*}-glued.mp4"
+  suffix="glued"
+  [ "$BOUNCE" -eq 1 ] && suffix="bounce"
+  [ -n "$TRANSITION" ] && suffix="xfade"
+  [ -n "$LAYOUT" ] && suffix="$LAYOUT"
+  OUTPUT="$(dirname "$first_file")/${filename%.*}-${suffix}.mp4"
 fi
 
 if [ "$DRY_RUN" -eq 1 ]; then
@@ -81,77 +305,330 @@ if [ "$DRY_RUN" -eq 1 ]; then
   for f in "${FILES[@]}"; do
     echo "  - $f"
   done
-  if [ "$BOUNCE" -eq 1 ]; then
+  if [ -n "$LAYOUT" ]; then
+    echo "ℹ️  Mode: Spatial Collage Layout ($LAYOUT)"
+  elif [ -n "$TRANSITION" ]; then
+    echo "ℹ️  Mode: Crossfade Transition ($TRANSITION, ${TRANSITION_DUR}s, fit: $FIT)"
+  elif [ "$BOUNCE" -eq 1 ]; then
     if [ "${#FILES[@]}" -eq 1 ]; then
       echo "ℹ️  Mode: Bounce (Forward + Reversed version of 1 video)"
     else
-      echo "ℹ️  Mode: Bounce (Forward / Reversed alternating videos)"
+      echo "ℹ️  Mode: Bounce (Forward / Reversed alternating videos, fit: $FIT)"
     fi
   elif [ "$REENCODE" -eq 1 ]; then
-    echo "ℹ️  Mode: Re-encode (H.264/AAC)"
+    echo "ℹ️  Mode: Re-encode & Normalize (H.264/AAC, fit: $FIT, resolution: $RESOLUTION)"
   else
     echo "ℹ️  Mode: Fast stream copy (-c copy)"
   fi
+  [ "$LOOP" -gt 1 ] && echo "🔁 Loop: ${LOOP}x"
+  [ "$MUTE" -eq 1 ] && echo "🔇 Audio: Muted"
   exit 0
 fi
 
 output_is_safe "$OUTPUT" "$FORCE" || exit 1
 
-if [ "$BOUNCE" -eq 1 ]; then
+# Determine target resolution from --resolution or first file
+probe_wh=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$first_file" 2>/dev/null | head -n1 || echo "1920x1080")
+TW="${probe_wh%x*}"
+TH="${probe_wh#*x}"
+[[ "$TW" =~ ^[0-9]+$ ]] || TW=1920
+[[ "$TH" =~ ^[0-9]+$ ]] || TH=1080
+
+case "$RESOLUTION" in
+  auto|"") ;;
+  1080p) TW=1920; TH=1080 ;;
+  720p)  TW=1280; TH=720 ;;
+  vertical|9:16) TW=1080; TH=1920 ;;
+  square|1:1) TW=1080; TH=1080 ;;
+  *x*)
+    TW="${RESOLUTION%x*}"
+    TH="${RESOLUTION#*x}"
+    ;;
+  *)
+    echo "❌ Invalid --resolution '$RESOLUTION'. Use auto, 1080p, 720p, vertical, square, or WxH." >&2
+    exit 1
+    ;;
+esac
+# Ensure even dimensions for yuv420p
+TW=$(( (TW / 2) * 2 ))
+TH=$(( (TH / 2) * 2 ))
+TARGET_FPS=30
+
+# Probe audio presence and duration for each file
+HAS_ANY_AUDIO=0
+FILE_HAS_AUDIO=()
+FILE_DUR=()
+for f in "${FILES[@]}"; do
+  dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f" 2>/dev/null | head -n1 || echo "5.0")
+  [[ "$dur" =~ ^[0-9]+(\.[0-9]+)?$ ]] || dur="5.0"
+  FILE_DUR+=("$dur")
+  if [ "$MUTE" -eq 0 ]; then
+    astream=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of default=nw=1:nk=1 "$f" 2>/dev/null | head -n1 || true)
+    if [ "$astream" = "audio" ]; then
+      FILE_HAS_AUDIO+=(1)
+      HAS_ANY_AUDIO=1
+    else
+      FILE_HAS_AUDIO+=(0)
+    fi
+  else
+    FILE_HAS_AUDIO+=(0)
+  fi
+done
+
+# Helper to build per-input video normalization filter
+build_norm_vf() {
+  local idx="$1" w="$2" h="$3" out_label="$4"
+  if [ "$FIT" = "crop" ]; then
+    printf "[%d:v]scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,setsar=1,fps=%d,format=yuv420p[%s]" \
+      "$idx" "$w" "$h" "$w" "$h" "$TARGET_FPS" "$out_label"
+  elif [ "$FIT" = "blur" ]; then
+    printf "[%d:v]split=2[bg%d][fg%d];[bg%d]scale=%d:%d:force_original_aspect_ratio=increase,crop=%d:%d,gblur=sigma=24[bgb%d];[fg%d]scale=%d:%d:force_original_aspect_ratio=decrease[fgs%d];[bgb%d][fgs%d]overlay=(W-w)/2:(H-h)/2,setsar=1,fps=%d,format=yuv420p[%s]" \
+      "$idx" "$idx" "$idx" "$idx" "$w" "$h" "$w" "$h" "$idx" "$idx" "$w" "$h" "$idx" "$idx" "$idx" "$TARGET_FPS" "$out_label"
+  else
+    printf "[%d:v]scale=%d:%d:force_original_aspect_ratio=decrease,pad=%d:%d:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps=%d,format=yuv420p[%s]" \
+      "$idx" "$w" "$h" "$w" "$h" "$TARGET_FPS" "$out_label"
+  fi
+}
+
+# Helper to build per-input audio stream (or synthesized silence if missing)
+build_norm_af() {
+  local idx="$1" out_label="$2"
+  if [ "${FILE_HAS_AUDIO[$idx]}" -eq 1 ]; then
+    printf "[%d:a]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[%s]" "$idx" "$out_label"
+  else
+    printf "anullsrc=r=44100:cl=stereo:d=%s[%s]" "${FILE_DUR[$idx]}" "$out_label"
+  fi
+}
+
+TEMP_OUT="$OUTPUT"
+if [ "$LOOP" -gt 1 ] && [ "$REENCODE" -eq 1 ]; then
+  TEMP_OUT="$(mktemp "${TMPDIR:-/tmp}/vidglue_base_XXXXXX.mp4")"
+  trap 'rm -f "$TEMP_OUT"' EXIT
+fi
+
+if [ -n "$LAYOUT" ]; then
+  echo "◫  Creating $LAYOUT split-screen collage → $OUTPUT"
+  ffmpeg_inputs=()
+  filter_parts=()
+  v_labels=""
+  a_labels=""
+  count="${#FILES[@]}"
+  if [ "$count" -eq 1 ] && [ "$BOUNCE" -eq 1 ]; then
+    ffmpeg_inputs+=(-i "${FILES[0]}")
+    filter_parts+=("[0:v]fps=${TARGET_FPS},format=yuv420p,split=2[v0raw][v1raw];[v1raw]reverse[v1rev]")
+    filter_parts+=("[v0raw]scale=${TW}:${TH}:force_original_aspect_ratio=decrease,pad=${TW}:${TH}:(ow-iw)/2:(oh-ih)/2:black,setsar=1[v0]")
+    filter_parts+=("[v1rev]scale=${TW}:${TH}:force_original_aspect_ratio=decrease,pad=${TW}:${TH}:(ow-iw)/2:(oh-ih)/2:black,setsar=1[v1]")
+    v_labels="[v0][v1]"
+    count=2
+    if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+      filter_parts+=("[0:a]aresample=44100,asplit=2[a0][a1raw];[a1raw]areverse[a1];[a0][a1]amix=inputs=2:duration=shortest[a]")
+    fi
+  else
+    cell_w="$TW"
+    cell_h="$TH"
+    if [ "$LAYOUT" = "2x2" ]; then
+      cell_w=$(( (TW / 4) * 2 ))
+      cell_h=$(( (TH / 4) * 2 ))
+    fi
+    for i in "${!FILES[@]}"; do
+      ffmpeg_inputs+=(-i "${FILES[$i]}")
+      filter_parts+=("$(build_norm_vf "$i" "$cell_w" "$cell_h" "v$i")")
+      v_labels+="[v$i]"
+      if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+        filter_parts+=("$(build_norm_af "$i" "a$i")")
+        a_labels+="[a$i]"
+      fi
+    done
+    # For 2x2 if fewer than 4 files provided, pad with black cells
+    if [ "$LAYOUT" = "2x2" ] && [ "$count" -lt 4 ]; then
+      while [ "$count" -lt 4 ]; do
+        filter_parts+=("color=c=black:s=${cell_w}x${cell_h}:r=${TARGET_FPS}:d=${FILE_DUR[0]}[v$count]")
+        v_labels+="[v$count]"
+        count=$((count + 1))
+      done
+    fi
+    if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+      filter_parts+=("${a_labels}amix=inputs=${#FILES[@]}:duration=shortest[a]")
+    fi
+  fi
+
+  if [ "$LAYOUT" = "hstack" ]; then
+    filter_parts+=("${v_labels}hstack=inputs=${count}:shortest=1,format=yuv420p[v]")
+  elif [ "$LAYOUT" = "vstack" ]; then
+    filter_parts+=("${v_labels}vstack=inputs=${count}:shortest=1,format=yuv420p[v]")
+  else
+    filter_parts+=("${v_labels}xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0:shortest=1,format=yuv420p[v]")
+  fi
+
+  IFS=';'; filter_complex_str="${filter_parts[*]}"; unset IFS
+  map_args=(-map "[v]")
+  audio_enc=(-an)
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    map_args+=(-map "[a]")
+    audio_enc=(-c:a aac -b:a 192k)
+  fi
+  ffmpeg -y -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+    -filter_complex "$filter_complex_str" "${map_args[@]}" \
+    -c:v libx264 -preset fast -crf 22 "${audio_enc[@]}" "$TEMP_OUT"
+
+elif [ -n "$TRANSITION" ]; then
+  echo "✨ Gluing ${#FILES[@]} files with '$TRANSITION' transition (${TRANSITION_DUR}s) → $OUTPUT"
+  ffmpeg_inputs=()
+  filter_parts=()
+  for i in "${!FILES[@]}"; do
+    ffmpeg_inputs+=(-i "${FILES[$i]}")
+    filter_parts+=("$(build_norm_vf "$i" "$TW" "$TH" "v$i")")
+    if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+      filter_parts+=("$(build_norm_af "$i" "a$i")")
+    fi
+  done
+
+  prev_v="v0"
+  prev_a="a0"
+  cum_offset="0"
+  last_idx=$(( ${#FILES[@]} - 1 ))
+  for (( i=1; i<=last_idx; i++ )); do
+    prev_dur="${FILE_DUR[$((i-1))]}"
+    offset=$(awk -v c="$cum_offset" -v d="$prev_dur" -v t="$TRANSITION_DUR" 'BEGIN {
+      eff_t = (t >= d * 0.8) ? d * 0.4 : t;
+      off = c + d - eff_t;
+      if (off < 0.05) off = 0.05;
+      printf "%.3f", off
+    }')
+    eff_td=$(awk -v d="$prev_dur" -v t="$TRANSITION_DUR" 'BEGIN {
+      eff_t = (t >= d * 0.8) ? d * 0.4 : t;
+      if (eff_t < 0.05) eff_t = 0.05;
+      printf "%.3f", eff_t
+    }')
+    cum_offset="$offset"
+    out_v="vx$i"
+    out_a="ax$i"
+    [ "$i" -eq "$last_idx" ] && out_v="v" && out_a="a"
+    filter_parts+=("[${prev_v}][v${i}]xfade=transition=${TRANSITION}:duration=${eff_td}:offset=${offset}[${out_v}]")
+    if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+      filter_parts+=("[${prev_a}][a${i}]acrossfade=d=${eff_td}:c1=tri:c2=tri[${out_a}]")
+    fi
+    prev_v="$out_v"
+    prev_a="$out_a"
+  done
+
+  IFS=';'; filter_complex_str="${filter_parts[*]}"; unset IFS
+  map_args=(-map "[v]")
+  audio_enc=(-an)
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    map_args+=(-map "[a]")
+    audio_enc=(-c:a aac -b:a 192k)
+  fi
+  ffmpeg -y -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+    -filter_complex "$filter_complex_str" "${map_args[@]}" \
+    -c:v libx264 -preset fast -crf 22 "${audio_enc[@]}" "$TEMP_OUT"
+
+elif [ "$BOUNCE" -eq 1 ]; then
   echo "🪃  Gluing with bounce magic (forward/reversed) → $OUTPUT"
   ffmpeg_inputs=()
   filter_prep=()
   concat_inputs=""
-  
+
   if [ "${#FILES[@]}" -eq 1 ]; then
     ffmpeg_inputs+=(-i "${FILES[0]}")
-    filter_prep+=("[0:v]reverse[vrev0];[0:a]areverse[arev0]")
-    concat_inputs="[0:v][0:a][vrev0][arev0]"
+    filter_prep+=("[0:v]format=yuv420p,split=2[vf0][vr0];[vr0]reverse[vrev0]")
+    if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+      filter_prep+=("[0:a]asplit=2[af0][ar0];[ar0]areverse[arev0]")
+      concat_inputs="[vf0][af0][vrev0][arev0]"
+    else
+      concat_inputs="[vf0][vrev0]"
+    fi
     concat_count=2
   else
     concat_count="${#FILES[@]}"
     for i in "${!FILES[@]}"; do
       ffmpeg_inputs+=(-i "${FILES[$i]}")
+      filter_prep+=("$(build_norm_vf "$i" "$TW" "$TH" "vn$i")")
+      if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+        filter_prep+=("$(build_norm_af "$i" "an$i")")
+      fi
       if [ $((i % 2)) -eq 0 ]; then
-        concat_inputs+="[$i:v][$i:a]"
+        if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+          concat_inputs+="[vn$i][an$i]"
+        else
+          concat_inputs+="[vn$i]"
+        fi
       else
-        filter_prep+=("[$i:v]reverse[vrev$i];[$i:a]areverse[arev$i]")
-        concat_inputs+="[vrev$i][arev$i]"
+        filter_prep+=("[vn$i]reverse[vrev$i]")
+        if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+          filter_prep+=("[an$i]areverse[arev$i]")
+          concat_inputs+="[vrev$i][arev$i]"
+        else
+          concat_inputs+="[vrev$i]"
+        fi
       fi
     done
   fi
 
-  filter_complex_str=""
-  if [ "${#filter_prep[@]}" -gt 0 ]; then
-    IFS=';'; filter_complex_str="${filter_prep[*]};"; unset IFS
+  IFS=';'; filter_complex_str="${filter_prep[*]};"; unset IFS
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    filter_complex_str="${filter_complex_str}${concat_inputs}concat=n=${concat_count}:v=1:a=1[v][a]"
+    ffmpeg -y -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+      -filter_complex "$filter_complex_str" -map "[v]" -map "[a]" \
+      -c:v libx264 -preset fast -crf 22 -c:a aac -b:a 192k "$TEMP_OUT"
+  else
+    filter_complex_str="${filter_complex_str}${concat_inputs}concat=n=${concat_count}:v=1:a=0[v]"
+    ffmpeg -y -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+      -filter_complex "$filter_complex_str" -map "[v]" \
+      -c:v libx264 -preset fast -crf 22 -an "$TEMP_OUT"
   fi
-  filter_complex_str="${filter_complex_str}${concat_inputs}concat=n=${concat_count}:v=1:a=1[v][a]"
-
-  ffmpeg -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
-    -filter_complex "$filter_complex_str" -map "[v]" -map "[a]" \
-    -c:v libx264 -preset fast -crf 22 -c:a aac "$OUTPUT"
 
 elif [ "$REENCODE" -eq 1 ]; then
-  echo "⚙️  Re-encoding and fusing ${#FILES[@]} files → $OUTPUT"
+  echo "⚙️  Re-encoding, normalizing ($FIT, ${TW}x${TH}) and fusing ${#FILES[@]} files → $OUTPUT"
   ffmpeg_inputs=()
+  filter_prep=()
   filter_inputs=""
   for i in "${!FILES[@]}"; do
     ffmpeg_inputs+=(-i "${FILES[$i]}")
-    filter_inputs+="[$i:v][$i:a]"
+    filter_prep+=("$(build_norm_vf "$i" "$TW" "$TH" "vn$i")")
+    if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+      filter_prep+=("$(build_norm_af "$i" "an$i")")
+      filter_inputs+="[vn$i][an$i]"
+    else
+      filter_inputs+="[vn$i]"
+    fi
   done
-  filter_complex="${filter_inputs}concat=n=${#FILES[@]}:v=1:a=1[v][a]"
-  ffmpeg -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
-    -filter_complex "$filter_complex" -map "[v]" -map "[a]" \
-    -c:v libx264 -preset fast -crf 22 -c:a aac "$OUTPUT"
+  IFS=';'; filter_complex_str="${filter_prep[*]};"; unset IFS
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    filter_complex_str="${filter_complex_str}${filter_inputs}concat=n=${#FILES[@]}:v=1:a=1[v][a]"
+    ffmpeg -y -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+      -filter_complex "$filter_complex_str" -map "[v]" -map "[a]" \
+      -c:v libx264 -preset fast -crf 22 -c:a aac -b:a 192k "$TEMP_OUT"
+  else
+    filter_complex_str="${filter_complex_str}${filter_inputs}concat=n=${#FILES[@]}:v=1:a=0[v]"
+    ffmpeg -y -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+      -filter_complex "$filter_complex_str" -map "[v]" \
+      -c:v libx264 -preset fast -crf 22 -an "$TEMP_OUT"
+  fi
 else
-  echo "⚡  Gluing ${#FILES[@]} files (fast stream copy) → $OUTPUT"
+  echo "⚡  Gluing ${#FILES[@]} file(s) (fast stream copy) → $OUTPUT"
   MANIFEST="$(mktemp "${TMPDIR:-/tmp}/vidglue_XXXXXX.txt")"
   trap 'rm -f "$MANIFEST"' EXIT
-  for f in "${FILES[@]}"; do
-    abs_path="$(cd "$(dirname "$f")" && pwd)/$(basename "$f")"
-    printf "file '%s'\n" "$abs_path" >> "$MANIFEST"
+  for (( l=1; l<=LOOP; l++ )); do
+    for f in "${FILES[@]}"; do
+      abs_path="$(cd "$(dirname "$f")" && pwd)/$(basename "$f")"
+      printf "file '%s'\n" "$abs_path" >> "$MANIFEST"
+    done
   done
-  ffmpeg -hide_banner -loglevel error -stats -f concat -safe 0 -i "$MANIFEST" -c copy "$OUTPUT"
+  mute_arg=()
+  [ "$MUTE" -eq 1 ] && mute_arg=(-an)
+  ffmpeg -y -hide_banner -loglevel error -stats -f concat -safe 0 -i "$MANIFEST" -c copy "${mute_arg[@]}" "$OUTPUT"
+fi
+
+# Apply loop multiplication if re-encoded and LOOP > 1
+if [ "$LOOP" -gt 1 ] && [ "$REENCODE" -eq 1 ]; then
+  echo "🔁 Repeating sequence ${LOOP}x → $OUTPUT"
+  LOOP_MANIFEST="$(mktemp "${TMPDIR:-/tmp}/vidglue_loop_XXXXXX.txt")"
+  trap 'rm -f "$TEMP_OUT" "$LOOP_MANIFEST"' EXIT
+  for (( l=1; l<=LOOP; l++ )); do
+    printf "file '%s'\n" "$TEMP_OUT" >> "$LOOP_MANIFEST"
+  done
+  ffmpeg -y -hide_banner -loglevel error -stats -f concat -safe 0 -i "$LOOP_MANIFEST" -c copy "$OUTPUT"
 fi
 
 notify "MP4 glue complete! 🎬" "vidglue"
