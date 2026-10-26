@@ -313,11 +313,12 @@ webloc2md ~/Downloads/Bookmarks bookmarks.md
 
 The project includes an interactive web guide in `website/` designed in an ordered Bauhaus-brutalist and terminal aesthetic. It features:
 
-- A live simulated terminal for testing `mytools` commands.
-- An interactive command studio for building flags and commands visually.
-- DSP audio waveform and video glitch shader visualizers.
-- A searchable technical catalog covering all 27 tools with options and examples.
-- Dark, Bauhaus light, and amber phosphor themes.
+- **Interactive Command Studio with Visual Reference Aids**: Tactile visual thumbnails and cards beside each effect preset (cinematic color grading, analog/digital glitch shaders, cut modes, video collages, and audio DSP curves), paired with a live visual reference deck displaying simulated output and exact FFmpeg filter graphs.
+- **Visual indicators across the catalog & labs**: Bauhaus visual badges for all 27 CLI tools, plus interactive visual thumbnails on all Glitch Lab presets and Audio Waveform modes.
+- **Live Terminal Simulator**: Interactive zsh simulator for testing `mytools` workflows and doctor healthchecks directly in the browser.
+- **Visual Labs**: Real-time DSP audio waveform canvas and video glitch shader visualizer.
+- **Searchable Technical Catalog**: Deep documentation covering all 27 commands with options, syntax signatures, and examples.
+- **Color Themes**: Dark (Bauhaus Obsidian), Light (Gallery High-Contrast), and Amber phosphor CRT themes.
 
 To run locally:
 

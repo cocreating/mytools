@@ -842,6 +842,637 @@ Run '${matchTool.name} --help' or check the documentation below for options.`, "
 }
 
 // ============================================================================
+// 2.5 Visual Aids & Reference Library (Bauhaus-Brutalist Visual System)
+// High-precision vector SVGs and metadata for tools, effects, color grading, and DSP.
+// ============================================================================
+const VISUAL_AIDS = {
+  tools: {
+    mytools: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#090b0e"/><circle cx="8" cy="8" r="3" fill="#ff3344"/><rect x="15" y="5" width="5" height="5" fill="#ffb703"/><polygon points="26,5 29,10 23,10" fill="#2563eb"/><path d="M7 17 L15 23 L7 29" stroke="#00f59b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="18" y1="29" x2="26" y2="29" stroke="#f0f4fc" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+    img2webp: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="4" y="6" width="24" height="20" rx="3" stroke="#2563eb" stroke-width="1.8"/><circle cx="10" cy="12" r="2.5" fill="#f59e0b"/><polygon points="8,22 15,14 20,18 24,13 26,22" fill="#00f59b"/><rect x="15" y="18" width="13" height="8" rx="2" fill="#2563eb"/><text x="17" y="24" fill="#fff" font-size="5" font-weight="900" font-family="monospace">WEBP</text></svg>`,
+    vidglue: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="4" y="7" width="11" height="18" rx="2" fill="#2563eb" stroke="#38bdf8" stroke-width="1.2"/><rect x="17" y="7" width="11" height="18" rx="2" fill="#ec4899" stroke="#f43f5e" stroke-width="1.2"/><line x1="14" y1="16" x2="18" y2="16" stroke="#00f59b" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="16" r="2.5" fill="#f59e0b"/></svg>`,
+    vidglitch: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="4" y="5" width="24" height="22" rx="3" stroke="#ff3344" stroke-width="1.5"/><line x1="6" y1="11" x2="26" y2="11" stroke="#06b6d4" stroke-width="1.5" stroke-dasharray="3,2"/><line x1="6" y1="21" x2="26" y2="21" stroke="#ff3344" stroke-width="1.5" stroke-dasharray="4,2"/><polyline points="18,8 12,17 19,17 14,24" stroke="#00f59b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    vidcuts: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="4" y="8" width="24" height="16" rx="2" fill="#1e2638" stroke="#64748b" stroke-width="1.5"/><circle cx="8" cy="11" r="1.5" fill="#f59e0b"/><circle cx="16" cy="11" r="1.5" fill="#f59e0b"/><circle cx="24" cy="11" r="1.5" fill="#f59e0b"/><line x1="16" y1="5" x2="16" y2="27" stroke="#ff3344" stroke-width="2" stroke-dasharray="3,2"/><text x="19" y="22" fill="#ff3344" font-size="8">✂</text></svg>`,
+    videoeffects: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="4" y="7" width="24" height="18" rx="2" stroke="#f59e0b" stroke-width="1.5"/><circle cx="16" cy="16" r="6" stroke="#00f59b" stroke-width="1.5"/><polygon points="16,10 21,19 11,19" fill="#2563eb" opacity="0.8"/><rect x="4" y="7" width="24" height="3" fill="#ff3344"/><rect x="4" y="22" width="24" height="3" fill="#ff3344"/></svg>`,
+    videorandfram: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="5" y="5" width="9" height="9" rx="2" fill="#2563eb"/><rect x="18" y="5" width="9" height="9" rx="2" fill="#f59e0b"/><rect x="5" y="18" width="9" height="9" rx="2" fill="#00f59b"/><rect x="18" y="18" width="9" height="9" rx="2" fill="#ff3344"/><circle cx="9.5" cy="9.5" r="1.5" fill="#fff"/><circle cx="22.5" cy="9.5" r="1.5" fill="#fff"/><circle cx="9.5" cy="22.5" r="1.5" fill="#fff"/><circle cx="22.5" cy="22.5" r="1.5" fill="#fff"/></svg>`,
+    vidoptim: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><circle cx="16" cy="16" r="10" stroke="#333f52" stroke-width="2"/><path d="M 9 22 A 10 10 0 1 1 23 22" stroke="#00f59b" stroke-width="2.5" stroke-linecap="round"/><line x1="16" y1="16" x2="21" y2="12" stroke="#ff3344" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.5" fill="#f0f4fc"/></svg>`,
+    wav2tempo: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><polygon points="9,26 13,8 19,8 23,26" stroke="#f59e0b" stroke-width="1.5" fill="none"/><line x1="16" y1="24" x2="22" y2="11" stroke="#00f59b" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="13" r="2" fill="#ff3344"/><line x1="6" y1="26" x2="26" y2="26" stroke="#333f52" stroke-width="2"/></svg>`,
+    wavpitch: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><line x1="6" y1="10" x2="26" y2="10" stroke="#333f52" stroke-width="1"/><line x1="6" y1="16" x2="26" y2="16" stroke="#333f52" stroke-width="1"/><line x1="6" y1="22" x2="26" y2="22" stroke="#333f52" stroke-width="1"/><circle cx="11" cy="20" r="3" fill="#2563eb"/><line x1="14" y1="20" x2="14" y2="8" stroke="#2563eb" stroke-width="1.5"/><circle cx="21" cy="14" r="3" fill="#00f59b"/><line x1="24" y1="14" x2="24" y2="6" stroke="#00f59b" stroke-width="1.5"/><path d="M 14 9 L 24 6" stroke="#00f59b" stroke-width="2"/></svg>`,
+    wavnorm: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="8" y="7" width="6" height="18" rx="1" fill="#1e2638" stroke="#333f52" stroke-width="1"/><rect x="18" y="7" width="6" height="18" rx="1" fill="#1e2638" stroke="#333f52" stroke-width="1"/><rect x="9" y="13" width="4" height="11" fill="#00f59b"/><rect x="19" y="11" width="4" height="13" fill="#00f59b"/><line x1="6" y1="12" x2="26" y2="12" stroke="#ff3344" stroke-width="1.5" stroke-dasharray="2,2"/><text x="14" y="6" fill="#f0f4fc" font-size="4" font-family="monospace">-14</text></svg>`,
+    wavfade: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><path d="M 5 24 Q 13 24 16 16 T 27 8" stroke="#00f59b" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M 5 8 Q 13 8 16 16 T 27 24" stroke="#f59e0b" stroke-width="2" stroke-dasharray="2,2" fill="none"/><line x1="5" y1="26" x2="27" y2="26" stroke="#333f52" stroke-width="1.5"/></svg>`,
+    wavtrim: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><path d="M 5 16 L 8 16 L 11 9 L 14 23 L 18 10 L 21 21 L 24 16 L 27 16" stroke="#00f59b" stroke-width="1.8" fill="none" stroke-linecap="round"/><line x1="9" y1="7" x2="9" y2="25" stroke="#ff3344" stroke-width="1.5" stroke-dasharray="2,2"/><line x1="23" y1="7" x2="23" y2="25" stroke="#ff3344" stroke-width="1.5" stroke-dasharray="2,2"/><text x="4" y="10" fill="#ff3344" font-size="7">✂</text></svg>`,
+    wavfx: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><polygon points="7,12 12,12 17,7 17,25 12,20 7,20" fill="#2563eb"/><path d="M 20 12 A 5 5 0 0 1 20 20" stroke="#00f59b" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M 23 9 A 9 9 0 0 1 23 23" stroke="#f59e0b" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M 26 6 A 13 13 0 0 1 26 26" stroke="#ec4899" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>`,
+    ytdl: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><path d="M 9 14 A 5 5 0 0 1 19 12 A 4 4 0 0 1 24 16 A 4 4 0 0 1 22 20 L 10 20 A 4 4 0 0 1 9 14" fill="#1e2638" stroke="#38bdf8" stroke-width="1.5"/><line x1="16" y1="13" x2="16" y2="24" stroke="#00f59b" stroke-width="2.5" stroke-linecap="round"/><polyline points="12,20 16,24 20,20" stroke="#00f59b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="8" y1="27" x2="24" y2="27" stroke="#333f52" stroke-width="2" stroke-linecap="round"/></svg>`,
+    vid2webm: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="5" y="8" width="22" height="16" rx="2" stroke="#06b6d4" stroke-width="1.5"/><polygon points="13,12 21,16 13,20" fill="#00f59b"/><text x="7" y="27" fill="#06b6d4" font-size="5" font-family="monospace" font-weight="bold">WEBM</text></svg>`,
+    vid2gif: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="5" y="7" width="22" height="18" rx="2" stroke="#ec4899" stroke-width="1.5"/><circle cx="16" cy="16" r="5" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/><text x="10" y="28" fill="#ec4899" font-size="5" font-family="monospace" font-weight="bold">GIF</text></svg>`,
+    videoWithoutAudio: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><polygon points="7,12 12,12 17,7 17,25 12,20 7,20" fill="#64748b"/><line x1="6" y1="6" x2="26" y2="26" stroke="#ff3344" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+    vid2audio: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="4" y="6" width="14" height="20" rx="2" fill="#1e2638" stroke="#333f52" stroke-width="1.2"/><circle cx="23" cy="20" r="3" fill="#00f59b"/><line x1="26" y1="20" x2="26" y2="10" stroke="#00f59b" stroke-width="2"/><line x1="12" y1="16" x2="20" y2="16" stroke="#ffb703" stroke-width="1.5" stroke-dasharray="2,2"/></svg>`,
+    wav2mp3: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><circle cx="16" cy="16" r="10" stroke="#2563eb" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="#ffb703"/><text x="9" y="28" fill="#f0f4fc" font-size="5" font-family="monospace" font-weight="bold">MP3</text></svg>`,
+    wavreverse: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><path d="M 24 16 L 8 16" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/><polyline points="13,11 8,16 13,21" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="19,11 14,16 19,21" stroke="#ff3344" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    "media-info": `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><circle cx="16" cy="16" r="10" stroke="#00f59b" stroke-width="1.5"/><line x1="16" y1="16" x2="22" y2="10" stroke="#00f59b" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2" fill="#ff3344"/><text x="13" y="26" fill="#00f59b" font-size="5" font-family="monospace">FF</text></svg>`,
+    thumloc: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="6" y="6" width="20" height="15" rx="2" fill="#1e2638" stroke="#38bdf8" stroke-width="1.2"/><path d="M 16 18 C 14 18 12 20 12 23 C 12 26 16 29 16 29 C 16 29 20 26 20 23 C 20 20 18 18 16 18 Z" fill="#ff3344"/><circle cx="16" cy="22" r="1.5" fill="#fff"/></svg>`,
+    webloc2md: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="6" y="5" width="20" height="22" rx="2" stroke="#94a3b8" stroke-width="1.5"/><line x1="10" y1="10" x2="22" y2="10" stroke="#2563eb" stroke-width="1.5"/><line x1="10" y1="15" x2="22" y2="15" stroke="#f59e0b" stroke-width="1.5"/><line x1="10" y1="20" x2="18" y2="20" stroke="#00f59b" stroke-width="1.5"/><text x="14" y="26" fill="#fff" font-size="5" font-family="monospace">MD</text></svg>`,
+    guide: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="6" y="6" width="20" height="20" rx="3" stroke="#f59e0b" stroke-width="1.5"/><circle cx="16" cy="16" r="6" stroke="#00f59b" stroke-width="1.5"/><polygon points="16,12 18,16 16,20 14,16" fill="#ff3344"/></svg>`,
+    doctor: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><rect x="6" y="6" width="20" height="20" rx="4" stroke="#00f59b" stroke-width="1.5"/><rect x="13" y="10" width="6" height="12" fill="#00f59b"/><rect x="10" y="13" width="12" height="6" fill="#00f59b"/></svg>`,
+    config: `<svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="4" fill="#10141b"/><line x1="6" y1="10" x2="26" y2="10" stroke="#333f52" stroke-width="2"/><circle cx="12" cy="10" r="3" fill="#2563eb"/><line x1="6" y1="16" x2="26" y2="16" stroke="#333f52" stroke-width="2"/><circle cx="20" cy="16" r="3" fill="#f59e0b"/><line x1="6" y1="22" x2="26" y2="22" stroke="#333f52" stroke-width="2"/><circle cx="14" cy="22" r="3" fill="#00f59b"/></svg>`
+  },
+
+  effects: {
+    videoeffects: [
+      {
+        id: "cinema",
+        name: "Cinema",
+        sub: "Teal & Orange, 2.35:1",
+        badge: "CINEMA LOOK",
+        filter: "colorbalance=rs=-0.1:gs=0:bs=0.2:rh=0.15:gh=0.05:bh=-0.1",
+        desc: "Blockbuster cinematic grade: cool deep teal shadows contrasted with warm golden-amber skin tones and CinemaScope letterbox bars.",
+        useCase: "Action movies, trailers, narrative film & cinematic B-roll",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#070a0f"/><rect x="0" y="8" width="80" height="34" fill="#082b47"/><circle cx="58" cy="22" r="14" fill="#f59e0b" opacity="0.85"/><polygon points="8,42 32,20 48,32 64,16 78,42" fill="#031b30"/><rect x="0" y="0" width="80" height="8" fill="#000"/><rect x="0" y="42" width="80" height="8" fill="#000"/><text x="4" y="6" fill="#00f59b" font-size="5" font-family="monospace">2.35:1</text><line x1="0" y1="8" x2="80" y2="8" stroke="#ffb703" stroke-width="0.8"/></svg>`
+      },
+      {
+        id: "noir",
+        name: "Noir",
+        sub: "Chiaroscuro B&W",
+        badge: "MONOCHROME",
+        filter: "colorchannelmixer=.3:.4:.3:0:.3:.4:.3:0:.3:.4:.3,eq=contrast=1.45",
+        desc: "Dramatic high-contrast black & white with Venetian blind chiaroscuro shadows and razor-sharp tonal separation.",
+        useCase: "Crime thrillers, moody street photography, art-house films",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#040507"/><polygon points="18,0 52,0 76,50 32,50" fill="#f0f4fc" opacity="0.28"/><circle cx="46" cy="24" r="10" fill="#121720" stroke="#f0f4fc" stroke-width="1.2"/><line x1="0" y1="12" x2="80" y2="12" stroke="#000" stroke-width="2.5"/><line x1="0" y1="26" x2="80" y2="26" stroke="#000" stroke-width="2.5"/><line x1="0" y1="40" x2="80" y2="40" stroke="#000" stroke-width="2.5"/><text x="6" y="46" fill="#94a3b8" font-size="5" font-family="monospace">NOIR</text></svg>`
+      },
+      {
+        id: "vintage",
+        name: "Vintage",
+        sub: "1970s Kodachrome",
+        badge: "RETRO FILM",
+        filter: "curves=vintage,eq=saturation=1.2:gamma=1.1,vignette=PI/4",
+        desc: "Warm 1970s Kodachrome emulsion with rich amber midtones, faded cyan skies, and Super-8 aperture gate vignette.",
+        useCase: "Nostalgic montages, travel journals, retro music videos",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#1a1109"/><rect x="4" y="4" width="72" height="42" rx="7" fill="#d97706" opacity="0.85"/><circle cx="40" cy="24" r="13" fill="#ea580c" opacity="0.8"/><polygon points="6,46 30,28 48,38 68,22 74,46" fill="#78350f"/><rect x="0" y="0" width="80" height="50" fill="none" stroke="#291508" stroke-width="4"/><text x="8" y="12" fill="#fef3c7" font-size="5" font-family="monospace">1970</text></svg>`
+      },
+      {
+        id: "kodak",
+        name: "Kodak",
+        sub: "35mm Golden Warmth",
+        badge: "35MM GRAIN",
+        filter: "colorbalance=rh=0.12:gh=0.03:bh=-0.08:rs=0.05,noise=alls=12",
+        desc: "Golden 35mm motion picture stock tone with organic film grain, saturated reds, and gentle highlight roll-off.",
+        useCase: "Documentaries, cinematic lifestyle reels, portrait videos",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#180e06"/><rect x="4" y="4" width="72" height="42" fill="#b45309"/><circle cx="52" cy="22" r="13" fill="#dc2626" opacity="0.85"/><polygon points="8,46 34,26 50,36 70,18 76,46" fill="#451a03"/><rect x="6" y="6" width="14" height="6" fill="#b91c1c"/><text x="8" y="11" fill="#fff" font-size="4" font-family="monospace" font-weight="bold">35mm</text></svg>`
+      },
+      {
+        id: "dream",
+        name: "Dream",
+        sub: "Highlight Bloom",
+        badge: "ETHEREAL",
+        filter: "split[a][b];[b]boxblur=15:1[b];[a][b]blend=all_mode='screen':all_opacity=0.45",
+        desc: "Dreamy soft-focus optical diffusion with ethereal highlight halos and low-contrast pastel glow.",
+        useCase: "Fantasy sequences, flashbacks, romantic edits, ethereal music",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#100b1e"/><circle cx="40" cy="25" r="20" fill="#c084fc" opacity="0.35"/><circle cx="40" cy="25" r="10" fill="#f472b6" opacity="0.6"/><circle cx="40" cy="25" r="4" fill="#fff"/><circle cx="22" cy="18" r="8" fill="#38bdf8" opacity="0.4"/><circle cx="58" cy="30" r="10" fill="#ec4899" opacity="0.4"/><text x="24" y="46" fill="#e9d5ff" font-size="5" font-family="monospace">BLOOM</text></svg>`
+      },
+      {
+        id: "synthwave",
+        name: "Synthwave",
+        sub: "Neon Magenta & Cyan",
+        badge: "RETRO 80s",
+        filter: "colorchannelmixer=1:0:0:0:0:0.4:0.8:0:0.8:0:1:0,eq=contrast=1.3",
+        desc: "1980s retro grid aesthetic with electric magenta highlights, deep cyan shadows, and high-contrast saturation.",
+        useCase: "EDM clips, gaming montages, retro car edits, cyberpunk",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#0d0221"/><circle cx="40" cy="20" r="13" fill="#f43f5e"/><line x1="0" y1="28" x2="80" y2="28" stroke="#06b6d4" stroke-width="1.5"/><line x1="40" y1="28" x2="0" y2="50" stroke="#ec4899" stroke-width="1"/><line x1="40" y1="28" x2="20" y2="50" stroke="#ec4899" stroke-width="1"/><line x1="40" y1="28" x2="40" y2="50" stroke="#ec4899" stroke-width="1"/><line x1="40" y1="28" x2="60" y2="50" stroke="#ec4899" stroke-width="1"/><line x1="40" y1="28" x2="80" y2="50" stroke="#ec4899" stroke-width="1"/><line x1="0" y1="35" x2="80" y2="35" stroke="#06b6d4" stroke-width="0.75"/><line x1="0" y1="43" x2="80" y2="43" stroke="#06b6d4" stroke-width="0.75"/></svg>`
+      },
+      {
+        id: "thermal",
+        name: "Thermal",
+        sub: "FLIR Heat Vision",
+        badge: "INFRARED",
+        filter: "lutrgb=r='val*1.8':g='abs(val-128)*2':b='255-val'",
+        desc: "Predator-style tactical heat vision false-color gradient mapping luminance into blue, green, yellow and red.",
+        useCase: "Sci-fi HUDs, surveillance sequences, tactical POV footage",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><defs><linearGradient id="tg1" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#1e1b4b"/><stop offset="30%" stop-color="#2563eb"/><stop offset="55%" stop-color="#22c55e"/><stop offset="75%" stop-color="#eab308"/><stop offset="90%" stop-color="#ef4444"/><stop offset="100%" stop-color="#ffffff"/></linearGradient></defs><rect width="80" height="50" fill="url(#tg1)"/><circle cx="40" cy="25" r="14" fill="#ef4444" stroke="#fff" stroke-width="1.5"/><circle cx="40" cy="25" r="5" fill="#fff"/><text x="4" y="10" fill="#fff" font-size="5" font-family="monospace">FLIR 37°C</text></svg>`
+      },
+      {
+        id: "bleach",
+        name: "Bleach",
+        sub: "Bleach Bypass",
+        badge: "GRITTY WAR",
+        filter: "split[a][b];[b]format=gray[b];[a][b]blend=all_mode='overlay':all_opacity=0.7",
+        desc: "Silver-retention bleach bypass look with crushed blacks, desaturated colors, and stark high-contrast grit.",
+        useCase: "War films, post-apocalyptic thrillers, hyper-realistic documentaries",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#181c20"/><rect x="4" y="4" width="72" height="42" fill="#334155"/><polygon points="8,46 32,22 50,34 68,14 76,46" fill="#0f172a"/><circle cx="56" cy="18" r="8" fill="#94a3b8" opacity="0.6"/><text x="6" y="12" fill="#cbd5e1" font-size="5" font-family="monospace">BLEACH</text></svg>`
+      },
+      {
+        id: "sepia",
+        name: "Sepia",
+        sub: "Historic 1890 Tone",
+        badge: "ANTIQUE",
+        filter: "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131",
+        desc: "Antique sepia toning evoking late 19th-century silver gelatin photographic prints with warm amber patina.",
+        useCase: "Archival footage, historical retrospectives, western themes",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#2c1a0e"/><rect x="4" y="4" width="72" height="42" fill="#784b28"/><circle cx="50" cy="22" r="12" fill="#a46d3e"/><polygon points="8,46 36,24 52,36 72,18 76,46" fill="#4a2e18"/><text x="6" y="12" fill="#fed7aa" font-size="5" font-family="monospace">1890</text></svg>`
+      }
+    ],
+
+    vidglitch: [
+      {
+        id: "rgb-split",
+        name: "RGB Split",
+        sub: "Chromatic Aberration",
+        badge: "CHANNEL SHIFT",
+        filter: "split[a][b];[a]lutrgb=r=0:g=0[r];[b]lutrgb=b=0:g=0[b];[r][b]overlay=x=8:y=0",
+        desc: "Spatial displacement of red and cyan/blue color channels, mimicking extreme chromatic lens aberration or faulty video sync cables.",
+        useCase: "Action impacts, camera shake tremors, digital shockwaves",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><text x="14" y="33" fill="#ff0055" font-size="22" font-family="monospace" font-weight="900" opacity="0.85">RGB</text><text x="22" y="33" fill="#00f5ff" font-size="22" font-family="monospace" font-weight="900" opacity="0.85">RGB</text><text x="18" y="33" fill="#ffffff" font-size="22" font-family="monospace" font-weight="900">RGB</text><line x1="0" y1="18" x2="80" y2="18" stroke="#00f5ff" stroke-width="1" stroke-dasharray="8,4"/><line x1="0" y1="36" x2="80" y2="36" stroke="#ff0055" stroke-width="1" stroke-dasharray="12,6"/></svg>`
+      },
+      {
+        id: "vhs",
+        name: "VHS Tape",
+        sub: "Tracking & Scanlines",
+        badge: "ANALOG TAPE",
+        filter: "curves=vintage,drawbox=y=ih-12:h=8:c=white@0.4:t=fill,noise=c1s=20",
+        desc: "Authentic 1990s magnetic tape flutter with rolling bottom tracking noise bar, VHS color bleed, and camcorder timestamp HUD.",
+        useCase: "Found-footage horror, 90s aesthetic videos, retro home tapes",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#0a0c10"/><line x1="0" y1="38" x2="80" y2="38" stroke="#fff" stroke-width="3" stroke-dasharray="10,2,6,4,14,3"/><text x="6" y="14" fill="#00f59b" font-size="7" font-family="monospace">▶ PLAY</text><text x="6" y="24" fill="#f0f4fc" font-size="5" font-family="monospace">SP 0:12:44</text><line x1="0" y1="6" x2="80" y2="6" stroke="rgba(255,255,255,0.15)" stroke-width="1"/><line x1="0" y1="16" x2="80" y2="16" stroke="rgba(255,255,255,0.15)" stroke-width="1"/><line x1="0" y1="28" x2="80" y2="28" stroke="rgba(255,255,255,0.15)" stroke-width="1"/><line x1="0" y1="46" x2="80" y2="46" stroke="rgba(255,255,255,0.15)" stroke-width="1"/></svg>`
+      },
+      {
+        id: "crt",
+        name: "Arcade CRT",
+        sub: "Curved Scanlines",
+        badge: "PHOSPHOR CRT",
+        filter: "drawgrid=w=iw:h=2:t=1:c=black@0.5,eq=saturation=1.4",
+        desc: "Curved cathode-ray tube phosphor screen with horizontal scanline raster grid and high-saturation arcade glow.",
+        useCase: "Arcade cabinet emulation, retro video games, tech console screens",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" rx="8" fill="#061208" stroke="#166534" stroke-width="2"/><g stroke="#22c55e" stroke-width="0.75" opacity="0.6"><line x1="0" y1="8" x2="80" y2="8"/><line x1="0" y1="16" x2="80" y2="16"/><line x1="0" y1="24" x2="80" y2="24"/><line x1="0" y1="32" x2="80" y2="32"/><line x1="0" y1="40" x2="80" y2="40"/></g><circle cx="40" cy="24" r="10" fill="none" stroke="#4ade80" stroke-width="2"/><text x="31" y="27" fill="#4ade80" font-size="7" font-family="monospace">CRT</text></svg>`
+      },
+      {
+        id: "8bit",
+        name: "8-Bit Retro",
+        sub: "Pixelated Mosaic",
+        badge: "CHIPTUNE 8-BIT",
+        filter: "scale=iw/8:ih/8:flags=neighbor,scale=iw*8:ih*8:flags=neighbor",
+        desc: "Nearest-neighbor downsampling to blocky 8x8 pixel grid with a restricted retro color palette.",
+        useCase: "Pixel art projects, chiptune music videos, vintage gaming clips",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#0f172a"/><rect x="8" y="7" width="11" height="11" fill="#f43f5e"/><rect x="21" y="7" width="11" height="11" fill="#38bdf8"/><rect x="34" y="7" width="11" height="11" fill="#fbbf24"/><rect x="47" y="7" width="11" height="11" fill="#4ade80"/><rect x="60" y="7" width="11" height="11" fill="#a855f7"/><rect x="8" y="20" width="11" height="11" fill="#38bdf8"/><rect x="21" y="20" width="11" height="11" fill="#f43f5e"/><rect x="34" y="20" width="11" height="11" fill="#4ade80"/><rect x="47" y="20" width="11" height="11" fill="#fbbf24"/><rect x="60" y="20" width="11" height="11" fill="#f43f5e"/><rect x="8" y="33" width="11" height="11" fill="#a855f7"/><rect x="21" y="33" width="11" height="11" fill="#fbbf24"/><rect x="34" y="33" width="11" height="11" fill="#38bdf8"/><rect x="47" y="33" width="11" height="11" fill="#f43f5e"/><rect x="60" y="33" width="11" height="11" fill="#4ade80"/></svg>`
+      },
+      {
+        id: "cyberpunk",
+        name: "Cyberpunk",
+        sub: "Digital Tearing & Neon",
+        badge: "CYBERPUNK",
+        filter: "hue=s=1.8,eq=contrast=1.3,drawbox=x=0:y=ih*0.4:w=iw:h=20:c=cyan@0.6",
+        desc: "Overdriven neon cyan and magenta palette with high-speed digital horizontal tears and static displacement.",
+        useCase: "Dystopian sci-fi trailers, rave visualizers, high-energy intros",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#0b0813"/><rect x="6" y="12" width="48" height="12" fill="#06b6d4" opacity="0.8"/><rect x="24" y="20" width="50" height="14" fill="#f43f5e" opacity="0.8"/><rect x="14" y="16" width="40" height="10" fill="#fef08a" opacity="0.9"/><text x="17" y="24" fill="#000" font-size="7" font-family="monospace" font-weight="900">CYBER</text><line x1="0" y1="8" x2="80" y2="8" stroke="#f43f5e" stroke-width="1"/><line x1="0" y1="42" x2="80" y2="42" stroke="#06b6d4" stroke-width="1"/></svg>`
+      },
+      {
+        id: "badsignal",
+        name: "Bad Signal",
+        sub: "RF Static Snow",
+        badge: "NO SIGNAL",
+        filter: "noise=alls=40:allf=t+u,eq=contrast=0.85:brightness=0.1",
+        desc: "Heavy broadcast transmission interference with analog television static snow, vertical sync rolls, and RF noise.",
+        useCase: "Broken transmission scenes, lost downlink effects, spooky transitions",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#111827"/><line x1="0" y1="12" x2="80" y2="24" stroke="#fff" stroke-width="3" stroke-dasharray="4,8,12,6,3"/><line x1="0" y1="32" x2="80" y2="44" stroke="#94a3b8" stroke-width="4" stroke-dasharray="10,6,4,14"/><circle cx="20" cy="18" r="1.5" fill="#fff"/><circle cx="50" cy="12" r="1.5" fill="#fff"/><circle cx="65" cy="38" r="2" fill="#fff"/><text x="18" y="30" fill="#ef4444" font-size="8" font-family="monospace" font-weight="bold">NO SIGNAL</text></svg>`
+      },
+      {
+        id: "tear",
+        name: "Data Tear",
+        sub: "Frame Displacement",
+        badge: "DATA TEAR",
+        filter: "split[a][b];[b]crop=iw:40:0:ih*0.3[c];[a][c]overlay=x=15:y=ih*0.3",
+        desc: "Horizontal band slicing where segments of the picture slip left and right due to buffer timing errors.",
+        useCase: "Digital glitch art, glitch-hop music beats, dramatic stutters",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="12" y="8" width="58" height="10" fill="#2563eb"/><rect x="2" y="20" width="60" height="10" fill="#2563eb"/><rect x="18" y="32" width="56" height="10" fill="#2563eb"/><line x1="0" y1="19" x2="80" y2="19" stroke="#ff3344" stroke-width="1.5"/><line x1="0" y1="31" x2="80" y2="31" stroke="#00f59b" stroke-width="1.5"/></svg>`
+      },
+      {
+        id: "datamosh",
+        name: "Datamosh",
+        sub: "Motion Vector Bleed",
+        badge: "DATAMOSH",
+        filter: "fps=15,tblend=all_mode='average',eq=saturation=1.6",
+        desc: "Simulated I-frame drop resulting in motion vector pixel smearing, ghost trails, and melted compression artifacts.",
+        useCase: "Viral TikTok/Reel transitions, trippy music videos, dream edits",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="4" y="6" width="30" height="38" fill="#3b82f6"/><rect x="24" y="10" width="28" height="34" fill="#ec4899" opacity="0.8"/><rect x="42" y="14" width="34" height="30" fill="#10b981" opacity="0.75"/><rect x="16" y="20" width="58" height="6" fill="#facc15" opacity="0.9"/><rect x="8" y="30" width="66" height="5" fill="#06b6d4" opacity="0.85"/></svg>`
+      },
+      {
+        id: "nightvision",
+        name: "Nightvision",
+        sub: "Tactical Phosphor Green",
+        badge: "NIGHTVISION",
+        filter: "colorchannelmixer=0:0:0:0:0:1.3:0:0:0:0:0:0,vignette=PI/3,noise=alls=25",
+        desc: "Generation-3 tactical night vision viewfinder with circular ocular vignette, electronic amplification noise, and green phosphor glow.",
+        useCase: "Military simulations, tactical game footage, found footage movies",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#031508"/><circle cx="40" cy="25" r="21" fill="#052e16" stroke="#22c55e" stroke-width="1.5"/><line x1="40" y1="6" x2="40" y2="44" stroke="#4ade80" stroke-width="0.75"/><line x1="20" y1="25" x2="60" y2="25" stroke="#4ade80" stroke-width="0.75"/><circle cx="40" cy="25" r="6" fill="none" stroke="#86efac" stroke-width="1"/><text x="4" y="10" fill="#4ade80" font-size="5" font-family="monospace">NV-GEN3</text></svg>`
+      },
+      {
+        id: "gameboy",
+        name: "GameBoy",
+        sub: "4-Shade Olive Green LCD",
+        badge: "RETRO LCD",
+        filter: "format=gray,lutrgb=r='clip((val/64)*64,0,255)':g='clip((val/64)*70,0,255)':b='15'",
+        desc: "Classic 1989 handheld gaming console aesthetic with 4-shade reflective olive-green STN LCD dot matrix.",
+        useCase: "Nostalgic game clips, chiptune visualizers, retro tech showcases",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#8b956d"/><rect x="6" y="6" width="68" height="38" fill="#9bbc0f" stroke="#0f380f" stroke-width="1.5"/><circle cx="30" cy="25" r="10" fill="#306230"/><rect x="45" y="15" width="20" height="20" fill="#0f380f"/><text x="8" y="14" fill="#0f380f" font-size="5" font-family="monospace">4-SHADE LCD</text></svg>`
+      },
+      {
+        id: "matrix",
+        name: "Matrix",
+        sub: "Green Code Rain",
+        badge: "DIGITAL RAIN",
+        filter: "colorchannelmixer=0:0:0:0:0:1.2:0:0:0:0:0:0,eq=contrast=1.6:brightness=-0.1",
+        desc: "High-contrast terminal hacker code stream with cascading green phosphor characters and digital glow.",
+        useCase: "Hacker console scenes, cyber security presentations, tech backgrounds",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#020a04"/><text x="8" y="12" fill="#22c55e" font-size="7" font-family="monospace">0 1 0 1</text><text x="8" y="22" fill="#86efac" font-size="7" font-family="monospace">1 0 1 0</text><text x="8" y="32" fill="#22c55e" font-size="7" font-family="monospace">0 0 1 1</text><text x="8" y="42" fill="#15803d" font-size="7" font-family="monospace">1 1 0 0</text><text x="44" y="16" fill="#86efac" font-size="7" font-family="monospace">日 本 語</text><text x="44" y="28" fill="#22c55e" font-size="7" font-family="monospace">マ ト リ</text><text x="44" y="40" fill="#16a34a" font-size="7" font-family="monospace">0 1 X 9</text></svg>`
+      }
+    ],
+
+    vidcuts: [
+      {
+        id: "frames",
+        name: "Frames",
+        sub: "Celluloid Drops",
+        badge: "FRAME DROP",
+        filter: "select='not(mod(n\,12))',setpts=N/FRAME_RATE/TB",
+        desc: "Organic celluloid projection failure where random missing frames create a mechanical stutter with black splice gaps.",
+        useCase: "Vintage cinema projector feel, tension building, aggressive cuts",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="4" y="10" width="20" height="30" fill="#1e293b" stroke="#475569" stroke-width="1"/><rect x="28" y="10" width="22" height="30" fill="#020617" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3,2"/><rect x="54" y="10" width="22" height="30" fill="#1e293b" stroke="#475569" stroke-width="1"/><circle cx="14" cy="5" r="2" fill="#fff"/><circle cx="39" cy="5" r="2" fill="#ef4444"/><circle cx="65" cy="5" r="2" fill="#fff"/><text x="31" y="28" fill="#ef4444" font-size="7" font-family="monospace">CUT</text></svg>`
+      },
+      {
+        id: "jumps",
+        name: "Jumps",
+        sub: "0.2s Micro Skips",
+        badge: "JUMP CUTS",
+        filter: "aselect='not(between(t\,2\,2.2))',select='not(between(t\,2\,2.2))'",
+        desc: "Rhythmic jump-cut excision trimming small chunks of time to accelerate pacing while preserving speech intelligibility.",
+        useCase: "Modern YouTube/TikTok pacing, tutorial compression, talking-head vlogs",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><line x1="4" y1="25" x2="76" y2="25" stroke="#475569" stroke-width="2"/><circle cx="16" cy="25" r="6" fill="#3b82f6"/><path d="M 22 25 Q 36 6 50 25" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,2"/><circle cx="56" cy="25" r="6" fill="#10b981"/><polygon points="48,22 56,25 48,28" fill="#f59e0b"/><text x="24" y="44" fill="#f59e0b" font-size="6" font-family="monospace">JUMP &gt;&gt;</text></svg>`
+      },
+      {
+        id: "stutter",
+        name: "Stutter",
+        sub: "Rapid Skips",
+        badge: "STUTTER SKIP",
+        filter: "select='trunc(n/4)*4',setpts=N/FRAME_RATE/TB",
+        desc: "Rapid stutter cuts where short micro-segments repeat before jumping ahead, creating a machine-gun edit rhythm.",
+        useCase: "Glitch music breaks, intense action trailers, rhythmic impact shots",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="10" y="10" width="24" height="30" fill="#3b82f6" opacity="0.35"/><rect x="24" y="10" width="24" height="30" fill="#3b82f6" opacity="0.65"/><rect x="38" y="10" width="24" height="30" fill="#3b82f6"/><text x="14" y="46" fill="#60a5fa" font-size="5" font-family="monospace">14-FRAME STUTTER</text></svg>`
+      },
+      {
+        id: "freeze",
+        name: "Freeze",
+        sub: "Hold Frame (Audio Safe)",
+        badge: "FREEZE HOLD",
+        filter: "tpad=stop_mode=clone:stop_duration=0.5",
+        desc: "Holds video frames static without modifying timeline duration, allowing audio tracks and background music to remain 100% intact.",
+        useCase: "Music videos, commentary pause punches, comedy timing freeze-frames",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="8" width="68" height="24" fill="#0284c7"/><rect x="32" y="14" width="4" height="12" fill="#fff"/><rect x="42" y="14" width="4" height="12" fill="#fff"/><path d="M 6 42 Q 18 34 26 42 T 44 42 T 62 42 T 74 42" fill="none" stroke="#00f59b" stroke-width="2"/><text x="8" y="48" fill="#00f59b" font-size="5" font-family="monospace">AUDIO CONTINUOUS</text></svg>`
+      },
+      {
+        id: "beat",
+        name: "Beat",
+        sub: "BPM Rhythmic Cuts",
+        badge: "BPM SYNC",
+        filter: "select='bitor(gte(t\,0)\,mod(t\,(60/128)))'",
+        desc: "Rhythmically excises frames synchronized precisely to a target musical BPM (e.g. 128 BPM), snapping edits to musical beats.",
+        useCase: "Dance choreographies, music video cuts, electronic beat drops",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><line x1="16" y1="6" x2="16" y2="44" stroke="#ec4899" stroke-width="1.5"/><line x1="36" y1="6" x2="36" y2="44" stroke="#ec4899" stroke-width="1.5"/><line x1="56" y1="6" x2="56" y2="44" stroke="#ec4899" stroke-width="1.5"/><line x1="76" y1="6" x2="76" y2="44" stroke="#ec4899" stroke-width="1.5"/><polyline points="6,34 16,10 26,34 36,10 46,34 56,10 66,34 76,10" fill="none" stroke="#facc15" stroke-width="2"/><text x="18" y="46" fill="#ec4899" font-size="6" font-family="monospace">128 BPM</text></svg>`
+      },
+      {
+        id: "silence",
+        name: "Silence",
+        sub: "Auto Strip Pauses",
+        badge: "SMART VLOG",
+        filter: "silenceremove=start_periods=1:start_threshold=-45dB",
+        desc: "Analyzes audio waveforms to automatically detect dead-air pauses and cuts them out cleanly in a single pass.",
+        useCase: "Podcasts, screencasts, long interviews, video lectures",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><path d="M 4 25 Q 12 12 18 25 T 30 25" fill="none" stroke="#00f59b" stroke-width="2"/><line x1="30" y1="25" x2="52" y2="25" stroke="#ef4444" stroke-width="2" stroke-dasharray="2,2"/><path d="M 52 25 Q 60 12 66 25 T 76 25" fill="none" stroke="#00f59b" stroke-width="2"/><text x="32" y="18" fill="#ef4444" font-size="10">✂</text><text x="24" y="40" fill="#ef4444" font-size="5" font-family="monospace">STRIP SILENCE</text></svg>`
+      }
+    ],
+
+    vidglue: [
+      {
+        id: "concat",
+        name: "Concat",
+        sub: "Zero-Loss Copy",
+        badge: "STREAM COPY",
+        filter: "-c copy -f concat",
+        desc: "Lightning stream-copy merge. If clips share codecs and frame rates, gigabytes join in hundreds of milliseconds with zero re-encoding.",
+        useCase: "Joining split camera files, drone footage reels, game captures",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="12" width="30" height="26" fill="#2563eb"/><rect x="44" y="12" width="30" height="26" fill="#10b981"/><line x1="36" y1="25" x2="44" y2="25" stroke="#facc15" stroke-width="3"/><text x="14" y="28" fill="#fff" font-size="8" font-family="monospace">A</text><text x="56" y="28" fill="#fff" font-size="8" font-family="monospace">B</text><text x="18" y="46" fill="#facc15" font-size="6" font-family="monospace">STREAM COPY</text></svg>`
+      },
+      {
+        id: "bounce",
+        name: "Bounce",
+        sub: "Forward + Reverse Loop",
+        badge: "BOOMERANG",
+        filter: "split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1:a=1",
+        desc: "Plays clip forward then immediately reverses backward to the start, creating a seamless Boomerang ping-pong loop.",
+        useCase: "Instagram / TikTok reels, product turntables, continuous gifs",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="12" width="68" height="26" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/><path d="M 20 20 L 50 20 L 44 14 M 50 20 L 44 26" fill="none" stroke="#00f59b" stroke-width="2"/><path d="M 60 30 L 30 30 L 36 24 M 30 30 L 36 36" fill="none" stroke="#ec4899" stroke-width="2"/><text x="18" y="46" fill="#38bdf8" font-size="6" font-family="monospace">BOOMERANG LOOP</text></svg>`
+      },
+      {
+        id: "reencode",
+        name: "Re-encode",
+        sub: "Smart Aspect Fit",
+        badge: "AUTO NORMALIZE",
+        filter: "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080",
+        desc: "Safely merges clips with mismatched frame rates, dimensions, or missing audio streams using blurred background fill or padding.",
+        useCase: "Mixing vertical phone clips with horizontal 4K video",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="8" width="68" height="34" fill="#334155" opacity="0.6"/><rect x="26" y="8" width="28" height="34" fill="#2563eb"/><text x="18" y="48" fill="#93c5fd" font-size="5" font-family="monospace">BLUR FILL / FIT</text></svg>`
+      },
+      {
+        id: "xfade",
+        name: "Crossfade",
+        sub: "Smooth Blend (-t fade)",
+        badge: "CROSSFADE",
+        filter: "xfade=transition=fade:duration=1.0:offset=4.0",
+        desc: "Overlaps video tails and heads with hardware-accelerated opacity dissolves for seamless cinematic continuity.",
+        useCase: "Short films, wedding videos, scene transitions, corporate promos",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="10" width="38" height="30" fill="#2563eb" opacity="0.8"/><rect x="36" y="10" width="38" height="30" fill="#ec4899" opacity="0.8"/><text x="36" y="28" fill="#fff" font-size="9" font-family="monospace">⤬</text><text x="22" y="46" fill="#e2e8f0" font-size="5" font-family="monospace">CROSSFADE</text></svg>`
+      },
+      {
+        id: "hstack",
+        name: "Split-Screen",
+        sub: "Side-by-Side (50/50)",
+        badge: "SPLIT SCREEN",
+        filter: "hstack=inputs=2",
+        desc: "Arranges two videos horizontally side-by-side with synchronized audio and normalized vertical dimensions.",
+        useCase: "Before/after grading comparisons, podcast dual view, reaction videos",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="8" width="32" height="34" fill="#2563eb"/><rect x="42" y="8" width="32" height="34" fill="#ec4899"/><text x="18" y="28" fill="#fff" font-size="8" font-family="monospace">L</text><text x="54" y="28" fill="#fff" font-size="8" font-family="monospace">R</text></svg>`
+      },
+      {
+        id: "2x2",
+        name: "Quad 2x2",
+        sub: "4-Way Grid Collage",
+        badge: "QUAD COLLAGE",
+        filter: "xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0",
+        desc: "Combines 4 videos into a 2x2 quadrant security/multi-cam grid with combined audio mix.",
+        useCase: "Multi-instrument music videos, multi-cam sports, surveillance layouts",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="6" width="32" height="17" fill="#2563eb"/><rect x="42" y="6" width="32" height="17" fill="#ec4899"/><rect x="6" y="27" width="32" height="17" fill="#10b981"/><rect x="42" y="27" width="32" height="17" fill="#f59e0b"/><text x="18" y="18" fill="#fff" font-size="6">1</text><text x="54" y="18" fill="#fff" font-size="6">2</text><text x="18" y="39" fill="#fff" font-size="6">3</text><text x="54" y="39" fill="#fff" font-size="6">4</text></svg>`
+      }
+    ],
+
+    videorandfram: [
+      {
+        id: "shuffle",
+        name: "Shuffle",
+        sub: "30-Frame Scramble",
+        badge: "FRAME SHUFFLE",
+        filter: "random=frames=30",
+        desc: "Balanced 30-frame shuffle scramble giving a rhythmic, experimental mosaic look without losing narrative flow.",
+        useCase: "Teaser montages, music video drops, experimental cinema",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="8" y="8" width="14" height="34" fill="#2563eb"/><rect x="26" y="8" width="14" height="34" fill="#f59e0b"/><rect x="44" y="8" width="14" height="34" fill="#00f59b"/><rect x="62" y="8" width="10" height="34" fill="#ec4899"/><text x="12" y="28" fill="#fff" font-size="8">3</text><text x="30" y="28" fill="#fff" font-size="8">1</text><text x="48" y="28" fill="#fff" font-size="8">4</text></svg>`
+      },
+      {
+        id: "jitter",
+        name: "Jitter",
+        sub: "4-Frame Shutter Tremor",
+        badge: "SHUTTER JITTER",
+        filter: "random=frames=4",
+        desc: "High-frequency 4-frame jitter micro-tremor giving a physical projector gate weave or earthquake tremor.",
+        useCase: "High-adrenaline suspense, physical shockwaves, horror jump scares",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="10" y="12" width="60" height="26" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/><line x1="6" y1="18" x2="74" y2="18" stroke="#ff3344" stroke-width="1.5"/><line x1="6" y1="32" x2="74" y2="32" stroke="#00f59b" stroke-width="1.5"/><text x="18" y="44" fill="#f59e0b" font-size="6" font-family="monospace">4-FRAME JITTER</text></svg>`
+      },
+      {
+        id: "stutter",
+        name: "Stutter",
+        sub: "Breakbeat 14-Frame",
+        badge: "STEP CADENCE",
+        filter: "fps=12,random=frames=14",
+        desc: "14-frame breakbeat stop-motion look with claymation step cadence and anime action pacing.",
+        useCase: "Anime fights, hip-hop music videos, stylized fashion edits",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="10" y="10" width="24" height="30" fill="#3b82f6" opacity="0.35"/><rect x="24" y="10" width="24" height="30" fill="#3b82f6" opacity="0.65"/><rect x="38" y="10" width="24" height="30" fill="#3b82f6"/><text x="14" y="46" fill="#60a5fa" font-size="5" font-family="monospace">14-FRAME STUTTER</text></svg>`
+      },
+      {
+        id: "vortex",
+        name: "Vortex",
+        sub: "120-Frame Time Loop",
+        badge: "TIME VORTEX",
+        filter: "random=frames=120",
+        desc: "Surreal 120-frame non-linear loop cycling temporal chunks forward and backward like a time vortex.",
+        useCase: "Psychedelic sequences, memory lapses, time-travel themes",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><circle cx="40" cy="25" r="18" fill="none" stroke="#a855f7" stroke-width="2" stroke-dasharray="8,4"/><circle cx="40" cy="25" r="11" fill="none" stroke="#ec4899" stroke-width="2" stroke-dasharray="6,3"/><circle cx="40" cy="25" r="4" fill="#00f59b"/><text x="18" y="46" fill="#c084fc" font-size="6" font-family="monospace">120F VORTEX</text></svg>`
+      },
+      {
+        id: "chaos",
+        name: "Chaos",
+        sub: "300+ Frame Explosion",
+        badge: "CHAOS MOSAIC",
+        filter: "random=frames=320",
+        desc: "Extreme temporal explosion scattering frames across 10+ seconds for a totally non-linear abstract experience.",
+        useCase: "Experimental video art, climax breakdown scenes, abstract visualizers",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="8" y="6" width="16" height="16" fill="#ef4444"/><rect x="28" y="14" width="14" height="22" fill="#3b82f6"/><rect x="46" y="6" width="26" height="14" fill="#f59e0b"/><rect x="12" y="26" width="22" height="18" fill="#10b981"/><rect x="48" y="24" width="24" height="20" fill="#ec4899"/></svg>`
+      },
+      {
+        id: "flicker",
+        name: "Flicker",
+        sub: "50/60fps Strobe",
+        badge: "STROBE FLASH",
+        filter: "select='mod(n\,2)'",
+        desc: "Rapid-fire 50/60Hz frame alternation generating an intense photographic flash and strobe effect.",
+        useCase: "Rave visuals, horror impacts, high-voltage electricity FX",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="8" width="14" height="34" fill="#fff"/><rect x="24" y="8" width="14" height="34" fill="#000" stroke="#333" stroke-width="1"/><rect x="42" y="8" width="14" height="34" fill="#fff"/><rect x="60" y="8" width="14" height="34" fill="#000" stroke="#333" stroke-width="1"/><text x="14" y="47" fill="#facc15" font-size="6" font-family="monospace">STROBE 60Hz</text></svg>`
+      },
+      {
+        id: "reverse",
+        name: "Reverse",
+        sub: "Periodic Rewind Blocks",
+        badge: "REWIND CHUNKS",
+        filter: "reverse blocks",
+        desc: "Takes 8-frame blocks and plays them in reverse order, creating a turntablist DJ scratching motion.",
+        useCase: "Glitch hop edits, time-rewind cues, dance turntable accents",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><path d="M 50 18 L 30 25 L 50 32 Z" fill="#f59e0b"/><path d="M 68 18 L 48 25 L 68 32 Z" fill="#ff3344"/><rect x="12" y="10" width="8" height="30" fill="#00f59b"/><text x="14" y="46" fill="#f59e0b" font-size="6" font-family="monospace">REWIND 8F</text></svg>`
+      },
+      {
+        id: "burst",
+        name: "Burst",
+        sub: "Scramble Pulses",
+        badge: "BURST PULSE",
+        filter: "periodic shuffle bursts",
+        desc: "Intermittent pulses where calm video suddenly scrambles violently before returning to normal playback.",
+        useCase: "Bass-drop accents, gunshots, high-tension trailer beats",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><circle cx="40" cy="25" r="16" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,2"/><circle cx="40" cy="25" r="8" fill="#f59e0b"/><line x1="20" y1="25" x2="60" y2="25" stroke="#fff" stroke-width="1.5"/><text x="22" y="46" fill="#ef4444" font-size="6" font-family="monospace">PULSE BURST</text></svg>`
+      }
+    ],
+
+    wavfade: [
+      {
+        id: "qsin",
+        name: "Quarter Sine",
+        sub: "Gentle S-Curve (qsin)",
+        badge: "ORGANIC FADE",
+        filter: "afade=t=in:curve=qsin",
+        desc: "Gentle quarter-sine mathematical envelope producing smooth, natural acoustic fades with zero abrupt level steps.",
+        useCase: "Vocal recordings, acoustic instruments, master track fade-ins",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><path d="M 10 40 Q 35 40 45 25 T 70 10" stroke="#00f59b" stroke-width="3" fill="none" stroke-linecap="round"/><line x1="10" y1="42" x2="70" y2="42" stroke="#333f52" stroke-width="1.5"/><text x="12" y="18" fill="#00f59b" font-size="7" font-family="monospace">QSIN S-CURVE</text></svg>`
+      },
+      {
+        id: "tri",
+        name: "Triangle",
+        sub: "Linear Ramp (tri)",
+        badge: "LINEAR RAMP",
+        filter: "afade=t=in:curve=tri",
+        desc: "Constant-rate linear decibel ramp for clean, predictable crossfades and electronic transitions.",
+        useCase: "Electronic dance loops, synth stems, crossfader DJ simulation",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><line x1="10" y1="40" x2="70" y2="10" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/><line x1="10" y1="42" x2="70" y2="42" stroke="#333f52" stroke-width="1.5"/><text x="12" y="18" fill="#38bdf8" font-size="7" font-family="monospace">LINEAR TRI</text></svg>`
+      },
+      {
+        id: "esin",
+        name: "Exponential",
+        sub: "Steep Envelope (esin)",
+        badge: "EXPONENTIAL",
+        filter: "afade=t=in:curve=esin",
+        desc: "Steep exponential rise that remains quiet before surging upward rapidly at the end of the envelope.",
+        useCase: "Dramatic audio build-ups, riser effects, impactful vocal punches",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><path d="M 10 40 Q 55 40 70 10" stroke="#ec4899" stroke-width="3" fill="none" stroke-linecap="round"/><line x1="10" y1="42" x2="70" y2="42" stroke="#333f52" stroke-width="1.5"/><text x="12" y="18" fill="#ec4899" font-size="7" font-family="monospace">EXPONENTIAL</text></svg>`
+      },
+      {
+        id: "log",
+        name: "Logarithmic",
+        sub: "Fast Attack (log)",
+        badge: "FAST ATTACK",
+        filter: "afade=t=in:curve=log",
+        desc: "Instantaneous fast volume rise that flattens out smoothly, preventing digital click pops at clip boundaries.",
+        useCase: "Trimming sample slices, eliminating transient click noise",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><path d="M 10 40 Q 25 10 70 10" stroke="#f59e0b" stroke-width="3" fill="none" stroke-linecap="round"/><line x1="10" y1="42" x2="70" y2="42" stroke="#333f52" stroke-width="1.5"/><text x="12" y="18" fill="#f59e0b" font-size="7" font-family="monospace">LOGARITHMIC</text></svg>`
+      }
+    ],
+
+    wavfx: [
+      {
+        id: "room",
+        name: "Warm Room",
+        sub: "Intimate Reflection",
+        badge: "ROOM REVERB",
+        filter: "aecho=0.8:0.88:40:0.4",
+        desc: "Short 40ms acoustic delay simulating an intimate cedar studio room with tight presence and minimal mud.",
+        useCase: "Podcast dialogue, dry snare drums, vocal warmth",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="15" y="10" width="50" height="30" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/><circle cx="40" cy="25" r="4" fill="#00f59b"/><path d="M 32 20 A 10 10 0 0 1 48 20" stroke="#38bdf8" stroke-width="1.5" fill="none"/><text x="20" y="46" fill="#38bdf8" font-size="5" font-family="monospace">WARM ROOM (40ms)</text></svg>`
+      },
+      {
+        id: "hall",
+        name: "Concert Hall",
+        sub: "Spacious Echo",
+        badge: "HALL REVERB",
+        filter: "aecho=0.8:0.88:120:0.5|250:0.35",
+        desc: "Dual 120ms and 250ms stereo reflections creating the expansive, lush decay of a classical concert hall.",
+        useCase: "Orchestral strings, acoustic guitars, cinematic backing vocals",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><polygon points="10,40 25,12 55,12 70,40" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/><circle cx="40" cy="30" r="5" fill="#f59e0b"/><path d="M 28 22 A 15 15 0 0 1 52 22" stroke="#f59e0b" stroke-width="1.5" fill="none"/><text x="18" y="46" fill="#f59e0b" font-size="5" font-family="monospace">CONCERT HALL</text></svg>`
+      },
+      {
+        id: "space",
+        name: "Deep Space",
+        sub: "Infinite Echo Rings",
+        badge: "COSMIC REVERB",
+        filter: "aecho=0.8:0.9:500:0.6|1000:0.45",
+        desc: "Massive 500ms and 1000ms delay clusters with long feedback tails creating an infinite cosmic reverb cavern.",
+        useCase: "Ambient synth soundscapes, sci-fi FX, dramatic drone drops",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><circle cx="40" cy="25" r="5" fill="#ec4899"/><circle cx="40" cy="25" r="12" fill="none" stroke="#a855f7" stroke-width="1.5"/><circle cx="40" cy="25" r="19" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="4,2"/><text x="18" y="46" fill="#ec4899" font-size="5" font-family="monospace">DEEP SPACE (1s)</text></svg>`
+      }
+    ],
+
+    wavnorm: [
+      {
+        id: "lufs",
+        name: "EBU R128 LUFS",
+        sub: "Broadcast -14 LUFS",
+        badge: "BROADCAST COMPLIANT",
+        filter: "loudnorm=I=-14:LRA=11:TP=-1.5",
+        desc: "Two-pass integrated loudness normalization conforming strictly to the EBU R128 and ITU-R BS.1770 broadcast standard.",
+        useCase: "YouTube, Spotify, Apple Podcasts, television broadcasting",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="15" y="10" width="20" height="28" fill="#1e293b" stroke="#333f52" stroke-width="1"/><rect x="45" y="10" width="20" height="28" fill="#1e293b" stroke="#333f52" stroke-width="1"/><rect x="18" y="18" width="14" height="18" fill="#00f59b"/><rect x="48" y="16" width="14" height="20" fill="#00f59b"/><line x1="10" y1="18" x2="70" y2="18" stroke="#ff3344" stroke-width="1.5" stroke-dasharray="4,2"/><text x="24" y="44" fill="#00f59b" font-size="6" font-family="monospace">-14 LUFS</text></svg>`
+      },
+      {
+        id: "peak",
+        name: "Peak Normalization",
+        sub: "dBFS True-Peak",
+        badge: "PEAK CEILING",
+        filter: "volume=-0.5dB",
+        desc: "Instantaneous peak volume scaling ensuring loudest transients reach exactly -0.5 dBFS without dynamic compression.",
+        useCase: "Sample packs, quick mastering level checks, audio stems",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><polyline points="10,38 22,12 34,36 46,14 58,32 70,20" fill="none" stroke="#38bdf8" stroke-width="2.5"/><line x1="8" y1="12" x2="72" y2="12" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,2"/><text x="22" y="45" fill="#38bdf8" font-size="6" font-family="monospace">0.0 dBFS PEAK</text></svg>`
+      }
+    ],
+
+    img2webp: [
+      {
+        id: "lossy",
+        name: "WebP Quality (85)",
+        sub: "85% Size Reduction",
+        badge: "HIGH EFFICIENCY",
+        filter: "cwebp -q 85 photo.jpg -o photo.webp",
+        desc: "Modern predictive lossy encoding reducing JPEG/PNG file size by ~85% with zero perceivable compression artifacts.",
+        useCase: "Responsive websites, photography portfolios, blog hero images",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="8" width="68" height="34" rx="4" fill="#1e293b" stroke="#2563eb" stroke-width="1.5"/><circle cx="24" cy="20" r="6" fill="#f59e0b"/><polygon points="12,38 32,24 44,32 58,20 68,38" fill="#00f59b"/><rect x="42" y="10" width="28" height="12" rx="2" fill="#2563eb"/><text x="45" y="19" fill="#fff" font-size="6" font-family="monospace" font-weight="bold">-85%</text></svg>`
+      },
+      {
+        id: "lossless",
+        name: "WebP Lossless",
+        sub: "Pixel-Perfect PNG (-l)",
+        badge: "BIT-EXACT",
+        filter: "cwebp -lossless graphic.png -o graphic.webp",
+        desc: "Mathematical lossless transform preserving 100% bit-exact alpha channel transparency and sharp vector raster lines.",
+        useCase: "UI screenshots, logos, transparency icons, crisp technical diagrams",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="8" width="68" height="34" rx="4" fill="#1e293b" stroke="#00f59b" stroke-width="1.5"/><line x1="16" y1="16" x2="64" y2="16" stroke="#f0f4fc" stroke-width="2"/><line x1="16" y1="25" x2="64" y2="25" stroke="#f0f4fc" stroke-width="2"/><line x1="16" y1="34" x2="48" y2="34" stroke="#f0f4fc" stroke-width="2"/><text x="46" y="40" fill="#00f59b" font-size="6" font-family="monospace" font-weight="bold">LOSSLESS</text></svg>`
+      }
+    ],
+
+    ytdl: [
+      {
+        id: "mp4",
+        name: "Video MP4",
+        sub: "1080p Stream + AAC",
+        badge: "VIDEO DOWNLOAD",
+        filter: "yt-dlp -f 'bv*+ba/b' --merge-output-format mp4",
+        desc: "Downloads the highest available resolution video stream merged with crystal-clear audio into a universal MP4 container.",
+        useCase: "Offline research, archival video storage, video editing B-roll",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="8" width="68" height="34" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/><polygon points="34,18 50,25 34,32" fill="#00f59b"/><text x="12" y="40" fill="#38bdf8" font-size="5" font-family="monospace">1080P MP4</text></svg>`
+      },
+      {
+        id: "mp3",
+        name: "Audio MP3",
+        sub: "320kbps Audio Stems",
+        badge: "AUDIO EXTRACT",
+        filter: "yt-dlp -x --audio-format mp3 --audio-quality 0",
+        desc: "Strips the video stream and converts the soundtrack into a pristine 320kbps MP3 audio file with metadata.",
+        useCase: "Soundtracks, speech lectures, music sampling, offline listening",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><circle cx="40" cy="25" r="14" fill="#1e293b" stroke="#ec4899" stroke-width="1.5"/><circle cx="40" cy="25" r="4" fill="#f59e0b"/><text x="24" y="46" fill="#ec4899" font-size="6" font-family="monospace">320K MP3</text></svg>`
+      }
+    ]
+  },
+
+  getToolSvg(toolId) {
+    return this.tools[toolId] || this.tools.mytools;
+  },
+
+  getEffectSvg(toolId, effectId) {
+    const list = this.effects[toolId];
+    if (list) {
+      const match = list.find(e => e.id === effectId);
+      if (match) return match.svg;
+      if (list[0]) return list[0].svg;
+    }
+    return this.getToolSvg(toolId);
+  },
+
+  getEffectData(toolId, effectId) {
+    const list = this.effects[toolId];
+    if (list) {
+      const match = list.find(e => e.id === effectId);
+      if (match) return match;
+      if (list[0]) return list[0];
+    }
+    return {
+      id: toolId,
+      name: toolId,
+      sub: "Terminal Command",
+      badge: toolId.toUpperCase(),
+      filter: "native unix stream execution",
+      desc: "Standard high-precision macOS terminal toolbox operation.",
+      useCase: "High-precision media transcoding and workflow automation",
+      svg: this.getToolSvg(toolId)
+    };
+  }
+};
+
+// ============================================================================
 // 3. Interactive Command Studio (Flag Builder / Generator)
 // ============================================================================
 class CommandStudio {
@@ -878,7 +1509,15 @@ class CommandStudio {
       const btn = document.createElement("button");
       btn.className = `studio-tool-btn ${id === this.currentTool ? "active" : ""}`;
       btn.dataset.tool = id;
-      btn.innerHTML = `<span><strong>${tool.name}</strong></span><span class="btn-cat">${tool.category}</span>`;
+      btn.innerHTML = `
+        <div class="studio-tool-thumb" aria-hidden="true">
+          ${VISUAL_AIDS.getToolSvg(id)}
+        </div>
+        <div class="studio-tool-btn-info">
+          <span><strong>${tool.name}</strong></span>
+          <span class="btn-cat">${tool.category}</span>
+        </div>
+      `;
       btn.addEventListener("click", () => {
         this.selectTool(id);
       });
@@ -899,17 +1538,89 @@ class CommandStudio {
     this.updateCommand();
   }
 
+  renderEffectPicker(toolId, activeId, labelText = "Visual Effect Reference (Click to apply):") {
+    const list = VISUAL_AIDS.effects[toolId];
+    if (!list || list.length === 0) return "";
+
+    const activeItem = list.find(e => e.id === activeId) || list[0];
+
+    return `
+      <div class="control-group" style="grid-column: 1 / -1;">
+        <label class="control-label">
+          <span>${labelText}</span>
+          <span class="val-badge" id="c_active_effect_label">${activeItem.name}</span>
+        </label>
+        <div class="visual-effect-grid" id="visual_effect_grid">
+          ${list.map(fx => `
+            <div class="visual-effect-card ${fx.id === activeId ? 'active' : ''}" data-fx-id="${fx.id}" title="${fx.name}: ${fx.sub}">
+              <div class="visual-effect-thumb">
+                ${fx.svg}
+              </div>
+              <div class="visual-effect-meta">
+                <span class="visual-effect-name">${fx.name}</span>
+                <span class="visual-effect-sub">${fx.sub}</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  bindEffectCards(selectElementId) {
+    const grid = this.controlsContainer.querySelector("#visual_effect_grid");
+    if (!grid) return;
+
+    const selectEl = document.getElementById(selectElementId);
+
+    grid.querySelectorAll(".visual-effect-card").forEach(card => {
+      card.addEventListener("click", () => {
+        const fxId = card.dataset.fxId;
+        grid.querySelectorAll(".visual-effect-card").forEach(c => c.classList.remove("active"));
+        card.classList.add("active");
+
+        if (selectEl) {
+          selectEl.value = fxId;
+          selectEl.dispatchEvent(new Event("change"));
+        } else {
+          this.updateCommand();
+        }
+      });
+    });
+
+    if (selectEl) {
+      selectEl.addEventListener("change", () => {
+        const val = selectEl.value;
+        grid.querySelectorAll(".visual-effect-card").forEach(c => {
+          c.classList.toggle("active", c.dataset.fxId === val);
+        });
+      });
+    }
+  }
+
   renderControls(tool) {
     let html = `
       <div class="studio-tool-header">
-        <div class="studio-tool-title">${tool.name}</div>
+        <div class="studio-tool-title">
+          <div class="tool-card-visual-badge" style="width: 28px; height: 28px; min-width: 28px; padding: 2px;">
+            ${VISUAL_AIDS.getToolSvg(tool.id)}
+          </div>
+          <span>${tool.name}</span>
+        </div>
         <div class="studio-tool-summary">${tool.summary}</div>
       </div>
+
+      <!-- Live Visual Reference Monitor -->
+      <div class="studio-visual-monitor" id="studioVisualMonitor">
+        <!-- Injected dynamically by updateVisualMonitor -->
+      </div>
+
       <div class="controls-grid">
     `;
 
     if (tool.id === "img2webp") {
       html += `
+        ${this.renderEffectPicker("img2webp", "lossy", "Compression Mode:")}
         <div class="control-group">
           <label class="control-label">Quality (0-100): <span class="val-badge" id="c_q_val">85</span></label>
           <input type="range" class="control-input" id="c_q" min="1" max="100" value="85">
@@ -933,8 +1644,9 @@ class CommandStudio {
       `;
     } else if (tool.id === "vidglue") {
       html += `
+        ${this.renderEffectPicker("vidglue", "concat", "Merge / Layout Mode:")}
         <div class="control-group">
-          <label class="control-label">Mode:</label>
+          <label class="control-label">Mode Selector:</label>
           <select class="control-select" id="c_mode">
             <option value="concat">Concatenate Files (Fast copy)</option>
             <option value="bounce">Bounce Loop (--bounce)</option>
@@ -963,8 +1675,9 @@ class CommandStudio {
       `;
     } else if (tool.id === "vidglitch") {
       html += `
+        ${this.renderEffectPicker("vidglitch", "rgb-split", "Glitch Presets (Click to preview & apply):")}
         <div class="control-group">
-          <label class="control-label">Preset:</label>
+          <label class="control-label">Preset Selector:</label>
           <select class="control-select" id="c_preset">
             <option value="rgb-split">RGB Split (Chromatic Aberration)</option>
             <option value="vhs">VHS Analog Tape + Tracking</option>
@@ -1005,12 +1718,13 @@ class CommandStudio {
       `;
     } else if (tool.id === "vidcuts") {
       html += `
+        ${this.renderEffectPicker("vidcuts", "frames", "Cut & Excision Mode:")}
         <div class="control-group">
           <label class="control-label">Cut Percentage: <span class="val-badge" id="c_pct_val">25%</span></label>
           <input type="range" class="control-input" id="c_pct" min="5" max="80" value="25">
         </div>
         <div class="control-group">
-          <label class="control-label">Cut Mode:</label>
+          <label class="control-label">Cut Mode Selector:</label>
           <select class="control-select" id="c_cut_mode">
             <option value="frames">Single Random Frames (Celluloid drops)</option>
             <option value="jumps">Micro-Chunks (~0.2s jump cuts)</option>
@@ -1038,6 +1752,7 @@ class CommandStudio {
       `;
     } else if (tool.id === "videoeffects") {
       html += `
+        ${this.renderEffectPicker("videoeffects", "cinema", "Cinematic Look Presets (Click to preview & apply):")}
         <div class="control-group">
           <label class="control-label">Color Look Preset:</label>
           <select class="control-select" id="c_fx_preset">
@@ -1049,6 +1764,7 @@ class CommandStudio {
             <option value="synthwave">Synthwave Neon Split</option>
             <option value="thermal">Thermal Infrared Vision</option>
             <option value="bleach">Gritty Bleach Bypass</option>
+            <option value="sepia">Historic 1890 Sepia</option>
           </select>
         </div>
         <div class="control-group">
@@ -1077,6 +1793,7 @@ class CommandStudio {
       `;
     } else if (tool.id === "videorandfram") {
       html += `
+        ${this.renderEffectPicker("videorandfram", "shuffle", "Randomization Presets:")}
         <div class="control-group">
           <label class="control-label">Randomization Preset:</label>
           <select class="control-select" id="c_vrf_preset">
@@ -1149,6 +1866,7 @@ class CommandStudio {
       `;
     } else if (tool.id === "wavnorm") {
       html += `
+        ${this.renderEffectPicker("wavnorm", "lufs", "Loudness Target Standard:")}
         <div class="control-group">
           <label class="control-label">Normalization Standard:</label>
           <select class="control-select" id="c_norm_mode">
@@ -1167,6 +1885,7 @@ class CommandStudio {
       `;
     } else if (tool.id === "wavfade") {
       html += `
+        ${this.renderEffectPicker("wavfade", "qsin", "Fade Mathematical Curves:")}
         <div class="control-group">
           <label class="control-label">Fade In Duration (sec):</label>
           <input type="number" step="0.05" class="control-input" id="c_fade_in" value="0.1">
@@ -1176,7 +1895,7 @@ class CommandStudio {
           <input type="number" step="0.05" class="control-input" id="c_fade_out" value="0.2">
         </div>
         <div class="control-group">
-          <label class="control-label">Curve Type:</label>
+          <label class="control-label">Curve Type Selector:</label>
           <select class="control-select" id="c_curve">
             <option value="qsin">Quarter Sine (qsin)</option>
             <option value="tri">Linear Triangle (tri)</option>
@@ -1210,6 +1929,7 @@ class CommandStudio {
       `;
     } else if (tool.id === "wavfx") {
       html += `
+        ${this.renderEffectPicker("wavfx", "room", "Acoustic Space Reverb Presets:")}
         <div class="control-group">
           <label class="control-label">Reverb Preset:</label>
           <select class="control-select" id="c_reverb">
@@ -1234,6 +1954,7 @@ class CommandStudio {
       `;
     } else if (tool.id === "ytdl") {
       html += `
+        ${this.renderEffectPicker("ytdl", "mp4", "Target Media Format:")}
         <div class="control-group">
           <label class="control-label">Format:</label>
           <select class="control-select" id="c_format">
@@ -1267,11 +1988,107 @@ class CommandStudio {
     html += `</div>`;
     this.controlsContainer.innerHTML = html;
 
-    // Attach dynamic listeners
+    // Connect visual effect card grids to select dropdowns
+    if (tool.id === "videoeffects") this.bindEffectCards("c_fx_preset");
+    else if (tool.id === "vidglitch") this.bindEffectCards("c_preset");
+    else if (tool.id === "vidcuts") this.bindEffectCards("c_cut_mode");
+    else if (tool.id === "vidglue") this.bindEffectCards("c_mode");
+    else if (tool.id === "videorandfram") this.bindEffectCards("c_vrf_preset");
+    else if (tool.id === "wavfade") this.bindEffectCards("c_curve");
+    else if (tool.id === "wavfx") this.bindEffectCards("c_reverb");
+    else if (tool.id === "wavnorm") this.bindEffectCards("c_norm_mode");
+    else if (tool.id === "ytdl") this.bindEffectCards("c_format");
+    else if (tool.id === "img2webp") {
+      const grid = this.controlsContainer.querySelector("#visual_effect_grid");
+      const losslessCheckbox = document.getElementById("c_lossless");
+      if (grid && losslessCheckbox) {
+        grid.querySelectorAll(".visual-effect-card").forEach(c => {
+          c.addEventListener("click", () => {
+            const isLossless = c.dataset.fxId === "lossless";
+            grid.querySelectorAll(".visual-effect-card").forEach(x => x.classList.remove("active"));
+            c.classList.add("active");
+            losslessCheckbox.checked = isLossless;
+            losslessCheckbox.dispatchEvent(new Event("change"));
+          });
+        });
+        losslessCheckbox.addEventListener("change", () => {
+          const target = losslessCheckbox.checked ? "lossless" : "lossy";
+          grid.querySelectorAll(".visual-effect-card").forEach(x => {
+            x.classList.toggle("active", x.dataset.fxId === target);
+          });
+        });
+      }
+    }
+
+    // Attach dynamic listeners to inputs & selects
     this.controlsContainer.querySelectorAll("input, select").forEach(el => {
       el.addEventListener("input", () => this.updateCommand());
       el.addEventListener("change", () => this.updateCommand());
     });
+
+    this.updateVisualMonitor(tool);
+  }
+
+  updateVisualMonitor(tool = null) {
+    const monitor = document.getElementById("studioVisualMonitor");
+    if (!monitor) return;
+
+    const toolObj = tool || TOOLS_DATA.find(t => t.id === this.currentTool) || { id: this.currentTool, name: this.currentTool, category: "core" };
+    let effectId = "default";
+
+    if (this.currentTool === "videoeffects") {
+      effectId = document.getElementById("c_fx_preset")?.value || "cinema";
+    } else if (this.currentTool === "vidglitch") {
+      effectId = document.getElementById("c_preset")?.value || "rgb-split";
+    } else if (this.currentTool === "vidcuts") {
+      effectId = document.getElementById("c_cut_mode")?.value || "frames";
+    } else if (this.currentTool === "vidglue") {
+      effectId = document.getElementById("c_mode")?.value || "concat";
+    } else if (this.currentTool === "videorandfram") {
+      effectId = document.getElementById("c_vrf_preset")?.value || "shuffle";
+    } else if (this.currentTool === "wavfade") {
+      effectId = document.getElementById("c_curve")?.value || "qsin";
+    } else if (this.currentTool === "wavfx") {
+      effectId = document.getElementById("c_reverb")?.value || "room";
+    } else if (this.currentTool === "wavnorm") {
+      effectId = document.getElementById("c_norm_mode")?.value || "lufs";
+    } else if (this.currentTool === "img2webp") {
+      effectId = document.getElementById("c_lossless")?.checked ? "lossless" : "lossy";
+    } else if (this.currentTool === "ytdl") {
+      effectId = document.getElementById("c_format")?.value || "mp4";
+    }
+
+    const data = VISUAL_AIDS.getEffectData(this.currentTool, effectId);
+    const activeLabel = document.getElementById("c_active_effect_label");
+    if (activeLabel && data.name) activeLabel.textContent = data.name;
+
+    monitor.innerHTML = `
+      <div class="monitor-screen-wrap">
+        <div class="monitor-screen-overlay">
+          <span class="monitor-screen-badge rec">● LIVE REF</span>
+          <span class="monitor-screen-badge">${data.badge || this.currentTool.toUpperCase()}</span>
+        </div>
+        <div class="monitor-screen-art">
+          ${data.svg}
+        </div>
+      </div>
+      <div class="monitor-spec-pane">
+        <div class="monitor-spec-head">
+          <div>
+            <div class="monitor-spec-title">${data.name}</div>
+            <div class="monitor-spec-sub" style="font-size: 0.75rem; color: var(--color-terminal-green); font-family: var(--font-mono); margin-top: 2px;">
+              ${data.sub}
+            </div>
+          </div>
+          <span class="monitor-spec-badge">${toolObj.category}</span>
+        </div>
+        <p class="monitor-spec-desc">${data.desc}</p>
+        <div class="monitor-spec-details">
+          <div><strong>FILTER GRAPH:</strong> <code>${data.filter}</code></div>
+          <div><strong>RECOMMENDED FOR:</strong> ${data.useCase}</div>
+        </div>
+      </div>
+    `;
   }
 
   updateCommand() {
@@ -1436,9 +2253,10 @@ class CommandStudio {
     if (this.outputBox) {
       this.outputBox.innerHTML = `<span class="prompt-symbol">❯</span> ${cmd}`;
     }
+
+    this.updateVisualMonitor();
   }
 }
-
 // ============================================================================
 // 4. Interactive Visual Labs (Audio Waveform & Glitch Canvas)
 // ============================================================================
@@ -1458,6 +2276,18 @@ class AudioWaveformLab {
     window.addEventListener("resize", () => this.resize());
 
     document.querySelectorAll(".audio-btn").forEach(btn => {
+      const mode = btn.dataset.mode;
+      if (!btn.querySelector(".lab-btn-thumb")) {
+        const thumb = document.createElement("span");
+        thumb.className = "lab-btn-thumb";
+        let svg = "";
+        if (mode === "fade") svg = `<svg viewBox="0 0 20 12" fill="none"><path d="M 2 10 Q 7 10 10 6 T 18 2" stroke="#ffb703" stroke-width="1.8" fill="none"/></svg>`;
+        else if (mode === "trim") svg = `<svg viewBox="0 0 20 12" fill="none"><path d="M 4 6 L 6 3 L 8 9 L 10 4 L 12 8 L 14 6" stroke="#64748b" stroke-width="1.5" fill="none"/><line x1="4" y1="2" x2="4" y2="10" stroke="#ff3344" stroke-width="1" stroke-dasharray="1,1"/><line x1="16" y1="2" x2="16" y2="10" stroke="#ff3344" stroke-width="1" stroke-dasharray="1,1"/></svg>`;
+        else if (mode === "pitch") svg = `<svg viewBox="0 0 20 12" fill="none"><path d="M 2 6 Q 6 1 10 6 T 18 6" stroke="#38bdf8" stroke-width="1.8" fill="none"/></svg>`;
+        else svg = `<svg viewBox="0 0 20 12" fill="none"><path d="M 2 6 L 5 2 L 8 10 L 11 3 L 14 9 L 18 6" stroke="#00f59b" stroke-width="1.8" fill="none"/></svg>`;
+        thumb.innerHTML = svg;
+        btn.prepend(thumb);
+      }
       btn.addEventListener("click", () => {
         document.querySelectorAll(".audio-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
@@ -1560,10 +2390,16 @@ class GlitchLab {
   init() {
     if (!this.content) return;
     document.querySelectorAll(".glitch-btn").forEach(btn => {
+      const preset = btn.dataset.preset;
+      if (!btn.querySelector(".lab-btn-thumb")) {
+        const thumb = document.createElement("span");
+        thumb.className = "lab-btn-thumb";
+        thumb.innerHTML = VISUAL_AIDS.getEffectSvg("vidglitch", preset);
+        btn.prepend(thumb);
+      }
       btn.addEventListener("click", () => {
         document.querySelectorAll(".glitch-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-        const preset = btn.dataset.preset;
         this.setPreset(preset);
       });
     });
@@ -1706,9 +2542,14 @@ class CatalogController {
       card.innerHTML = `
         <div>
           <div class="tool-card-head">
-            <div class="tool-name-wrap">
-              <div class="tool-name">${tool.name}</div>
-              <div class="tool-cmd-signature">${tool.signature}</div>
+            <div class="tool-card-identity">
+              <div class="tool-card-visual-badge" title="${tool.name} visual signature">
+                ${VISUAL_AIDS.getToolSvg(tool.id)}
+              </div>
+              <div class="tool-name-wrap">
+                <div class="tool-name">${tool.name}</div>
+                <div class="tool-cmd-signature">${tool.signature}</div>
+              </div>
             </div>
             <span class="tool-category-badge ${catBadgeClass}">${tool.category}</span>
           </div>
