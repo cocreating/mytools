@@ -1,0 +1,23 @@
+#compdef vidrandfram videorandfram
+_arguments \
+  '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
+  '(-p --preset)'{-p,--preset}'[randomization preset]:preset:(shuffle jitter stutter vortex chaos flicker reverse burst)' \
+  '(-w --window)'{-w,--window}'[frame cache window size (2-512)]:window' \
+  '(-s --seed)'{-s,--seed}'[deterministic random seed]:seed' \
+  '--fps[target output frame rate override]:fps' \
+  '--trails[motion ghosting trails (1-10)]:frames' \
+  '--blend[alias for --trails]:frames' \
+  '--audio[audio handling mode]:mode:(keep mute stutter crush)' \
+  '--mute[discard audio track]' \
+  '--audio-stutter[choppy tremolo audio synced to frame jitter]' \
+  '--audio-crush[lo-fi 8-bit chiptune bitcrush distortion]' \
+  '--flash[add occasional white splice tape flashes]' \
+  '--rgb-split[shift red and blue color channels in px]:offset' \
+  '--grain[add analog film grain]' \
+  '--super8[add dark Super-8 frame border and vignette]' \
+  '--from[trim start time]:time' \
+  '--to[trim end time]:time' \
+  '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \
+  '(-f --force)'{-f,--force}'[overwrite existing output]' \
+  '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
+  '*:video file:_files -g "*.(mp4|mov|avi|mkv|webm|m4v)(-.)"'

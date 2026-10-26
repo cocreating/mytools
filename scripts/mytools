@@ -18,11 +18,12 @@ Step-by-Step Custom Command Usage:
   1. Go to your files folder:   cd ~/Pictures/MyPhotos
   2. Run the tool directly:     img2webp --width 1200 -q 90 -a
      (Note: no 'mytools' prefix is required, and image tool is 'img2webp' with a 'p')
-  3. Or use interactive wizard: img2webp -i | vidglue -i | vidglitch -i | vidcuts -i | videoeffects -i
+  3. Or use interactive wizard: img2webp -i | vidglue -i | vidglitch -i | vidcuts -i | videoeffects -i | videorandfram -i
 
 Tools: img2webp, ytdl, vidglue (videoglue), vid2webm, vid2gif, videoWithoutAudio, vidoptim,
-vidglitch (videoglitch), vidcuts (videocuts), videoeffects (vidfx), vid2audio, wav2mp3,
-wav2tempo, wavreverse, wavpitch, wavnorm, wavfade, wavtrim, wavfx, media-info, thumloc, webloc2md.
+vidglitch (videoglitch), vidcuts (videocuts), videoeffects (vidfx), videorandfram (vidrandfram),
+vid2audio, wav2mp3, wav2tempo, wavreverse, wavpitch, wavnorm, wavfade, wavtrim, wavfx,
+media-info, thumloc, webloc2md.
 EOF
 }
 SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"
@@ -39,6 +40,7 @@ case "${1:-}" in
   videoglitch) exec "$SCRIPT_DIR/vidglitch" "${@:2}" ;;
   videocuts) exec "$SCRIPT_DIR/vidcuts" "${@:2}" ;;
   vidfx) exec "$SCRIPT_DIR/videoeffects" "${@:2}" ;;
+  vidrandfram) exec "$SCRIPT_DIR/videorandfram" "${@:2}" ;;
   "") ;;
   *)
     if [ -x "$SCRIPT_DIR/$1" ] && [ "$1" != "mytools" ]; then
@@ -66,6 +68,7 @@ OPTION=$(printf '%s\n' \
   'vidglitch — ⚡ Glitch, VHS & retro visual/audio FX (videoglitch)' \
   'vidcuts — ✂️ Cut film, BPM beat cuts & silence remover (videocuts)' \
   'videoeffects — 🎬 Cinematic color grading, speed & optical FX (vidfx)' \
+  'videorandfram — 🎲 Randomize frame order & temporal glitch (vidrandfram)' \
   'vidoptim — 🚀 Optimize video (web / social / archive presets)' \
   'vid2webm — 🌐 Video to VP9/Opus WebM' \
   'vid2gif — 👾 Video to palette-optimized GIF' \
@@ -99,7 +102,7 @@ case "$TOOL" in
   doctor) exec "$SCRIPT_DIR/mytools-doctor";;
   config) exec "$SCRIPT_DIR/mytools-config";;
   thumloc|webloc2md|ytdl) exec "$SCRIPT_DIR/$TOOL";;
-  img2webp|vidglue|vidglitch|vidcuts|videoeffects)
+  img2webp|vidglue|vidglitch|vidcuts|videoeffects|videorandfram|vidrandfram)
     # Delegate directly to each tool's full interactive wizard (-i)
     exec "$SCRIPT_DIR/$TOOL" -i
     ;;
@@ -108,7 +111,7 @@ esac
 # Filter candidate files by tool category with fallback to all files
 EXT_FILTER='.'
 case "$TOOL" in
-  vid2webm|vid2gif|videoWithoutAudio|vidoptim|vid2audio)
+  vid2webm|vid2gif|videoWithoutAudio|vidoptim|vid2audio|videorandfram|vidrandfram)
     EXT_FILTER='\.(mp4|mov|avi|mkv|webm|m4v)$'
     ;;
   wav2mp3|wav2tempo|wavreverse|wavpitch|wavnorm|wavfade|wavtrim|wavfx)

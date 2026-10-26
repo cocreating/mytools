@@ -254,6 +254,32 @@ const TOOLS_DATA = [
     details: "The video counterpart to wavfx. Chain color presets, temporal speed ramps, lens optics, symmetry mirrors, and widescreen letterboxing in a single FFmpeg filtergraph."
   },
   {
+    id: "videorandfram",
+    name: "videorandfram",
+    category: "video",
+    signature: "videorandfram [options] <video...>  (alias: vidrandfram)",
+    summary: "Randomize video frame order, scramble temporal sequences, stop-motion stutter, micro-jitter & surreal time-warp loops.",
+    flags: [
+      { flag: "-p, --preset <name>", desc: "Preset: shuffle | jitter | stutter | vortex | chaos | flicker | reverse | burst" },
+      { flag: "-w, --window <N>", desc: "Frame cache window size (2 to 512 frames)" },
+      { flag: "-s, --seed <int>", desc: "Deterministic random seed for reproducible cuts" },
+      { flag: "--fps <N>", desc: "Target output frame rate (e.g. 12 or 15 for stop-motion)" },
+      { flag: "--trails <1-10>", desc: "Motion ghosting trails between randomized frames" },
+      { flag: "--audio <mode>", desc: "Audio mode: keep (default) | mute | stutter | crush" },
+      { flag: "--rgb-split [px]", desc: "Chromatic aberration channel shift" },
+      { flag: "--flash / --grain / --super8", desc: "White splice flashes, 16mm grain & vintage Super-8 frame" },
+      { flag: "-i, --interactive", desc: "Interactive guided randomization wizard" }
+    ],
+    examples: [
+      { cmd: "videorandfram clip.mp4", note: "30-frame temporal shuffle" },
+      { cmd: "videorandfram -p jitter recording.mov", note: "High-speed micro-jitter shutter" },
+      { cmd: "videorandfram -p stutter --fps 12 dance.mp4", note: "Stop-motion 12fps breakbeat stutter" },
+      { cmd: "videorandfram -p vortex --trails 5 --audio keep promo.mp4", note: "Dreamlike surreal time warp + trails" },
+      { cmd: "videorandfram -p burst --audio stutter action.mp4", note: "Periodic frantic scramble bursts + choppy audio" }
+    ],
+    details: "Leverages FFmpeg's frame-caching and permutation engines to reorder video frames non-linearly while maintaining smooth progressive playback timing or syncing audio modulation."
+  },
+  {
     id: "vid2audio",
     name: "vid2audio",
     category: "audio",
@@ -605,6 +631,7 @@ class TerminalSimulator {
   vidglitch       - 11 analog/digital visual & audio glitch presets (alias: videoglitch)
   vidcuts         - Frame, BPM beat, freeze & silence jump-cut generator (alias: videocuts)
   videoeffects    - Cinematic color grading, speed, optics & mirrors (alias: vidfx)
+  videorandfram   - Randomize frame order & temporal glitch (alias: vidrandfram)
   wav2tempo       - Aubio BPM retiming
   wavnorm         - EBU R128 LUFS volume normalizer
   wavpitch        - Pitch shifter & varispeed tape drop
@@ -635,6 +662,7 @@ class TerminalSimulator {
    vidglue           🎞️ Glue, crossfade & collage MP4 videos (videoglue)
    vidglitch         ⚡ Glitch, VHS & retro visual/audio FX (videoglitch)
    vidcuts           ✂️ Cut film, BPM beat cuts & silence remover (videocuts)
+   videorandfram     🎲 Randomize frame order & temporal glitch (vidrandfram)
    img2webp          📸 Image to WebP batch transcoder
    vid2webm          🌐 Video to VP9 WebM
    vid2gif           👾 Video to palette-optimized GIF
@@ -691,6 +719,16 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
   - Progress: [====================] 100%
   ✅ Output saved: clip-cinema.mp4
   ✨ Cinematic grade and optics applied!`, "color: var(--color-bauhaus-yellow);");
+      return;
+    }
+
+    if ( effectiveCmd.startsWith("videorandfram") || effectiveCmd.startsWith("vidrandfram") ) {
+      this.appendLine(`🎲 [videorandfram] Shuffling frame order timeline...
+  - Input: clip.mp4 (1920x1080 @ 30fps)
+  - Active pipeline: preset=shuffle (window=30) + trails=3
+  - Progress: [====================] 100%
+  ✅ Output saved: clip-randfram.mp4
+  ⚡ Temporal frame randomization complete!`, "color: var(--color-bauhaus-yellow);");
       return;
     }
 
@@ -831,7 +869,7 @@ class CommandStudio {
   }
 
   renderToolSelector() {
-    const featured = ["img2webp", "vidglue", "vidglitch", "vidcuts", "videoeffects", "vidoptim", "wav2tempo", "wavpitch", "wavnorm", "wavfade", "wavtrim", "wavfx", "ytdl"];
+    const featured = ["img2webp", "vidglue", "vidglitch", "vidcuts", "videoeffects", "videorandfram", "vidoptim", "wav2tempo", "wavpitch", "wavnorm", "wavfade", "wavtrim", "wavfx", "ytdl"];
     this.selectContainer.innerHTML = "";
 
     featured.forEach(id => {
@@ -1035,6 +1073,47 @@ class CommandStudio {
         <div class="control-group">
           <label class="control-label">Video Input:</label>
           <input type="text" class="control-input" id="c_input" value="cinema.mp4">
+        </div>
+      `;
+    } else if (tool.id === "videorandfram") {
+      html += `
+        <div class="control-group">
+          <label class="control-label">Randomization Preset:</label>
+          <select class="control-select" id="c_vrf_preset">
+            <option value="shuffle">Shuffle (30-frame balanced scramble)</option>
+            <option value="jitter">Jitter (4-frame micro shutter tremor)</option>
+            <option value="stutter">Stutter (14-frame stop-motion breakbeat)</option>
+            <option value="vortex">Vortex (120-frame surreal time loop)</option>
+            <option value="chaos">Chaos (300+ frame non-linear explosion)</option>
+            <option value="flicker">Flicker (50/60fps frame alternation)</option>
+            <option value="reverse">Reverse (8-frame periodic rewind chunks)</option>
+            <option value="burst">Burst (Intermittent scramble bursts)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Audio Handling:</label>
+          <select class="control-select" id="c_vrf_audio">
+            <option value="keep">Keep Continuous Audio (--audio keep)</option>
+            <option value="stutter">Tremolo Gating (--audio stutter)</option>
+            <option value="crush">Bitcrush 8-bit (--audio crush)</option>
+            <option value="mute">Mute Audio Track (--mute)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Extras & Flavor:</label>
+          <label class="control-checkbox-label">
+            <input type="checkbox" id="c_vrf_trails"> Ghosting Trails (--trails 3)
+          </label>
+          <label class="control-checkbox-label" style="margin-top: 8px;">
+            <input type="checkbox" id="c_vrf_rgb"> Chromatic Aberration (--rgb-split 8)
+          </label>
+          <label class="control-checkbox-label" style="margin-top: 8px;">
+            <input type="checkbox" id="c_vrf_grain"> Film Grain (--grain)
+          </label>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Video Input:</label>
+          <input type="text" class="control-input" id="c_input" value="clip.mp4">
         </div>
       `;
     } else if (tool.id === "wav2tempo") {
@@ -1270,6 +1349,21 @@ class CommandStudio {
       else if (extra === "mirror-quad") cmd += " --mirror quad";
       else if (extra === "tilt-shift") cmd += " --tilt-shift";
       else if (extra === "zoom-in") cmd += " --zoom in";
+      if (inp) cmd += ` ${inp}`;
+    } else if (this.currentTool === "videorandfram") {
+      const preset = document.getElementById("c_vrf_preset")?.value || "shuffle";
+      const audio = document.getElementById("c_vrf_audio")?.value || "keep";
+      const trails = document.getElementById("c_vrf_trails")?.checked;
+      const rgb = document.getElementById("c_vrf_rgb")?.checked;
+      const grain = document.getElementById("c_vrf_grain")?.checked;
+      const inp = document.getElementById("c_input")?.value || "clip.mp4";
+
+      if (preset && preset !== "shuffle") cmd += ` -p ${preset}`;
+      if (audio === "mute") cmd += " --mute";
+      else if (audio && audio !== "keep") cmd += ` --audio ${audio}`;
+      if (trails) cmd += " --trails 3";
+      if (rgb) cmd += " --rgb-split 8";
+      if (grain) cmd += " --grain";
       if (inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "wav2tempo") {
       const tbpm = document.getElementById("c_target_bpm")?.value;

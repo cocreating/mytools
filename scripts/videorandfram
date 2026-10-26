@@ -1,0 +1,365 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
+
+PRESET="shuffle"; WINDOW=""; SEED=""; FPS=""; TRAILS=0; AUDIO_MODE="keep"
+FLASH=0; RGB_SPLIT=0; GRAIN=0; SUPER8=0
+OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; START=""; END=""; FILES=(); INTERACTIVE=0
+
+usage() { cat <<'EOF'
+Usage: videorandfram [options] <video...>
+       vidrandfram [options] <video...>
+
+Randomize video frame order, scramble temporal sequences, or create stop-motion
+stutter, micro-jitter, and hallucinogenic motion loops.
+
+Options:
+  -i, --interactive           Interactive wizard (prompts for presets & files) 🧙
+
+Presets (-p, --preset <name>):
+  • shuffle       🎲 Balanced temporal scramble (cache: 30 frames ~1s, default)
+  • jitter        ⚡ Micro-window tremor / anxiety-shutter jitter (cache: 4 frames)
+  • stutter       📽️ Rhythmic stop-motion chatter / breakbeat skip (cache: 14 frames)
+  • vortex        🌀 Deep surreal time-warp loop (cache: 120 frames ~4s)
+  • chaos         💥 Maximum non-linear temporal collision (cache: 300+ frames)
+  • flicker       👁️ Alternating adjacent frame swaps (50/60fps kinetic cinema flicker)
+  • reverse       ⏪ Periodic reversed 8-frame chunks (rewind glitch pulses)
+  • burst         ⚡ Intermittent frame scramble bursts during normal playback
+
+Modifiers & Proposed Options:
+  -w, --window <N>            Custom frame cache window size (2 to 512, default based on preset)
+  -s, --seed <int>            Deterministic random seed (for 100% reproducible frame sequences)
+  --fps <N>                   Output frame rate override (e.g. 12 or 15 for stop-motion look)
+  --trails, --blend [factor]  Motion ghosting trails between randomized frames (1-10, default: 3)
+  --audio <mode>              Audio handling mode:
+                                • keep:     Preserve continuous original audio (default)
+                                • mute:     Discard audio track
+                                • stutter:  Choppy tremolo audio synced to frame jitter
+                                • crush:    Lo-fi 8-bit chiptune bitcrush distortion
+
+Analog & Optical Extras:
+  --flash                     Add random white splice tape flashes on frame jumps
+  --rgb-split [px]            Add chromatic aberration channel shift (default: 8px)
+  --grain                     Add analog 16mm/35mm film grain
+  --super8                    Add dark vintage Super-8 frame border & vignette
+  --mute                      Shortcut for '--audio mute'
+
+Trimming & Output:
+  --from <time>               Start timestamp (e.g. 00:00:02)
+  --to <time>                 End timestamp (e.g. 00:00:10)
+  -o, --output-dir <dir>      Write output files to this directory
+  -f, --force                 Overwrite existing output files
+  -n, --dry-run               Show planned output files only
+  -h, --help                  Show help
+
+Examples:
+  videorandfram clip.mp4                                         # 30-frame temporal shuffle
+  videorandfram -p jitter recording.mov                          # high-speed micro-jitter shutter
+  videorandfram -p stutter --fps 12 dance.mp4                    # stop-motion 12fps breakbeat stutter
+  videorandfram -p vortex --trails 5 --audio keep promo.mp4      # dreamlike surreal time warp + trails
+  videorandfram -p chaos -w 450 -s 42 visual.mp4                 # reproducible deep temporal explosion
+  videorandfram -p flicker --rgb-split 12 music.mp4              # kinetic 60fps frame alternation + chromatic shift
+  videorandfram -p burst --audio stutter action.mp4              # periodic frantic scramble bursts + choppy audio
+  videorandfram -i                                               # interactive guided wizard
+EOF
+}
+
+interactive_wizard() {
+  echo "🎲 Welcome to the videorandfram interactive wizard!"
+  echo "──────────────────────────────────────────────────"
+
+  # Step 1: Input files with live ffprobe preview
+  wizard_select_files "videorandfram" '\.(mp4|mov|avi|mkv|webm|m4v)$' "💡 [Tab] mark multiple video files • [Enter] confirm"
+
+  # Step 2: Randomization Preset
+  if command -v fzf &>/dev/null; then
+    local p_choice
+    p_choice=$(printf '%s\n' \
+      'shuffle — 🎲 Balanced temporal scramble (cache: 30 frames ~1s, default)' \
+      'jitter — ⚡ Micro-window tremor / anxiety-shutter jitter (cache: 4 frames)' \
+      'stutter — 📽️ Rhythmic stop-motion chatter / breakbeat skip (cache: 14 frames)' \
+      'vortex — 🌀 Deep surreal time-warp loop (cache: 120 frames ~4s)' \
+      'chaos — 💥 Maximum non-linear temporal collision (cache: 300+ frames)' \
+      'flicker — 👁️ Alternating adjacent frame swaps (50/60fps cinema flicker)' \
+      'reverse — ⏪ Periodic reversed 8-frame chunks (rewind glitch pulses)' \
+      'burst — ⚡ Intermittent frame scramble bursts during normal playback' | fzf --prompt="Select randomization preset > " --height=45% --layout=reverse --border || true)
+    [ -n "$p_choice" ] && PRESET="${p_choice%% *}"
+
+    # Step 3: Frame Rate & Window fine-tuning
+    local w_choice
+    w_choice=$(printf '%s\n' \
+      'default — 🎯 Use preset window cache size' \
+      'custom — ✍️ Enter custom frame window size (2 to 512)' | fzf --prompt="Window cache size > " --height=25% --layout=reverse --border || true)
+    if [ "${w_choice%% *}" = "custom" ]; then
+      printf "Enter window size (2-512): "
+      read -r WINDOW || true
+    fi
+
+    # Step 4: Audio handling
+    local a_choice
+    a_choice=$(printf '%s\n' \
+      'keep — 🎵 Preserve continuous original audio (default)' \
+      'stutter — 🎛️ Choppy tremolo audio synced to frame jitter' \
+      'crush — 👾 Lo-fi 8-bit chiptune bitcrush distortion' \
+      'mute — 🔇 Discard audio track' | fzf --prompt="Audio handling > " --height=30% --layout=reverse --border || true)
+    [ -n "$a_choice" ] && AUDIO_MODE="${a_choice%% *}"
+
+    # Step 5: Visual Extras
+    local v_extras
+    v_extras=$(printf '%s\n' \
+      'trails — 🌌 Motion ghosting trails (blend randomized frames)' \
+      'rgb-split — 🌈 Chromatic aberration channel shift (8px)' \
+      'flash — ⚡ White splice tape flashes on frame jumps' \
+      'grain — 🎞️ 16mm/35mm analog film grain' \
+      'super8 — 🎥 Dark vintage Super-8 frame border & vignette' | fzf -m --prompt="Visual extras ([Tab] multi-select) > " --height=35% --layout=reverse --border || true)
+    if [ -n "$v_extras" ]; then
+      while IFS= read -r line; do
+        case "${line%% *}" in
+          trails) TRAILS=3 ;;
+          rgb-split) RGB_SPLIT=8 ;;
+          flash) FLASH=1 ;;
+          grain) GRAIN=1 ;;
+          super8) SUPER8=1 ;;
+        esac
+      done <<< "$v_extras"
+    fi
+  fi
+
+  # Build equivalent command for clipboard & confirmation card
+  local eq_cmd="videorandfram"
+  [ "$PRESET" != "shuffle" ] && eq_cmd+=" -p $PRESET"
+  [ -n "$WINDOW" ] && eq_cmd+=" -w $WINDOW"
+  [ -n "$SEED" ] && eq_cmd+=" -s $SEED"
+  [ -n "$FPS" ] && eq_cmd+=" --fps $FPS"
+  [ "$TRAILS" -gt 0 ] && eq_cmd+=" --trails $TRAILS"
+  [ "$AUDIO_MODE" != "keep" ] && eq_cmd+=" --audio $AUDIO_MODE"
+  [ "$FLASH" -eq 1 ] && eq_cmd+=" --flash"
+  [ "$RGB_SPLIT" -gt 0 ] && eq_cmd+=" --rgb-split $RGB_SPLIT"
+  [ "$GRAIN" -eq 1 ] && eq_cmd+=" --grain"
+  [ "$SUPER8" -eq 1 ] && eq_cmd+=" --super8"
+  [ -n "$OUTPUT_DIR" ] && eq_cmd+=" -o \"$OUTPUT_DIR\""
+  for f in "${FILES[@]}"; do
+    eq_cmd+=" \"$f\""
+  done
+
+  wizard_confirm_and_run "videorandfram" "$eq_cmd" \
+    "Input files: ${#FILES[@]} file(s)" \
+    "Preset: $PRESET $([ -n "$WINDOW" ] && echo "(custom window: $WINDOW)")" \
+    "Audio: $AUDIO_MODE" \
+    "Extras: $([ "$TRAILS" -gt 0 ] && echo -n "trails($TRAILS) ")$([ "$RGB_SPLIT" -gt 0 ] && echo -n "rgb-split($RGB_SPLIT) ")$([ "$FLASH" -eq 1 ] && echo -n "flash ")$([ "$GRAIN" -eq 1 ] && echo -n "grain ")$([ "$SUPER8" -eq 1 ] && echo -n "super8 ")None"
+}
+
+# Parse command line arguments
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    -i|--interactive) INTERACTIVE=1; shift ;;
+    -p|--preset) PRESET="$2"; shift 2 ;;
+    -w|--window) WINDOW="$2"; shift 2 ;;
+    -s|--seed) SEED="$2"; shift 2 ;;
+    --fps) FPS="$2"; shift 2 ;;
+    --blend|--trails)
+      if [ $# -gt 1 ] && [[ "$2" =~ ^[0-9]+$ ]]; then
+        TRAILS="$2"; shift 2
+      else
+        TRAILS=3; shift
+      fi
+      ;;
+    --audio) AUDIO_MODE="$2"; shift 2 ;;
+    --mute) AUDIO_MODE="mute"; shift ;;
+    --audio-stutter) AUDIO_MODE="stutter"; shift ;;
+    --audio-crush) AUDIO_MODE="crush"; shift ;;
+    --flash) FLASH=1; shift ;;
+    --rgb-split)
+      if [ $# -gt 1 ] && [[ "$2" =~ ^[0-9]+$ ]]; then
+        RGB_SPLIT="$2"; shift 2
+      else
+        RGB_SPLIT=8; shift
+      fi
+      ;;
+    --grain) GRAIN=1; shift ;;
+    --super8) SUPER8=1; shift ;;
+    --from) START="$2"; shift 2 ;;
+    --to) END="$2"; shift 2 ;;
+    -o|--output-dir) OUTPUT_DIR="$2"; shift 2 ;;
+    -f|--force) FORCE=1; shift ;;
+    -n|--dry-run) DRY_RUN=1; shift ;;
+    --) shift; while [ $# -gt 0 ]; do FILES+=("$1"); shift; done; break ;;
+    -*) echo "Unknown option: $1" >&2; exit 1 ;;
+    *) FILES+=("$1"); shift ;;
+  esac
+done
+
+if [ "$INTERACTIVE" -eq 1 ] || [ "${#FILES[@]}" -eq 0 ]; then
+  interactive_wizard
+fi
+
+require_commands ffmpeg ffprobe || exit 1
+
+# Resolve window size per preset if not explicitly overridden
+if [ -z "$WINDOW" ]; then
+  case "$PRESET" in
+    jitter) WINDOW=4 ;;
+    stutter) WINDOW=14 ;;
+    shuffle) WINDOW=30 ;;
+    vortex) WINDOW=120 ;;
+    chaos) WINDOW=300 ;;
+    burst) WINDOW=28 ;;
+    flicker|reverse) WINDOW=8 ;;
+    *)
+      echo "Unknown preset '$PRESET'. Choose from: shuffle, jitter, stutter, vortex, chaos, flicker, reverse, burst" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+# Clamp window size between 2 and 512
+if [ "$WINDOW" -lt 2 ]; then WINDOW=2; fi
+if [ "$WINDOW" -gt 512 ]; then WINDOW=512; fi
+
+SEED_ARG=""
+if [ -n "$SEED" ]; then
+  SEED_ARG=":seed=${SEED}"
+fi
+
+[ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+
+SUCCESS=0; FAILED=0; SKIPPED=0
+
+for input in "${FILES[@]}"; do
+  if [ ! -f "$input" ]; then
+    echo "⚠️  Not a file: $input" >&2
+    FAILED=$((FAILED + 1))
+    continue
+  fi
+
+  base="$(basename "${input%.*}")"
+  out="${OUTPUT_DIR:-$(dirname "$input")}/${base}-randfram.mp4"
+  if [ "$PRESET" != "shuffle" ]; then
+    out="${OUTPUT_DIR:-$(dirname "$input")}/${base}-randfram-${PRESET}.mp4"
+  fi
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "📝 Would create: $out (preset: $PRESET, window: $WINDOW, audio: $AUDIO_MODE$([ "$TRAILS" -gt 0 ] && echo ", trails: $TRAILS"))"
+    continue
+  fi
+
+  if ! output_is_safe "$out" "$FORCE"; then
+    SKIPPED=$((SKIPPED + 1))
+    continue
+  fi
+
+  # Detect audio stream
+  HAS_AUDIO=0
+  if [ "$AUDIO_MODE" != "mute" ]; then
+    AUDIO_STREAM=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of default=nw=1:nk=1 "$input" 2>/dev/null | head -n1 || true)
+    [ "$AUDIO_STREAM" = "audio" ] && HAS_AUDIO=1
+  fi
+
+  # Build video filter chain based on preset
+  POST_VF=""
+  if [ -n "$FPS" ]; then
+    POST_VF="${POST_VF},fps=${FPS}"
+  fi
+  if [ "$TRAILS" -gt 0 ]; then
+    POST_VF="${POST_VF},tmix=frames=${TRAILS}:weights='3 2 1'"
+  fi
+  if [ "$RGB_SPLIT" -gt 0 ]; then
+    POST_VF="${POST_VF},rgbashift=rh=${RGB_SPLIT}:bh=-${RGB_SPLIT}"
+  fi
+  if [ "$FLASH" -eq 1 ]; then
+    POST_VF="${POST_VF},drawbox=t=fill:c=white@0.85:enable=gt(random(2)\\,0.95)"
+  fi
+  if [ "$GRAIN" -eq 1 ]; then
+    POST_VF="${POST_VF},noise=alls=12:allf=t+u"
+  fi
+  if [ "$SUPER8" -eq 1 ]; then
+    POST_VF="${POST_VF},vignette=PI/3.5,drawbox=x=0:y=0:w=iw:h=ih:c=black:t=12"
+  fi
+  POST_VF="${POST_VF},format=yuv420p"
+
+  # Construct filter graph for video
+  FILTER_COMPLEX=""
+  SIMPLE_VF=""
+
+  case "$PRESET" in
+    flicker)
+      # Alternate adjacent frames: 1 0 3 2 5 4 7 6
+      SIMPLE_VF="shuffleframes=mapping='1 0 3 2 5 4 7 6'${POST_VF}"
+      ;;
+    reverse)
+      # Periodically invert 8-frame blocks: 7 6 5 4 3 2 1 0
+      SIMPLE_VF="shuffleframes=mapping='7 6 5 4 3 2 1 0'${POST_VF}"
+      ;;
+    burst)
+      # Blend original playback with randomized burst intermittently every ~1.6s
+      FILTER_COMPLEX="[0:v]format=yuv420p,split=2[orig][rand];[rand]random=frames=${WINDOW}${SEED_ARG}[rshuf];[orig][rshuf]blend=all_expr='if(lt(mod(T,1.6),0.4),B,A)'${POST_VF}[v]"
+      ;;
+    *)
+      # shuffle, jitter, stutter, vortex, chaos
+      SIMPLE_VF="random=frames=${WINDOW}${SEED_ARG}${POST_VF}"
+      ;;
+  esac
+
+  # Build optional audio filter
+  AF=""
+  if [ "$HAS_AUDIO" -eq 1 ]; then
+    case "$AUDIO_MODE" in
+      stutter)
+        AF="tremolo=f=10:d=0.85,volume=1.2"
+        ;;
+      crush)
+        AF="acrusher=bits=6:mix=0.85,aresample=22050,aresample=44100"
+        ;;
+    esac
+  fi
+
+  args=(-hide_banner -loglevel error -stats)
+  [ -n "$START" ] && args+=(-ss "$START")
+  args+=(-i "$input")
+  [ -n "$END" ] && args+=(-to "$END")
+
+  if [ -n "$FILTER_COMPLEX" ]; then
+    if [ "$HAS_AUDIO" -eq 1 ]; then
+      if [ -n "$AF" ]; then
+        FILTER_COMPLEX="${FILTER_COMPLEX};[0:a]${AF}[a]"
+        args+=(-filter_complex "$FILTER_COMPLEX" -map "[v]" -map "[a]" -c:v libx264 -crf 20 -preset medium -c:a aac -b:a 192k)
+      else
+        args+=(-filter_complex "$FILTER_COMPLEX" -map "[v]" -map "0:a" -c:v libx264 -crf 20 -preset medium -c:a copy)
+      fi
+    else
+      args+=(-filter_complex "$FILTER_COMPLEX" -map "[v]" -c:v libx264 -crf 20 -preset medium -an)
+    fi
+  else
+    args+=(-vf "$SIMPLE_VF" -c:v libx264 -crf 20 -preset medium)
+    if [ "$HAS_AUDIO" -eq 1 ]; then
+      if [ -n "$AF" ]; then
+        args+=(-af "$AF" -c:a aac -b:a 192k)
+      else
+        args+=(-c:a copy)
+      fi
+    else
+      args+=(-an)
+    fi
+  fi
+
+  args+=("$out")
+
+  echo "▶️  $input → $out (preset: ${PRESET}, window: ${WINDOW})"
+  if ffmpeg "${args[@]}"; then
+    orig_dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$input" 2>/dev/null || true)
+    new_dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$out" 2>/dev/null || true)
+    if [ -n "$orig_dur" ] && [ -n "$new_dur" ]; then
+      printf "   ⏱️  Duration: %.1fs → %.1fs\n" "$orig_dur" "$new_dur"
+    fi
+    SUCCESS=$((SUCCESS + 1))
+  else
+    FAILED=$((FAILED + 1))
+  fi
+done
+
+if [ "$DRY_RUN" -eq 0 ]; then
+  echo "✅ Done: $SUCCESS video(s) randomized, $FAILED failed, $SKIPPED skipped"
+  [ "$SUCCESS" -eq 0 ] || notify "Randomized $SUCCESS video(s) ($PRESET)." "videorandfram"
+fi
+exit "$FAILED"

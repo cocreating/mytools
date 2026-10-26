@@ -51,7 +51,7 @@ All conversion tools avoid overwriting an existing output by default. Use `--for
    img2webp --width 1200 -q 90 -a -n            # test safely first (-n / --dry-run)
    ```
 3. **Step 3: Use Interactive Wizard Mode (`-i`) to learn custom commands effortlessly**  
-   If you don't want to memorize flags, run `img2webp -i`, `vidglue -i`, `vidglitch -i`, `vidcuts -i`, or `videoeffects -i`. It previews file metadata (`ffprobe`), walks you through every setting step by step, prints the exact **Equivalent command**, and lets you copy it directly to your macOS clipboard (`pbcopy`).
+   If you don't want to memorize flags, run `img2webp -i`, `vidglue -i`, `vidglitch -i`, `vidcuts -i`, `videoeffects -i`, or `videorandfram -i`. It previews file metadata (`ffprobe`), walks you through every setting step by step, prints the exact **Equivalent command**, and lets you copy it directly to your macOS clipboard (`pbcopy`).
 
 ## Image tools
 
@@ -181,6 +181,21 @@ vidfx --reverse --bloom --trails 6 dream.mov              # reversed ethereal mo
 ```
 
 The video counterpart to `wavfx`. Combines color grading presets (`cinema`, `noir`, `vintage`, `kodak`, `dream`, `synthwave`, `thermal`, `bleach`, `sepia`), temporal speed/reverse/stop-motion/trails, optical lens effects (`--bloom`, `--vignette`, `--tilt-shift`, `--blur`, `--sharpen`, `--mirror`, `--zoom`), and widescreen framing (`--letterbox`, `--fade-in`, `--fade-out`) in a single pass.
+
+### Randomize frame order & temporal glitch: `videorandfram` (`vidrandfram`)
+
+```bash
+videorandfram clip.mp4                                         # 30-frame temporal shuffle
+videorandfram -p jitter recording.mov                          # high-speed micro-jitter shutter
+videorandfram -p stutter --fps 12 dance.mp4                    # stop-motion 12fps breakbeat stutter
+videorandfram -p vortex --trails 5 --audio keep promo.mp4      # dreamlike surreal time warp + trails
+videorandfram -p chaos -w 450 -s 42 visual.mp4                 # reproducible deep temporal explosion
+videorandfram -p flicker --rgb-split 12 music.mp4              # kinetic 60fps frame alternation + chromatic shift
+videorandfram -p burst --audio stutter action.mp4              # periodic frantic scramble bursts + choppy audio
+videorandfram -i                                               # interactive guided wizard
+```
+
+Randomizes and scrambles video frame order in time to produce kinetic stutter, shutter tremor, stop-motion breakbeat skips, surreal time-warp loops, and full non-linear temporal chaos. Offers presets (`shuffle`, `jitter`, `stutter`, `vortex`, `chaos`, `flicker`, `reverse`, `burst`), customizable frame cache window (`-w 2-512`), random seeds for reproducibility (`-s`), motion ghosting trails (`--trails`), audio modulation (`--audio keep|mute|stutter|crush`), and analog visual extras (`--flash`, `--rgb-split`, `--grain`, `--super8`).
 
 ## Audio tools
 

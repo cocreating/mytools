@@ -21,6 +21,7 @@ show_overview() {
   vidglitch      Apply glitch, CRT, VHS, datamosh, nightvision & audio glitch FX ⚡
   vidcuts        Cut film, BPM beat cuts, freeze-cuts & auto-silence jump-cuts ✂️
   videoeffects   Cinematic color grading, speed/slow-mo, optics, mirror & framing FX (alias: vidfx) 🎬
+  videorandfram  Randomize frame order, temporal stutter & micro-jitter (alias: vidrandfram) 🎲
 
 🎵 AUDIO TOOLS 🎧
   vid2audio      Extract crisp audio streams from video (WAV / MP3) 🔊
@@ -377,6 +378,57 @@ Examples:
   vidfx --reverse --bloom --trails 6 dream.mov              # reversed ethereal motion trails
 EOF
       ;;
+    videorandfram|vidrandfram)
+      cat <<'EOF'
+🎲 videorandfram (vidrandfram) — Randomize Frame Order & Temporal Glitch ⚡
+
+Usage:
+  videorandfram [options] <video...>
+  vidrandfram [options] <video...>
+
+Description:
+  Randomizes and scrambles video frame order in time to produce kinetic stutter,
+  shutter tremor, stop-motion breakbeat skips, surreal time-warp loops,
+  and full non-linear temporal chaos!
+
+Presets (-p, --preset):
+  🎲 shuffle     Balanced temporal scramble (cache window: 30 frames ~1s, default)
+  ⚡ jitter      Micro-window tremor / anxiety-shutter jitter (cache: 4 frames)
+  📽️ stutter     Rhythmic stop-motion chatter / breakbeat skip (cache: 14 frames)
+  🌀 vortex      Deep surreal time-warp loop (cache: 120 frames ~4s)
+  💥 chaos       Maximum non-linear temporal collision (cache: 300+ frames)
+  👁️ flicker     Alternating adjacent frame swaps (50/60fps kinetic cinema flicker)
+  ⏪ reverse     Periodic reversed 8-frame chunks (rewind glitch pulses)
+  ⚡ burst       Intermittent frame scramble bursts during normal playback
+
+Options:
+  -w, --window <N>            Custom frame cache window size (2 to 512) 🪟
+  -s, --seed <int>            Deterministic random seed (100% reproducible cuts) 🎲
+  --fps <N>                   Target output frame rate (e.g. 12 or 15 for stop-motion) ⏱️
+  --trails, --blend [factor]  Motion ghosting trails between randomized frames (1-10) 🌌
+  --audio <mode>              Audio handling: keep (default), mute, stutter, crush 🎵
+  --flash                     Add random white splice tape flashes ⚡
+  --rgb-split [px]            Add chromatic aberration channel shift (default: 8px) 🌈
+  --grain                     Add analog 16mm/35mm film grain 🎞️
+  --super8                    Add dark vintage Super-8 frame border & vignette 🎥
+  --mute                      Discard audio track from output 🔇
+  --from / --to <time>        Start/end trim timestamps ✂️
+  -o, --output-dir <dir>      Write output files to directory 📂
+  -f, --force                 Overwrite existing output ⚡
+  -n, --dry-run               Preview output without running FFmpeg 📝
+  -i, --interactive           Interactive wizard (prompts for settings & files) 🧙
+
+Examples:
+  videorandfram clip.mp4                                         # 30-frame temporal shuffle
+  videorandfram -p jitter recording.mov                          # high-speed micro-jitter shutter
+  videorandfram -p stutter --fps 12 dance.mp4                    # stop-motion 12fps breakbeat stutter
+  videorandfram -p vortex --trails 5 --audio keep promo.mp4      # dreamlike surreal time warp + trails
+  videorandfram -p chaos -w 450 -s 42 visual.mp4                 # reproducible deep temporal explosion
+  videorandfram -p flicker --rgb-split 12 music.mp4              # kinetic 60fps frame alternation + chromatic shift
+  videorandfram -p burst --audio stutter action.mp4              # periodic frantic scramble bursts + choppy audio
+  videorandfram -i                                               # interactive guided wizard
+EOF
+      ;;
     vid2audio|videoWithoutAudio|wav2mp3|wav2tempo|wavreverse|wavpitch|wavnorm|wavfade|wavtrim|wavfx)
       case "$tool" in
         vid2audio)
@@ -621,6 +673,7 @@ interactive_guide() {
     'vidglitch — ⚡ Glitch, CRT, VHS, datamosh & retro FX (wizard: vidglitch -i)' \
     'vidcuts — ✂️ Cut film, BPM beat cuts & silence remover (wizard: vidcuts -i)' \
     'videoeffects — 🎬 Cinematic color grading, speed & optical FX (wizard: videoeffects -i)' \
+    'videorandfram — 🎲 Randomize frame order & temporal glitch (wizard: videorandfram -i)' \
     'vidoptim — 🚀 Web/social/archive video optimization' \
     'vid2webm — 🌐 Convert videos to WebM' \
     'vid2gif — 👾 Create animated GIFs' \
@@ -660,7 +713,7 @@ interactive_guide() {
 
     if [ -t 0 ]; then
       case "$tool" in
-        img2webp|vidglue|vidglitch|vidcuts|videoeffects)
+        img2webp|vidglue|vidglitch|vidcuts|videoeffects|videorandfram|vidrandfram)
           local next_act
           next_act=$(printf '%s\n' \
             "wizard — 🧙 Launch '$tool -i' interactive wizard right now" \
