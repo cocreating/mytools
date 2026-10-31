@@ -80,26 +80,29 @@ const TOOLS_DATA = [
     id: "vidglue",
     name: "vidglue",
     category: "video",
-    signature: "vidglue [options] <video1> [video2...]",
-    summary: "Fuses multiple videos with zero-reencoding stream copy, smart resolution/audio normalization, xfade transitions, split-screen collages, or Boomerang bounce loops.",
+    signature: "vidglue [options] <video1> [video2...]  (aliases: videoglue, vidmix, videomix)",
+    summary: "Fuses & mixes 2+ videos: stream-copy, double-exposure RGB blending, Picture-in-Picture, Luma/Chroma key, split-screen/diagonal/triptych/3x3 collages, rhythmic interleave/strobe, audio ducking & xfade transitions.",
     flags: [
-      { flag: "-i, --interactive", desc: "Interactive guided setup wizard" },
-      { flag: "-b, --bounce", desc: "Play forward then reverse (Boomerang loop effect)" },
-      { flag: "-r, --reencode", desc: "Auto-normalize mixed resolutions, FPS & missing audio streams" },
-      { flag: "--fit <pad|crop|blur>", desc: "Aspect ratio fit for mixed dimensions (black bars, crop, or blurred fill)" },
-      { flag: "-t, --transition <type>", desc: "Crossfade transition (fade, fadeblack, wipeleft, pixelize, radial...)" },
-      { flag: "--layout <hstack|vstack|2x2>", desc: "Spatial split-screen or 2x2 quad collage" },
-      { flag: "-l, --loop <N>", desc: "Repeat the final glued sequence N times" },
-      { flag: "-o, --output <file>", desc: "Target MP4 filename" }
+      { flag: "-i, --interactive", desc: "Interactive guided setup wizard (incl. multi-video mixer)" },
+      { flag: "--blend <mode>", desc: "Double-exposure RGB blend: screen | multiply | overlay | addition | difference | hardlight | softlight | average" },
+      { flag: "--opacity <0.1-1.0>", desc: "Blend opacity for the second video layer (default: 0.5)" },
+      { flag: "--pip <pos>", desc: "Picture-in-Picture overlay: br | bl | tr | tl | center (+ --pip-scale)" },
+      { flag: "--lumakey / --chromakey <c>", desc: "Key out dark background (--lumakey) or green/blue/hex screen (--chromakey)" },
+      { flag: "--interleave <sec> / --strobe <N>", desc: "Rhythmically alternate between 2+ videos every <sec> seconds or <N> frames" },
+      { flag: "--layout <mode>", desc: "Spatial collage: hstack | vstack | 2x2 | triptych (3x1) | 3x3 | diagonal | wipe-compare" },
+      { flag: "--audio-mode <mode>", desc: "Multi-video audio: auto | first | second | mix | duck (sidechain auto-ducking)" },
+      { flag: "-t, --transition <type>", desc: "Transitions: fade, fadeblack, wipeleft, pixelize, radial, glitch, film-burn, smoothleft..." },
+      { flag: "-b, --bounce / -r, --reencode", desc: "Boomerang forward+reverse loop (-b) or smart resolution/audio normalization (-r)" }
     ],
     examples: [
-      { cmd: "vidglue intro.mp4 main.mp4 outro.mp4", note: "Lightning stream-copy merge (-c copy)" },
-      { cmd: "vidglue --bounce -l 3 video.mp4", note: "Forward + reversed bounce loop repeated 3x" },
-      { cmd: "vidglue --reencode --fit blur horiz.mp4 vert.mp4", note: "Mix horizontal & vertical clips with blurred background" },
-      { cmd: "vidglue -t fade --transition-duration 0.8 a.mp4 b.mp4", note: "Smooth 0.8s crossfade transition" },
-      { cmd: "vidglue --layout hstack left.mp4 right.mp4", note: "Side-by-side split-screen collage" }
+      { cmd: "vidglue --blend screen --opacity 0.65 dancer.mp4 neon.mp4", note: "Double-exposure RGB Screen blend at 65% opacity" },
+      { cmd: "vidglue --pip br --pip-scale 0.3 --audio-mode duck gameplay.mp4 facecam.mp4", note: "Picture-in-Picture + automatic voiceover audio ducking" },
+      { cmd: "vidglue --chromakey green background.mp4 presenter.mp4", note: "Green-screen Chroma Key composite" },
+      { cmd: "vidglue --layout diagonal --audio-mode mix left.mp4 right.mp4", note: "45-degree diagonal split-screen duel" },
+      { cmd: "vidglue --interleave 0.25 cam1.mp4 cam2.mp4 cam3.mp4", note: "High-voltage rhythmic A/B/C alternation every 0.25s" },
+      { cmd: "vidglue -t film-burn --transition-duration 0.8 a.mp4 b.mp4", note: "Organic film-burn transition between clips" }
     ],
-    details: "By default, vidglue performs ultra-fast stream copy without losing quality. When inputs differ in codec, dimensions, or audio tracks, `--reencode`, `-t`, or `--layout` automatically normalizes resolution and synthesizes silent audio for muted clips."
+    details: "Serves as both a lossless concatenator and a full multi-video compositor (`vidmix`). Supports planar RGB double-exposure blending, Picture-in-Picture with borders, Luma/Chroma keying, diagonal/triptych/3x3 layouts, rhythmic interleave/strobe cutting, and sidechain audio ducking."
   },
   {
     id: "vid2webm",
@@ -182,76 +185,74 @@ const TOOLS_DATA = [
     id: "vidglitch",
     name: "vidglitch",
     category: "video",
-    signature: "vidglitch [options] <video...>",
-    summary: "Applies 11 digital/analog visual & audio glitch presets: RGB split, VHS tracking, CRT, 8-bit, cyberpunk, datamosh, nightvision, gameboy & matrix.",
+    signature: "vidglitch [options] <video...>  (alias: videoglitch)",
+    summary: "Applies 11 digital/analog visual & audio glitch presets plus cross-video pixel displacement (--displace-with) and ghost glitch bleeding (--blend-glitch).",
     flags: [
       { flag: "-p, --preset <name>", desc: "Preset: rgb-split | vhs | crt | 8bit | cyberpunk | badsignal | tear | datamosh | nightvision | gameboy | matrix" },
       { flag: "-I, --intensity <level>", desc: "Effect intensity: low, med, high, or 1-100" },
+      { flag: "--displace-with <v2>", desc: "Warp input video pixels using a 2nd video's motion/color channels (alias: --datamosh-with)" },
+      { flag: "--blend-glitch <v2>", desc: "Bleed a glitched ghost of a 2nd video into the primary clip" },
       { flag: "--organic-burst", desc: "Erratic, organic hardware fault bursts" },
       { flag: "-A, --audio-glitch", desc: "Synchronized audio bitcrushing / tape flutter corruption" },
-      { flag: "--tracking", desc: "Add scrolling VHS tracking distortion bar" },
-      { flag: "--osd", desc: "Add retro camcorder viewfinder HUD & blinking REC indicator" },
-      { flag: "--burst", desc: "Periodic pulse every 2s" },
-      { flag: "-i, --interactive", desc: "Guided preset selection wizard" }
+      { flag: "--tracking / --osd", desc: "Scrolling VHS tracking bar & retro camcorder REC HUD" },
+      { flag: "-i, --interactive", desc: "Guided preset & cross-video glitch wizard" }
     ],
     examples: [
       { cmd: "vidglitch clip.mp4", note: "Default RGB chromatic aberration" },
       { cmd: "vidglitch --preset vhs --audio-glitch --osd recording.mov", note: "VHS tape + tape flutter audio + camcorder HUD" },
-      { cmd: "vidglitch --preset cyberpunk --organic-burst promo.mp4", note: "Erratic neon chromatic glitches" },
-      { cmd: "vidglitch --preset datamosh -I high dance.mp4", note: "Intense motion pixel smear & ghost trails" }
+      { cmd: "vidglitch --displace-with noise_clip.mp4 -I high portrait.mp4", note: "Cross-video pixel displacement / datamosh warp" },
+      { cmd: "vidglitch --preset cyberpunk --blend-glitch ghost.mp4 promo.mp4", note: "Cyberpunk glitch with 2nd video ghost bleed" }
     ],
-    details: "Constructed using advanced FFmpeg video and audio filter graphs. Combine visual presets with `--audio-glitch` for synchronized bitcrushed 8-bit audio or analog VHS tape wow-and-flutter."
+    details: "Constructed using advanced FFmpeg video and audio filter graphs. Combine visual presets with `--displace-with <video2>` to warp pixels using a second clip's motion vectors, or `--audio-glitch` for synchronized bitcrushed 8-bit audio / VHS tape flutter."
   },
   {
     id: "vidcuts",
     name: "vidcuts",
     category: "video",
-    signature: "vidcuts [options] <video...>",
-    summary: "Physical cut-film, BPM beat cutter, freeze-cut stop-motion, and automatic vlog silence jump-cut generator.",
+    signature: "vidcuts [options] <video...>  (alias: videocuts)",
+    summary: "Physical cut-film, multi-camera BPM beat switcher (--multicam), freeze-cut stop-motion, and automatic vlog silence jump-cut generator.",
     flags: [
       { flag: "-p, --percent <N>", desc: "Percentage of frames to remove (1-90, default: 20)" },
-      { flag: "-m, --mode <mode>", desc: "Mode: frames | jumps | stutter | freeze (keeps duration) | beat (BPM sync) | silence (vlog auto-cut)" },
-      { flag: "--bpm <N>", desc: "Target BPM for rhythmic '--mode beat' cuts" },
+      { flag: "-m, --mode <mode>", desc: "Mode: frames | jumps | stutter | freeze (keeps duration) | beat (BPM sync) | silence (vlog auto-cut) | multicam" },
+      { flag: "--multicam", desc: "Auto-switch between 2+ input videos on every musical beat (keeps continuous master audio)" },
+      { flag: "--bpm <N>", desc: "Target BPM for '--mode beat' or '--multicam' (auto-detected via aubio if omitted)" },
       { flag: "--film-burn", desc: "Warm orange/amber celluloid light-leak burn flashes" },
-      { flag: "--scratches", desc: "Vertical 16mm film scratches" },
-      { flag: "--super8", desc: "Dark Super-8 film gate border & vignette" },
+      { flag: "--scratches / --super8", desc: "Vertical 16mm film scratches & dark Super-8 film gate border" },
       { flag: "--jitter / --grain / --flash", desc: "Projector gate weave, film grain & white splice flashes" },
-      { flag: "-i, --interactive", desc: "Guided excision wizard" }
+      { flag: "-i, --interactive", desc: "Guided excision & multicam wizard" }
     ],
     examples: [
       { cmd: "vidcuts clip.mp4", note: "20% random missing celluloid frames" },
+      { cmd: "vidcuts --multicam --bpm 124 --film-burn cam1.mp4 cam2.mp4 cam3.mp4", note: "Multi-camera beat-synced angle switcher" },
       { cmd: "vidcuts -p 40 --mode freeze --film-burn musicvideo.mp4", note: "Freeze-cuts keeping original duration & song intact" },
-      { cmd: "vidcuts --mode beat --bpm 128 --flash dance.mp4", note: "Rhythmic cuts synced to 128 BPM" },
       { cmd: "vidcuts --mode silence interview.mp4", note: "Automatically strip silent dead-air pauses" }
     ],
-    details: "Supports both timeline-shortening jump cuts (with audio trimmed in lockstep) and constant-duration `--mode freeze` cuts that hold frames so background music stays 100% continuous."
+    details: "Supports timeline-shortening jump cuts, constant-duration `--mode freeze` cuts, and `--multicam` beat-synced camera switching across 2 or more video angles while keeping the master audio track 100% continuous."
   },
   {
     id: "videoeffects",
     name: "videoeffects",
     category: "video",
     signature: "videoeffects [options] <video...>  (alias: vidfx)",
-    summary: "Modular cinematic color grading, speed/slow-mo, reverse playback, optical bloom, tilt-shift, kaleidoscope mirrors & CinemaScope framing.",
+    summary: "Modular cinematic color grading, duotone palettes, dynamic speed ramps, optical prism/anamorphic/light-leak FX, texture video blending & Before/After split comparison.",
     flags: [
       { flag: "-p, --preset <name>", desc: "Look: cinema | noir | vintage | kodak | dream | synthwave | thermal | bleach | sepia" },
-      { flag: "--speed <0.25..4.0>", desc: "Playback speed multiplier with synced audio tempo" },
-      { flag: "--smooth-slowmo", desc: "Optical-flow motion interpolation (minterpolate)" },
-      { flag: "--reverse", desc: "Reverse video and audio streams backward in time" },
-      { flag: "--stopmotion <fps>", desc: "Claymation / anime frame-step look (e.g. 8 or 12 fps)" },
-      { flag: "--trails <1-10>", desc: "Motion ghosting / phosphor persistence trails" },
+      { flag: "--duotone <palette>", desc: "Two-tone color mapping: cyber | spotify | amber-teal | crimson" },
+      { flag: "--speed <0.25..4.0> / --speed-ramp <mode>", desc: "Constant speed or dynamic 3-stage speed ramp (slow-mid | fast-slow-fast)" },
+      { flag: "--anamorphic / --prism / --light-leak / --halftone", desc: "Cyan lens flares, crystal RGB prism, warm light leak & comic dot pattern" },
+      { flag: "--blend-video <file>", desc: "Blend an external texture/video clip over each input (--blend-mode, --blend-opacity)" },
+      { flag: "--compare", desc: "Render a 50/50 split-screen Before/After comparison view" },
       { flag: "--bloom / --vignette / --tilt-shift", desc: "Soft highlight glow, optical vignette & miniature focus band" },
-      { flag: "--mirror <h|v|quad>", desc: "Bilateral symmetry or 4-way kaleidoscope mirror" },
-      { flag: "--zoom <in|out>", desc: "Smooth Ken Burns push-in or pull-out" },
-      { flag: "--letterbox <2.35|1.85|4:3>", desc: "CinemaScope widescreen bars or 4:3 pillarbox" },
-      { flag: "--fade-in / --fade-out <sec>", desc: "Smooth video & audio fade from/to black" }
+      { flag: "--mirror <h|v|quad> / --letterbox <ratio>", desc: "Kaleidoscope mirror symmetry & CinemaScope widescreen bars" },
+      { flag: "-i, --interactive", desc: "Interactive look, optics & speed-ramp wizard" }
     ],
     examples: [
-      { cmd: "videoeffects --preset cinema --letterbox 2.35 clip.mp4", note: "Widescreen blockbuster teal & orange look" },
-      { cmd: "videoeffects --speed 0.5 --smooth-slowmo action.mp4", note: "Silky 2x optical-flow slow motion" },
-      { cmd: "videoeffects --mirror quad --preset synthwave dance.mp4", note: "4-way neon kaleidoscope" },
-      { cmd: "vidfx --reverse --bloom --trails 6 dream.mov", note: "Reversed ethereal motion trails" }
+      { cmd: "videoeffects --preset cinema --anamorphic --letterbox 2.35 clip.mp4", note: "Blockbuster grade + cyan anamorphic flares + 2.35:1 bars" },
+      { cmd: "vidfx --speed-ramp slow-mid --light-leak --compare action.mp4", note: "Action speed-ramp + warm light leak + Before/After split view" },
+      { cmd: "vidfx --duotone cyber --prism dance.mp4", note: "Magenta/cyan duotone + optical prism dispersion" },
+      { cmd: "vidfx --preset vintage --blend-video dust.mp4 --blend-mode screen clip.mp4", note: "Blend external film-dust overlay clip in RGB Screen mode" }
     ],
-    details: "The video counterpart to wavfx. Chain color presets, temporal speed ramps, lens optics, symmetry mirrors, and widescreen letterboxing in a single FFmpeg filtergraph."
+    details: "The video counterpart to wavfx. Chain color presets, duotone palettes, dynamic 3-stage speed ramps, anamorphic/prism optics, external video overlays (`--blend-video`), and `--compare` split-screen previews in a single FFmpeg filtergraph."
   },
   {
     id: "videorandfram",
@@ -1222,6 +1223,16 @@ const VISUAL_AIDS = {
         desc: "Analyzes audio waveforms to automatically detect dead-air pauses and cuts them out cleanly in a single pass.",
         useCase: "Podcasts, screencasts, long interviews, video lectures",
         svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><path d="M 4 25 Q 12 12 18 25 T 30 25" fill="none" stroke="#00f59b" stroke-width="2"/><line x1="30" y1="25" x2="52" y2="25" stroke="#ef4444" stroke-width="2" stroke-dasharray="2,2"/><path d="M 52 25 Q 60 12 66 25 T 76 25" fill="none" stroke="#00f59b" stroke-width="2"/><text x="32" y="18" fill="#ef4444" font-size="10">✂</text><text x="24" y="40" fill="#ef4444" font-size="5" font-family="monospace">STRIP SILENCE</text></svg>`
+      },
+      {
+        id: "multicam",
+        name: "Multicam",
+        sub: "Beat Camera Switcher",
+        badge: "MULTI-CAM BPM",
+        filter: "overlay=x='if(eq(mod(trunc(T*BPM/60),2),1),0,-w)'",
+        desc: "Automatically switches between 2 or more camera angles on every musical beat (via aubio or --bpm) while keeping master audio 100% continuous.",
+        useCase: "Multi-cam live music sessions, DJ sets, dance videos, podcasts",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="4" y="8" width="22" height="26" fill="#2563eb"/><rect x="29" y="8" width="22" height="26" fill="#ec4899"/><rect x="54" y="8" width="22" height="26" fill="#10b981"/><text x="9" y="24" fill="#fff" font-size="6" font-family="monospace">C1</text><text x="34" y="24" fill="#fff" font-size="6" font-family="monospace">C2</text><text x="59" y="24" fill="#fff" font-size="6" font-family="monospace">C1</text><text x="16" y="45" fill="#00f59b" font-size="5.5" font-family="monospace">BEAT MULTICAM</text></svg>`
       }
     ],
 
@@ -1237,33 +1248,63 @@ const VISUAL_AIDS = {
         svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="12" width="30" height="26" fill="#2563eb"/><rect x="44" y="12" width="30" height="26" fill="#10b981"/><line x1="36" y1="25" x2="44" y2="25" stroke="#facc15" stroke-width="3"/><text x="14" y="28" fill="#fff" font-size="8" font-family="monospace">A</text><text x="56" y="28" fill="#fff" font-size="8" font-family="monospace">B</text><text x="18" y="46" fill="#facc15" font-size="6" font-family="monospace">STREAM COPY</text></svg>`
       },
       {
-        id: "bounce",
-        name: "Bounce",
-        sub: "Forward + Reverse Loop",
-        badge: "BOOMERANG",
-        filter: "split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1:a=1",
-        desc: "Plays clip forward then immediately reverses backward to the start, creating a seamless Boomerang ping-pong loop.",
-        useCase: "Instagram / TikTok reels, product turntables, continuous gifs",
-        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="12" width="68" height="26" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/><path d="M 20 20 L 50 20 L 44 14 M 50 20 L 44 26" fill="none" stroke="#00f59b" stroke-width="2"/><path d="M 60 30 L 30 30 L 36 24 M 30 30 L 36 36" fill="none" stroke="#ec4899" stroke-width="2"/><text x="18" y="46" fill="#38bdf8" font-size="6" font-family="monospace">BOOMERANG LOOP</text></svg>`
+        id: "blend-screen",
+        name: "RGB Blend",
+        sub: "Double Exposure (--blend)",
+        badge: "DOUBLE EXPOSURE",
+        filter: "format=gbrp,blend=all_mode=screen:all_opacity=0.65,format=yuv420p",
+        desc: "Blends 2 videos in planar RGB space using Screen, Multiply, Overlay, Addition, Difference, or Hardlight modes with adjustable opacity.",
+        useCase: "Music video double-exposures, light-leak overlays, artistic textures",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><circle cx="32" cy="24" r="14" fill="#38bdf8" opacity="0.75"/><circle cx="48" cy="24" r="14" fill="#ec4899" opacity="0.75"/><text x="16" y="46" fill="#facc15" font-size="5.5" font-family="monospace">RGB SCREEN BLEND</text></svg>`
       },
       {
-        id: "reencode",
-        name: "Re-encode",
-        sub: "Smart Aspect Fit",
-        badge: "AUTO NORMALIZE",
-        filter: "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080",
-        desc: "Safely merges clips with mismatched frame rates, dimensions, or missing audio streams using blurred background fill or padding.",
-        useCase: "Mixing vertical phone clips with horizontal 4K video",
-        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="8" width="68" height="34" fill="#334155" opacity="0.6"/><rect x="26" y="8" width="28" height="34" fill="#2563eb"/><text x="18" y="48" fill="#93c5fd" font-size="5" font-family="monospace">BLUR FILL / FIT</text></svg>`
+        id: "pip",
+        name: "PiP Overlay",
+        sub: "Picture-in-Picture (--pip)",
+        badge: "PIP OVERLAY",
+        filter: "scale=w=480,pad=w=iw+4:h=ih+4:color=white,overlay=x=W-w-24:y=H-h-24",
+        desc: "Superimposes a scaled secondary video into any corner (br, bl, tr, tl, center) with a crisp frame border and optional voiceover audio ducking.",
+        useCase: "Reaction videos, gaming facecams, tutorials, sign-language overlays",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="6" width="68" height="38" fill="#1e293b" stroke="#475569" stroke-width="1"/><rect x="46" y="24" width="24" height="16" fill="#ec4899" stroke="#fff" stroke-width="1.5"/><text x="12" y="20" fill="#94a3b8" font-size="6" font-family="monospace">MAIN</text><text x="51" y="34" fill="#fff" font-size="5.5" font-family="monospace">PIP</text></svg>`
+      },
+      {
+        id: "chromakey",
+        name: "Keying",
+        sub: "Chroma / Luma Key",
+        badge: "CHROMA / LUMA",
+        filter: "chromakey=0x00ff00:0.15:0.1,overlay=0:0",
+        desc: "Makes green/blue screens (--chromakey) or dark backgrounds (--lumakey) transparent and composites the foreground over Video 1.",
+        useCase: "Green-screen presenters, HUD elements, smoke/fire/particle overlays",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="6" width="68" height="38" fill="#065f46" stroke="#10b981" stroke-width="1"/><circle cx="40" cy="22" r="9" fill="#38bdf8"/><text x="14" y="41" fill="#a7f3d0" font-size="5.5" font-family="monospace">CHROMA / LUMA KEY</text></svg>`
+      },
+      {
+        id: "interleave",
+        name: "Interleave",
+        sub: "A/B/C Strobe Cut",
+        badge: "INTERLEAVE",
+        filter: "overlay=x='if(eq(mod(trunc(T/0.25),2),1),0,-w)'",
+        desc: "Rhythmically alternates between 2+ videos every N seconds (--interleave) or N frames (--strobe) for high-energy visual cuts.",
+        useCase: "Action trailers, rave strobe visuals, multi-angle hype reels",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="10" width="15" height="28" fill="#2563eb"/><rect x="23" y="10" width="15" height="28" fill="#ec4899"/><rect x="40" y="10" width="15" height="28" fill="#2563eb"/><rect x="57" y="10" width="15" height="28" fill="#ec4899"/><text x="16" y="46" fill="#facc15" font-size="5.5" font-family="monospace">A/B INTERLEAVE</text></svg>`
+      },
+      {
+        id: "diagonal",
+        name: "Diagonal",
+        sub: "45° Split Screen",
+        badge: "DIAGONAL SPLIT",
+        filter: "geq=a='if(gt(X*H,Y*W),255,0)',overlay=0:0",
+        desc: "Splits the screen across a razor-sharp 45-degree diagonal divider, showing Video 1 in the lower-left and Video 2 in the upper-right.",
+        useCase: "Versus battles, head-to-head comparisons, comic-book duos",
+        svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><polygon points="6,6 74,6 6,44" fill="#2563eb"/><polygon points="74,6 74,44 6,44" fill="#ec4899"/><line x1="6" y1="44" x2="74" y2="6" stroke="#fff" stroke-width="2"/><text x="14" y="22" fill="#fff" font-size="7" font-family="monospace">A</text><text x="56" y="36" fill="#fff" font-size="7" font-family="monospace">B</text></svg>`
       },
       {
         id: "xfade",
         name: "Crossfade",
-        sub: "Smooth Blend (-t fade)",
-        badge: "CROSSFADE",
+        sub: "Smooth / Burn (-t)",
+        badge: "TRANSITION",
         filter: "xfade=transition=fade:duration=1.0:offset=4.0",
-        desc: "Overlaps video tails and heads with hardware-accelerated opacity dissolves for seamless cinematic continuity.",
-        useCase: "Short films, wedding videos, scene transitions, corporate promos",
+        desc: "Overlaps video tails and heads with smooth dissolves, glitch slices (-t glitch), or celluloid light burns (-t film-burn).",
+        useCase: "Short films, scene transitions, stylized music videos",
         svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="10" width="38" height="30" fill="#2563eb" opacity="0.8"/><rect x="36" y="10" width="38" height="30" fill="#ec4899" opacity="0.8"/><text x="36" y="28" fill="#fff" font-size="9" font-family="monospace">⤬</text><text x="22" y="46" fill="#e2e8f0" font-size="5" font-family="monospace">CROSSFADE</text></svg>`
       },
       {
@@ -1278,12 +1319,12 @@ const VISUAL_AIDS = {
       },
       {
         id: "2x2",
-        name: "Quad 2x2",
-        sub: "4-Way Grid Collage",
-        badge: "QUAD COLLAGE",
+        name: "Quad / 3x3",
+        sub: "Multi-Grid Collage",
+        badge: "GRID COLLAGE",
         filter: "xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0",
-        desc: "Combines 4 videos into a 2x2 quadrant security/multi-cam grid with combined audio mix.",
-        useCase: "Multi-instrument music videos, multi-cam sports, surveillance layouts",
+        desc: "Combines 3, 4, or 9 videos into a Triptych (3x1), Quad (2x2), or 9-panel Video Wall (3x3) with combined audio mix.",
+        useCase: "Multi-instrument music videos, multi-cam sports, video walls",
         svg: `<svg viewBox="0 0 80 50" width="100%" height="100%"><rect width="80" height="50" fill="#090b0e"/><rect x="6" y="6" width="32" height="17" fill="#2563eb"/><rect x="42" y="6" width="32" height="17" fill="#ec4899"/><rect x="6" y="27" width="32" height="17" fill="#10b981"/><rect x="42" y="27" width="32" height="17" fill="#f59e0b"/><text x="18" y="18" fill="#fff" font-size="6">1</text><text x="54" y="18" fill="#fff" font-size="6">2</text><text x="18" y="39" fill="#fff" font-size="6">3</text><text x="54" y="39" fill="#fff" font-size="6">4</text></svg>`
       }
     ],
@@ -1776,24 +1817,36 @@ class CommandStudio {
       `;
     } else if (tool.id === "vidglue") {
       html += `
-        ${this.renderEffectPicker("vidglue", "concat", "Merge / Layout Mode:")}
+        ${this.renderEffectPicker("vidglue", "concat", "Merge / Mix / Layout Mode:")}
         <div class="control-group">
           <label class="control-label">Mode Selector:</label>
           <select class="control-select" id="c_mode">
             <option value="concat">Concatenate Files (Fast copy)</option>
+            <option value="blend-screen">RGB Screen Blend (--blend screen)</option>
+            <option value="blend-multiply">RGB Multiply Blend (--blend multiply)</option>
+            <option value="blend-overlay">RGB Overlay Blend (--blend overlay)</option>
+            <option value="pip">Picture-in-Picture Overlay (--pip br)</option>
+            <option value="chromakey">Green-Screen Chroma Key (--chromakey green)</option>
+            <option value="lumakey">Dark Luma Key (--lumakey)</option>
+            <option value="interleave">Rhythmic A/B Interleave (--interleave 0.25)</option>
+            <option value="diagonal">Diagonal 45° Split (--layout diagonal)</option>
+            <option value="hstack">Side-by-Side Split (--layout hstack)</option>
+            <option value="triptych">Triptych 3x1 Columns (--layout triptych)</option>
+            <option value="2x2">Quad 2x2 Grid (--layout 2x2)</option>
+            <option value="xfade">Crossfade Transition (-t fade)</option>
+            <option value="film-burn">Film-Burn Transition (-t film-burn)</option>
             <option value="bounce">Bounce Loop (--bounce)</option>
             <option value="reencode">Smart Normalize (--reencode)</option>
-            <option value="xfade">Crossfade Transition (-t fade)</option>
-            <option value="hstack">Side-by-Side Split (--layout hstack)</option>
-            <option value="2x2">Quad 2x2 Grid (--layout 2x2)</option>
           </select>
         </div>
         <div class="control-group">
-          <label class="control-label">Aspect Fit (when re-encoding):</label>
-          <select class="control-select" id="c_fit">
-            <option value="pad">Black Bars (pad)</option>
-            <option value="crop">Center Fill (crop)</option>
-            <option value="blur">Blurred Background (blur)</option>
+          <label class="control-label">Multi-Video Audio (--audio-mode):</label>
+          <select class="control-select" id="c_audio_mode">
+            <option value="auto">Auto Default</option>
+            <option value="mix">Mix All Audio Tracks (mix)</option>
+            <option value="duck">Auto-Duck Music Under Voice (duck)</option>
+            <option value="first">Keep Video 1 Audio Only (first)</option>
+            <option value="second">Keep Video 2 Audio Only (second)</option>
           </select>
         </div>
         <div class="control-group">
@@ -1801,8 +1854,12 @@ class CommandStudio {
           <input type="text" class="control-input" id="c_input" value="part1.mp4 part2.mp4">
         </div>
         <div class="control-group">
-          <label class="control-label">Loop Count (-l):</label>
-          <input type="number" class="control-input" id="c_loop" min="1" max="10" value="1">
+          <label class="control-label">Aspect Fit / Loop (-l):</label>
+          <select class="control-select" id="c_fit">
+            <option value="pad">Black Bars (pad)</option>
+            <option value="crop">Center Fill (crop)</option>
+            <option value="blur">Blurred Background (blur)</option>
+          </select>
         </div>
       `;
     } else if (tool.id === "vidglitch") {
@@ -1825,11 +1882,13 @@ class CommandStudio {
           </select>
         </div>
         <div class="control-group">
-          <label class="control-label">Intensity:</label>
+          <label class="control-label">Intensity & Cross-Video Warp:</label>
           <select class="control-select" id="c_intensity">
-            <option value="med">Medium (Default)</option>
-            <option value="low">Low (Subtle)</option>
-            <option value="high">High (Extreme)</option>
+            <option value="med">Medium Intensity (Default)</option>
+            <option value="low">Low Intensity (Subtle)</option>
+            <option value="high">High Intensity (Extreme)</option>
+            <option value="displace">Cross-Video Warp (--displace-with v2.mp4)</option>
+            <option value="blend-glitch">2nd Video Ghost Bleed (--blend-glitch v2.mp4)</option>
           </select>
         </div>
         <div class="control-group">
@@ -1863,11 +1922,12 @@ class CommandStudio {
             <option value="stutter">Rapid Stutter Skips</option>
             <option value="freeze">Freeze-Hold (Keeps duration & audio!)</option>
             <option value="beat">BPM Rhythmic Cuts (--mode beat)</option>
+            <option value="multicam">Multi-Camera Beat Switcher (--multicam)</option>
             <option value="silence">Auto Strip Silence (--mode silence)</option>
           </select>
         </div>
         <div class="control-group">
-          <label class="control-label">Video Input:</label>
+          <label class="control-label">Video Input(s):</label>
           <input type="text" class="control-input" id="c_input" value="action.mp4">
         </div>
         <div class="control-group" style="justify-content: center;">
@@ -1886,7 +1946,7 @@ class CommandStudio {
       html += `
         ${this.renderEffectPicker("videoeffects", "cinema", "Cinematic Look Presets (Click to preview & apply):")}
         <div class="control-group">
-          <label class="control-label">Color Look Preset:</label>
+          <label class="control-label">Color Look / Duotone:</label>
           <select class="control-select" id="c_fx_preset">
             <option value="cinema">Cinema (Teal & Orange)</option>
             <option value="noir">Film Noir (High-Contrast B&W)</option>
@@ -1897,21 +1957,29 @@ class CommandStudio {
             <option value="thermal">Thermal Infrared Vision</option>
             <option value="bleach">Gritty Bleach Bypass</option>
             <option value="sepia">Historic 1890 Sepia</option>
+            <option value="duotone-cyber">Duotone Cyber (--duotone cyber)</option>
+            <option value="duotone-spotify">Duotone Spotify (--duotone spotify)</option>
           </select>
         </div>
         <div class="control-group">
-          <label class="control-label">Speed / Motion:</label>
+          <label class="control-label">Speed / Ramping:</label>
           <select class="control-select" id="c_fx_speed">
             <option value="">1.0x Normal Speed</option>
+            <option value="ramp-slow-mid">Speed Ramp: Fast-Slow-Fast (--speed-ramp slow-mid)</option>
             <option value="0.5">0.5x Slow Motion</option>
             <option value="2.0">2.0x Fast Forward</option>
             <option value="reverse">Reverse Playback (--reverse)</option>
           </select>
         </div>
         <div class="control-group">
-          <label class="control-label">Mirror / Framing:</label>
+          <label class="control-label">Optics / Overlay / Compare:</label>
           <select class="control-select" id="c_fx_extra">
             <option value="letterbox">2.35:1 CinemaScope Bars</option>
+            <option value="anamorphic">Anamorphic Cyan Flare + 2.35:1 (--anamorphic)</option>
+            <option value="light-leak">Warm Film Light Leak (--light-leak)</option>
+            <option value="prism">Crystal RGB Prism (--prism)</option>
+            <option value="blend-video">Blend External Texture Clip (--blend-video)</option>
+            <option value="compare">50/50 Before/After Split View (--compare)</option>
             <option value="mirror-quad">4-Way Kaleidoscope (--mirror quad)</option>
             <option value="tilt-shift">Miniature Tilt-Shift (--tilt-shift)</option>
             <option value="zoom-in">Ken Burns Push-In (--zoom in)</option>
@@ -2333,16 +2401,25 @@ class CommandStudio {
       if (!all && inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "vidglue") {
       const mode = document.getElementById("c_mode")?.value;
+      const audioMode = document.getElementById("c_audio_mode")?.value;
       const fit = document.getElementById("c_fit")?.value;
-      const loop = document.getElementById("c_loop")?.value;
       const inp = document.getElementById("c_input")?.value || "part1.mp4 part2.mp4";
 
-      if (mode === "bounce") cmd += " --bounce";
-      if (mode === "reencode") cmd += " --reencode";
-      if (mode === "xfade") cmd += " -t fade";
-      if (mode === "hstack" || mode === "2x2") cmd += ` --layout ${mode}`;
+      if (mode === "blend-screen") cmd += " --blend screen --opacity 0.65";
+      else if (mode === "blend-multiply") cmd += " --blend multiply --opacity 0.65";
+      else if (mode === "blend-overlay") cmd += " --blend overlay --opacity 0.65";
+      else if (mode === "pip") cmd += " --pip br --pip-scale 0.3";
+      else if (mode === "chromakey") cmd += " --chromakey green";
+      else if (mode === "lumakey") cmd += " --lumakey";
+      else if (mode === "interleave") cmd += " --interleave 0.25";
+      else if (mode === "diagonal" || mode === "hstack" || mode === "triptych" || mode === "2x2") cmd += ` --layout ${mode}`;
+      else if (mode === "xfade") cmd += " -t fade";
+      else if (mode === "film-burn") cmd += " -t film-burn";
+      else if (mode === "bounce") cmd += " --bounce";
+      else if (mode === "reencode") cmd += " --reencode";
+
+      if (audioMode && audioMode !== "auto") cmd += ` --audio-mode ${audioMode}`;
       if (fit && fit !== "pad" && mode !== "concat") cmd += ` --fit ${fit}`;
-      if (loop && parseInt(loop, 10) > 1) cmd += ` -l ${loop}`;
       if (inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "vidglitch") {
       const preset = document.getElementById("c_preset")?.value || "rgb-split";
@@ -2353,7 +2430,9 @@ class CommandStudio {
       const inp = document.getElementById("c_input")?.value || "promo.mp4";
 
       cmd += ` --preset ${preset}`;
-      if (intensity !== "med") cmd += ` -I ${intensity}`;
+      if (intensity === "displace") cmd += " --displace-with noise_clip.mp4 -I high";
+      else if (intensity === "blend-glitch") cmd += " --blend-glitch ghost.mp4";
+      else if (intensity !== "med") cmd += ` -I ${intensity}`;
       if (orgBurst) cmd += " --organic-burst";
       if (audioGlitch) cmd += " --audio-glitch";
       if (osd) cmd += " --osd";
@@ -2369,22 +2448,36 @@ class CommandStudio {
       const super8 = document.getElementById("c_super8")?.checked;
       const inp = document.getElementById("c_input")?.value || "action.mp4";
 
-      if (mode !== "silence") cmd += ` -p ${pct}`;
-      if (mode && mode !== "frames") cmd += ` --mode ${mode}`;
+      if (mode === "multicam") {
+        cmd += " --multicam --bpm 124";
+      } else {
+        if (mode !== "silence") cmd += ` -p ${pct}`;
+        if (mode && mode !== "frames") cmd += ` --mode ${mode}`;
+      }
       if (jitter) cmd += " --jitter";
       if (burn) cmd += " --film-burn";
       if (super8) cmd += " --super8";
-      if (inp) cmd += ` ${inp}`;
+      if (inp) cmd += ` ${mode === "multicam" && !inp.includes(" ") ? "cam1.mp4 cam2.mp4" : inp}`;
     } else if (this.currentTool === "videoeffects") {
       const preset = document.getElementById("c_fx_preset")?.value || "cinema";
       const speed = document.getElementById("c_fx_speed")?.value || "";
       const extra = document.getElementById("c_fx_extra")?.value || "";
       const inp = document.getElementById("c_input")?.value || "cinema.mp4";
 
-      if (preset) cmd += ` --preset ${preset}`;
+      if (preset === "duotone-cyber") cmd += " --duotone cyber";
+      else if (preset === "duotone-spotify") cmd += " --duotone spotify";
+      else if (preset) cmd += ` --preset ${preset}`;
+
       if (speed === "reverse") cmd += " --reverse";
+      else if (speed === "ramp-slow-mid") cmd += " --speed-ramp slow-mid";
       else if (speed) cmd += ` --speed ${speed}`;
+
       if (extra === "letterbox") cmd += " --letterbox 2.35";
+      else if (extra === "anamorphic") cmd += " --anamorphic";
+      else if (extra === "light-leak") cmd += " --light-leak";
+      else if (extra === "prism") cmd += " --prism";
+      else if (extra === "blend-video") cmd += " --blend-video dust.mp4 --blend-mode screen";
+      else if (extra === "compare") cmd += " --compare";
       else if (extra === "mirror-quad") cmd += " --mirror quad";
       else if (extra === "tilt-shift") cmd += " --tilt-shift";
       else if (extra === "zoom-in") cmd += " --zoom in";
@@ -2869,17 +2962,24 @@ class CatalogController {
 // ============================================================================
 const CHEATSHEET_DATA = [
   // Video
-  { category: "video", tool: "videoeffects", alias: "vidfx", goal: "Cinematic Teal & Orange grade + 2.35:1 CinemaScope bars", cmd: "videoeffects --preset cinema --letterbox 2.35 clip.mp4" },
-  { category: "video", tool: "videoeffects", alias: "vidfx", goal: "Vintage 1970s Kodachrome + 4-way kaleidoscope mirror", cmd: "vidfx --preset vintage --mirror quad --fade-in 1.0 clip.mp4" },
-  { category: "video", tool: "videoeffects", alias: "vidfx", goal: "Half-speed dreamy slow-motion with highlight bloom", cmd: "vidfx --speed 0.5 --preset dream --vignette clip.mp4" },
+  { category: "video", tool: "vidglue", alias: "vidmix", goal: "Double-Exposure RGB Screen blend of two videos (65% opacity)", cmd: "vidglue --blend screen --opacity 0.65 dancer.mp4 neon.mp4" },
+  { category: "video", tool: "vidglue", alias: "vidmix", goal: "Picture-in-Picture corner overlay + automatic voiceover audio ducking", cmd: "vidglue --pip br --pip-scale 0.3 --audio-mode duck gameplay.mp4 facecam.mp4" },
+  { category: "video", tool: "vidglue", alias: "vidmix", goal: "Green-screen Chroma Key composite over background video", cmd: "vidglue --chromakey green background.mp4 presenter.mp4" },
+  { category: "video", tool: "vidglue", alias: "vidmix", goal: "45° Diagonal split-screen duel with mixed stereo audio", cmd: "vidglue --layout diagonal --audio-mode mix left.mp4 right.mp4" },
+  { category: "video", tool: "vidglue", alias: "vidmix", goal: "High-voltage rhythmic A/B/C video alternation every 0.25s", cmd: "vidglue --interleave 0.25 cam1.mp4 cam2.mp4 cam3.mp4" },
+  { category: "video", tool: "vidglue", alias: "videoglue", goal: "Crossfade two clips with organic film-burn transition", cmd: "vidglue -t film-burn -d 0.8 part1.mp4 part2.mp4" },
+  { category: "video", tool: "vidglue", alias: "videoglue", goal: "Seamless forward + backward boomerang loop", cmd: "vidglue --bounce clip.mp4" },
+  { category: "video", tool: "vidglue", alias: "videoglue", goal: "2x2 Quad or 3x3 Video Wall collage from multiple clips", cmd: "vidglue --layout 2x2 a.mp4 b.mp4 c.mp4 d.mp4" },
+  { category: "video", tool: "videoeffects", alias: "vidfx", goal: "Blockbuster Teal & Orange + Anamorphic cyan flare + 2.35:1 bars", cmd: "videoeffects --preset cinema --anamorphic clip.mp4" },
+  { category: "video", tool: "videoeffects", alias: "vidfx", goal: "Dynamic Fast-Slow-Fast speed ramp + warm light leak + 50/50 Compare", cmd: "vidfx --speed-ramp slow-mid --light-leak --compare action.mp4" },
+  { category: "video", tool: "videoeffects", alias: "vidfx", goal: "Blend an external film-dust/texture video over clip in Screen mode", cmd: "vidfx --preset vintage --blend-video dust.mp4 --blend-mode screen clip.mp4" },
+  { category: "video", tool: "videoeffects", alias: "vidfx", goal: "Cyberpunk duotone palette + optical RGB prism dispersion", cmd: "vidfx --duotone cyber --prism dance.mp4" },
+  { category: "video", tool: "vidglitch", alias: "videoglitch", goal: "Cross-video pixel displacement (warp Video 1 using Video 2 motion)", cmd: "vidglitch --displace-with noise_clip.mp4 -I high portrait.mp4" },
   { category: "video", tool: "vidglitch", alias: "videoglitch", goal: "Cyberpunk neon tearing + organic bursts + audio stutter", cmd: "vidglitch --preset cyberpunk --organic-burst --audio-glitch clip.mp4" },
   { category: "video", tool: "vidglitch", alias: "videoglitch", goal: "1990s VHS tape tracking with camcorder HUD overlay", cmd: "vidglitch --preset vhs --osd -I high clip.mp4" },
+  { category: "video", tool: "vidcuts", alias: "videocuts", goal: "Multi-camera beat-synced angle switcher across 3 videos (continuous audio)", cmd: "vidcuts --multicam --bpm 124 --film-burn cam1.mp4 cam2.mp4 cam3.mp4" },
   { category: "video", tool: "vidcuts", alias: "videocuts", goal: "Auto-strip dead air / silence pauses from vlogs or lectures", cmd: "vidcuts --mode silence clip.mp4" },
   { category: "video", tool: "vidcuts", alias: "videocuts", goal: "Freeze-hold 20% cuts with film burn & Super-8 gate (keeps audio sync)", cmd: "vidcuts -p 20 --mode freeze --film-burn --super8 clip.mp4" },
-  { category: "video", tool: "vidcuts", alias: "videocuts", goal: "BPM-synced rhythmic jump cuts using aubio beat detection", cmd: "vidcuts -p 30 --mode beat clip.mp4" },
-  { category: "video", tool: "vidglue", alias: "videoglue", goal: "Crossfade two clips with 0.8s smooth fade transition", cmd: "vidglue -t fade -d 0.8 part1.mp4 part2.mp4" },
-  { category: "video", tool: "vidglue", alias: "videoglue", goal: "Seamless forward + backward boomerang loop", cmd: "vidglue --bounce clip.mp4" },
-  { category: "video", tool: "vidglue", alias: "videoglue", goal: "2x2 Quad Split-Screen grid from 4 clips", cmd: "vidglue --layout 2x2 a.mp4 b.mp4 c.mp4 d.mp4" },
   { category: "video", tool: "videorandfram", alias: "vidrandfram", goal: "Stutter stop-motion frame scramble with ghosting trails", cmd: "videorandfram -p stutter --trails 3 --rgb-split 8 clip.mp4" },
   { category: "video", tool: "vidoptim", alias: "", goal: "Shrink MP4 size (H.264 CRF 23, max 1920px, web-ready)", cmd: "vidoptim --crf 23 --width 1920 clip.mp4" },
   { category: "video", tool: "vid2gif", alias: "", goal: "High-color two-pass palette GIF (480px, 12fps)", cmd: "vid2gif --width 480 --fps 12 clip.mp4" },

@@ -3,26 +3,29 @@ set -euo pipefail
 SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
 
 PERCENT=20; MODE="frames"; SEED=""; JITTER=0; GRAIN=0; FLASH=0; FILM_BURN=0; SCRATCHES=0; SUPER8=0
-BPM=""; SILENCE_DB="-38"; KEEP_AUDIO=0; MUTE=0
+BPM=""; SILENCE_DB="-38"; KEEP_AUDIO=0; MUTE=0; MULTICAM=0
 OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; START=""; END=""; FILES=(); INTERACTIVE=0
 
 usage() { cat <<'EOF'
 Usage: vidcuts [options] <video...>
+       videocuts [options] <video...>
 
-Erase random frames, rhythmic beats, or silent pauses to create cut-film,
-French New Wave jump-cut, or stop-motion aesthetics.
+Erase random frames, rhythmic beats, silent pauses, or switch between 2+ camera
+angles on the beat to create cut-film, jump-cut, or multi-cam music videos.
 
 Options:
   -p, --percent <N>       Percentage of frames to cut out (1-90, default: 20)
   -m, --mode <mode>       Cut mode (default: frames):
-                          • frames:  Erase random single frames (missing celluloid frames)
-                          • jumps:   Excise micro-chunks (~0.2s jump cuts)
-                          • stutter: Rapid 2-frame skips (projector chatter)
-                          • freeze:  Drop frames & freeze-hold survivors (preserves original duration & audio!)
-                          • beat:    Cut rhythmically in sync with BPM (--bpm or aubio auto-detect)
-                          • silence: Auto-strip silent pauses (vlog / podcast jump-cut editor)
+                          • frames:   Erase random single frames (missing celluloid frames)
+                          • jumps:    Excise micro-chunks (~0.2s jump cuts)
+                          • stutter:  Rapid 2-frame skips (projector chatter)
+                          • freeze:   Drop frames & freeze-hold survivors (preserves duration & audio!)
+                          • beat:     Cut rhythmically in sync with BPM (--bpm or aubio auto-detect)
+                          • silence:  Auto-strip silent pauses (vlog / podcast jump-cut editor)
+                          • multicam: Switch between 2+ input videos on every BPM beat!
+  --multicam              Combine 2+ input videos by switching camera angles on the BPM beat
   -i, --interactive       Interactive wizard (guided mode) 🧙
-  --bpm <N>               Target BPM for '--mode beat' (auto-detected if omitted)
+  --bpm <N>               Target BPM for '--mode beat' or '--multicam' (auto-detected if omitted)
   --threshold <dB>        Silence threshold in dB for '--mode silence' (default: -38)
   --seed <int>            Seed for random cut pattern (reproducible cuts)
   --keep-audio            Keep continuous original audio without cutting it (uses freeze-frame timing)
@@ -45,13 +48,13 @@ Trimming & Output:
   -h, --help              Show help
 
 Examples:
-  vidcuts clip.mp4                                         # 20% random frame drops
-  vidcuts -p 35 --mode jumps recording.mov                 # 35% shorter with chunk jump cuts
-  vidcuts -p 40 --mode freeze --film-burn musicvideo.mp4   # stutter freeze-cuts keeping original song intact
-  vidcuts --mode beat --bpm 128 --flash dance.mp4          # rhythmic cuts synced to 128 BPM
-  vidcuts --mode silence interview.mp4                     # auto-remove dead air from talking head video
-  vidcuts -p 20 --jitter --grain --scratches --super8 v.mp4 # full 16mm/Super-8 damaged film look
-  vidcuts -i                                               # interactive guided wizard
+  vidcuts clip.mp4                                           # 20% random frame drops
+  vidcuts -p 35 --mode jumps recording.mov                   # 35% shorter with chunk jump cuts
+  vidcuts -p 40 --mode freeze --film-burn musicvideo.mp4     # stutter freeze-cuts keeping original song intact
+  vidcuts --mode beat --bpm 128 --flash dance.mp4            # rhythmic cuts synced to 128 BPM
+  vidcuts --multicam --bpm 120 --film-burn cam1.mp4 cam2.mp4 # switch between 2+ videos on every BPM beat
+  vidcuts --mode silence interview.mp4                       # auto-remove dead air from talking head video
+  vidcuts -i                                                 # interactive guided wizard
 EOF
 }
 
@@ -60,7 +63,7 @@ interactive_wizard() {
   echo "────────────────────────────────────────────"
 
   # Step 1: Input files with live ffprobe preview
-  wizard_select_files "vidcuts" '\.(mp4|mov|avi|mkv|webm|m4v)$' "💡 [Tab] mark multiple video files • [Enter] confirm"
+  wizard_select_files "vidcuts" '\.(mp4|mov|avi|mkv|webm|m4v)$' "💡 [Tab] mark multiple video files (2+ files enables Multi-Cam Beat Cut!) • [Enter] confirm"
 
   # Step 2: Cut Style
   if command -v fzf &>/dev/null; then
@@ -71,8 +74,10 @@ interactive_wizard() {
       'stutter — 📽️ 2-frame skips (mechanical projector chatter)' \
       'freeze — 🧊 Freeze-hold cuts (keeps original duration & continuous audio!)' \
       'beat — 🥁 BPM rhythmic cuts (synced to music tempo)' \
-      'silence — 🎙️ Auto-strip silent pauses (vlogger / podcast jump cuts)' | fzf --no-mouse --prompt="Select cut mode > " --height=45% --layout=reverse --border=horizontal || true)
+      'multicam — 🎥 Multi-Cam Beat Switcher (alternates 2+ videos on every BPM beat!)' \
+      'silence — 🎙️ Auto-strip silent pauses (vlogger / podcast jump cuts)' | fzf --no-mouse --prompt="Select cut mode > " --height=48% --layout=reverse --border=horizontal || true)
     [ -n "$m_choice" ] && MODE="${m_choice%% *}"
+    [ "$MODE" = "multicam" ] && MULTICAM=1
   fi
 
   # Step 3: Mode-specific parameters
@@ -85,7 +90,7 @@ interactive_wizard() {
         '-45 — 🤫 Gentle silence removal (-45dB, quiet room)' | fzf --no-mouse --prompt="Select silence threshold > " --height=35% --layout=reverse --border=horizontal || true)
       [ -n "$th_choice" ] && SILENCE_DB="${th_choice%% *}"
     fi
-  else
+  elif [ "$MODE" != "multicam" ]; then
     if command -v fzf &>/dev/null; then
       local p_choice
       p_choice=$(printf '%s\n' \
@@ -114,12 +119,12 @@ interactive_wizard() {
     fi
   fi
 
-  if [ "$MODE" = "beat" ]; then
+  if [ "$MODE" = "beat" ] || [ "$MODE" = "multicam" ] || [ "$MULTICAM" -eq 1 ]; then
     if command -v fzf &>/dev/null; then
       local bpm_choice
       bpm_choice=$(printf '%s\n' \
         'auto — 🥁 Auto-detect BPM from audio track (aubio)' \
-        '120 — 🎵 120 BPM (House / Pop standard)' \
+        '120 — 🎵 120 BPM (House / Pop standard — 0.5s beat)' \
         '128 — ⚡ 128 BPM (Club / Electro / Techno)' \
         '140 — 🔥 140 BPM (Trap / Dubstep / Fast)' \
         '90 — 🎧 90 BPM (Boom-bap / Lo-Fi Hip-Hop)' \
@@ -179,10 +184,10 @@ interactive_wizard() {
   fi
 
   local eq_cmd="vidcuts --mode $MODE"
-  [ "$MODE" != "silence" ] && eq_cmd+=" -p $PERCENT"
+  [ "$MODE" != "silence" ] && [ "$MODE" != "multicam" ] && eq_cmd+=" -p $PERCENT"
   [ "$MODE" = "silence" ] && [ "$SILENCE_DB" != "-38" ] && eq_cmd+=" --threshold ${SILENCE_DB}dB"
   [ -n "$BPM" ] && eq_cmd+=" --bpm $BPM"
-  [ "$KEEP_AUDIO" -eq 1 ] && [ "$MODE" != "freeze" ] && eq_cmd+=" --keep-audio"
+  [ "$KEEP_AUDIO" -eq 1 ] && [ "$MODE" != "freeze" ] && [ "$MODE" != "multicam" ] && eq_cmd+=" --keep-audio"
   [ "$JITTER" -eq 1 ] && eq_cmd+=" --jitter"
   [ "$GRAIN" -eq 1 ] && eq_cmd+=" --grain"
   [ "$FLASH" -eq 1 ] && eq_cmd+=" --flash"
@@ -198,15 +203,16 @@ interactive_wizard() {
 
   wizard_confirm_and_run "vidcuts" "$eq_cmd" \
     "Files (${#FILES[@]})   : ${FILES[*]}" \
-    "Cut Mode      : $MODE ($([ "$MODE" = "silence" ] && echo "threshold: ${SILENCE_DB}dB" || echo "${PERCENT}% erased"))" \
+    "Cut Mode      : $MODE ($([ "$MODE" = "silence" ] && echo "threshold: ${SILENCE_DB}dB" || ([ "$MODE" = "multicam" ] && echo "BPM camera switcher" || echo "${PERCENT}% erased")))" \
     "Celluloid FX  : jitter=$JITTER, grain=$GRAIN, film-burn=$FILM_BURN, scratches=$SCRATCHES, super8=$SUPER8" \
-    "Audio         : $([ "$MUTE" -eq 1 ] && echo "Muted" || ([ "$KEEP_AUDIO" -eq 1 ] || [ "$MODE" = "freeze" ] && echo "Continuous (freeze-hold)" || echo "Trimmed in lockstep"))"
+    "Audio         : $([ "$MUTE" -eq 1 ] && echo "Muted" || ([ "$KEEP_AUDIO" -eq 1 ] || [ "$MODE" = "freeze" ] || [ "$MODE" = "multicam" ] && echo "Continuous master audio" || echo "Trimmed in lockstep"))"
 }
 
 while [ "$#" -gt 0 ]; do case "$1" in
   -i|--interactive) INTERACTIVE=1; shift;;
   -p|--percent|--cut) PERCENT="${2:?$1 requires a value}"; shift 2;;
   -m|--mode) MODE="${2:?$1 requires a value}"; shift 2;;
+  --multicam) MULTICAM=1; MODE="multicam"; shift;;
   --bpm) BPM="${2:?$1 requires a value}"; shift 2;;
   --threshold) SILENCE_DB="${2:?$1 requires a value}"; SILENCE_DB="${SILENCE_DB%dB}"; shift 2;;
   --seed) SEED="${2:?$1 requires a value}"; shift 2;;
@@ -242,13 +248,14 @@ require_commands ffmpeg ffprobe
 
 # Set base frequency based on mode
 case "$MODE" in
-  frames)  FREQ=25 ;;
-  jumps)   FREQ=6  ;;
-  stutter) FREQ=12 ;;
-  freeze)  FREQ=10; KEEP_AUDIO=1 ;;
-  beat)    FREQ=8  ;;
-  silence) FREQ=6  ;;
-  *) echo "Unknown mode '$MODE'. Choose from: frames, jumps, stutter, freeze, beat, silence." >&2; exit 1 ;;
+  frames)   FREQ=25 ;;
+  jumps)    FREQ=6  ;;
+  stutter)  FREQ=12 ;;
+  freeze)   FREQ=10; KEEP_AUDIO=1 ;;
+  beat)     FREQ=8  ;;
+  silence)  FREQ=6  ;;
+  multicam) FREQ=8; MULTICAM=1 ;;
+  *) echo "Unknown mode '$MODE'. Choose from: frames, jumps, stutter, freeze, beat, silence, multicam." >&2; exit 1 ;;
 esac
 
 # Generate reproducible or random seed
@@ -257,6 +264,105 @@ if [ -z "$SEED" ]; then
 fi
 
 [ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
+
+# Build celluloid post-filter chain helper
+build_celluloid_vf() {
+  local vf_acc=""
+  if [ "$FLASH" -eq 1 ]; then
+    vf_acc="${vf_acc:+$vf_acc,}drawbox=t=fill:c=white@0.85:enable=gt(random(2)\\,0.96)"
+  fi
+  if [ "$FILM_BURN" -eq 1 ]; then
+    vf_acc="${vf_acc:+$vf_acc,}drawbox=t=fill:c=0xFF6A00@0.58:enable=gt(random(3)\\,0.94)"
+  fi
+  if [ "$SCRATCHES" -eq 1 ]; then
+    vf_acc="${vf_acc:+$vf_acc,}drawbox=x=mod(floor(t*43)*137\\,iw):y=0:w=2:h=ih:c=white@0.42:t=fill:enable=gt(random(1)\\,0.62)"
+  fi
+  if [ "$JITTER" -eq 1 ]; then
+    vf_acc="${vf_acc:+$vf_acc,}pad=in_w:in_h+8:0:4:black,crop=in_w:in_h-8:0:trunc(abs(sin(n*1.3))*4)"
+  fi
+  if [ "$GRAIN" -eq 1 ]; then
+    vf_acc="${vf_acc:+$vf_acc,}noise=alls=10:allf=t+u"
+  fi
+  if [ "$SUPER8" -eq 1 ]; then
+    vf_acc="${vf_acc:+$vf_acc,}vignette=PI/3.5,drawbox=x=0:y=0:w=iw:h=ih:c=black:t=12"
+  fi
+  vf_acc="${vf_acc:+$vf_acc,}format=yuv420p"
+  printf "%s" "$vf_acc"
+}
+
+# Handle Multi-Cam Beat Switching across 2+ files
+if [ "$MULTICAM" -eq 1 ] && [ "${#FILES[@]}" -ge 2 ]; then
+  first_file="${FILES[0]}"
+  for f in "${FILES[@]}"; do
+    if [ ! -f "$f" ]; then
+      echo "❌ Input file not found: $f" >&2
+      exit 1
+    fi
+  done
+  base="$(basename "${first_file%.*}")"
+  out="${OUTPUT_DIR:-$(dirname "$first_file")}/${base}-multicam.mp4"
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "📝 Would create multi-cam beat edit: $out (from ${#FILES[@]} videos)"
+    exit 0
+  fi
+
+  output_is_safe "$out" "$FORCE" || exit 1
+
+  probe_wh=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$first_file" 2>/dev/null | head -n1 || echo "1920x1080")
+  VW="${probe_wh%x*}"
+  VH="${probe_wh#*x}"
+  [[ "$VW" =~ ^[0-9]+$ ]] || VW=1920
+  [[ "$VH" =~ ^[0-9]+$ ]] || VH=1080
+  VW=$(( (VW / 2) * 2 ))
+  VH=$(( (VH / 2) * 2 ))
+
+  HAS_AUDIO=0
+  if [ "$MUTE" -eq 0 ]; then
+    AUDIO_STREAM=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of default=nw=1:nk=1 "$first_file" 2>/dev/null | head -n1 || true)
+    [ "$AUDIO_STREAM" = "audio" ] && HAS_AUDIO=1
+  fi
+
+  DET_BPM="$BPM"
+  if [ -z "$DET_BPM" ] && command -v aubio &>/dev/null && [ "$HAS_AUDIO" -eq 1 ]; then
+    DET_BPM=$(aubio tempo "$first_file" 2>/dev/null | awk '{printf "%d", $1}' || true)
+  fi
+  [[ "$DET_BPM" =~ ^[0-9]+$ && "$DET_BPM" -gt 20 ]] || DET_BPM=120
+  BEAT_SEC=$(awk -v b="$DET_BPM" 'BEGIN { printf "%.4f", 60.0 / b }')
+  echo "🎥 Multi-Cam Beat Mode: ${DET_BPM} BPM (switching camera every ${BEAT_SEC}s across ${#FILES[@]} clips) → $out"
+
+  mc_inputs=()
+  mc_parts=()
+  for i in "${!FILES[@]}"; do
+    mc_inputs+=(-i "${FILES[$i]}")
+    mc_parts+=("[${i}:v]scale=${VW}:${VH}:force_original_aspect_ratio=decrease,pad=${VW}:${VH}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps=30,format=yuv420p[v$i]")
+  done
+  prev_v="v0"
+  last_idx=$(( ${#FILES[@]} - 1 ))
+  for (( i=1; i<=last_idx; i++ )); do
+    out_v="vmc$i"
+    n_active=$(( i + 1 ))
+    tot_p=$(awk -v s="$BEAT_SEC" -v n="$n_active" 'BEGIN { printf "%.4f", s * n }')
+    slot_start=$(awk -v s="$BEAT_SEC" -v idx="$i" 'BEGIN { printf "%.4f", s * idx }')
+    mc_parts+=("[${prev_v}][v${i}]blend=all_expr='if(gte(mod(T,${tot_p}),${slot_start}),B,A)':shortest=1[${out_v}]")
+    prev_v="$out_v"
+  done
+  CELL_VF="$(build_celluloid_vf)"
+  mc_parts+=("[${prev_v}]${CELL_VF}[vout]")
+  IFS=';'; mc_filter="${mc_parts[*]}"; unset IFS
+
+  mc_args=(-hide_banner -loglevel error -stats "${mc_inputs[@]}" -filter_complex "$mc_filter" -map "[vout]")
+  if [ "$HAS_AUDIO" -eq 1 ]; then
+    mc_args+=(-map "0:a:0" -c:v libx264 -crf 20 -preset medium -c:a aac -b:a 192k)
+  else
+    mc_args+=(-c:v libx264 -crf 20 -preset medium -an)
+  fi
+  mc_args+=("$out")
+  ffmpeg "${mc_args[@]}"
+  notify "Multi-cam beat edit complete! 🎥" "vidcuts"
+  echo "🎉 Created: $out"
+  exit 0
+fi
 
 SUCCESS=0; FAILED=0; SKIPPED=0
 for input in "${FILES[@]}"; do
@@ -340,31 +446,10 @@ for input in "${FILES[@]}"; do
 
   # Build video filter chain
   if [ "$KEEP_AUDIO" -eq 1 ]; then
-    # Freeze-cut mode: drop frames but preserve PTS timeline and resample back to smooth container FPS
-    VF="select=${SELECT_EXPR},fps=30"
+    VF="select=${SELECT_EXPR},fps=30,$(build_celluloid_vf)"
   else
-    VF="select=${SELECT_EXPR},setpts=N/FRAME_RATE/TB"
+    VF="select=${SELECT_EXPR},setpts=N/FRAME_RATE/TB,$(build_celluloid_vf)"
   fi
-
-  if [ "$FLASH" -eq 1 ]; then
-    VF="${VF},drawbox=t=fill:c=white@0.85:enable=gt(random(2)\\,0.96)"
-  fi
-  if [ "$FILM_BURN" -eq 1 ]; then
-    VF="${VF},drawbox=t=fill:c=0xFF6A00@0.58:enable=gt(random(3)\\,0.94)"
-  fi
-  if [ "$SCRATCHES" -eq 1 ]; then
-    VF="${VF},drawbox=x=mod(floor(t*43)*137\\,iw):y=0:w=2:h=ih:c=white@0.42:t=fill:enable=gt(random(1)\\,0.62)"
-  fi
-  if [ "$JITTER" -eq 1 ]; then
-    VF="${VF},pad=in_w:in_h+8:0:4:black,crop=in_w:in_h-8:0:trunc(abs(sin(n*1.3))*4)"
-  fi
-  if [ "$GRAIN" -eq 1 ]; then
-    VF="${VF},noise=alls=10:allf=t+u"
-  fi
-  if [ "$SUPER8" -eq 1 ]; then
-    VF="${VF},vignette=PI/3.5,drawbox=x=0:y=0:w=iw:h=ih:c=black:t=12"
-  fi
-  VF="${VF},format=yuv420p"
 
   args=(-hide_banner -loglevel error -stats)
   [ -n "$START" ] && args+=(-ss "$START")

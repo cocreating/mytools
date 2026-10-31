@@ -39,7 +39,7 @@ case "${1:-}" in
     echo "💡 Note: The image tool is named 'img2webp' (with a 'p'). You can also run it directly without 'mytools': img2webp ${*:2}" >&2
     exec "$SCRIPT_DIR/img2webp" "${@:2}"
     ;;
-  videoglue) exec "$SCRIPT_DIR/vidglue" "${@:2}" ;;
+  videoglue|vidmix|videomix) exec "$SCRIPT_DIR/vidglue" "${@:2}" ;;
   videoglitch) exec "$SCRIPT_DIR/vidglitch" "${@:2}" ;;
   videocuts) exec "$SCRIPT_DIR/vidcuts" "${@:2}" ;;
   vidfx) exec "$SCRIPT_DIR/videoeffects" "${@:2}" ;;
@@ -67,10 +67,10 @@ fi
 OPTION=$(printf '%s\n' \
   'img2webp — 📸 Image to WebP (wizard & batch converter)' \
   'ytdl — 📥 Download web media (yt-dlp + clipboard)' \
-  'vidglue — 🎞️ Glue, crossfade & collage MP4 videos (videoglue)' \
-  'vidglitch — ⚡ Glitch, VHS & retro visual/audio FX (videoglitch)' \
-  'vidcuts — ✂️ Cut film, BPM beat cuts & silence remover (videocuts)' \
-  'videoeffects — 🎬 Cinematic color grading, speed & optical FX (vidfx)' \
+  'vidglue — 🎞️ Glue, crossfade, collage, blend & PiP videos (videoglue / vidmix)' \
+  'vidglitch — ⚡ Glitch, VHS & cross-video displacement FX (videoglitch)' \
+  'vidcuts — ✂️ Cut film, BPM multicam switcher & silence remover (videocuts)' \
+  'videoeffects — 🎬 Color grading, speed-ramp, optics & texture blend (vidfx)' \
   'videorandfram — 🎲 Randomize frame order & temporal glitch (vidrandfram)' \
   'vidoptim — 🚀 Optimize video (web / social / archive presets)' \
   'vid2webm — 🌐 Video to VP9/Opus WebM' \

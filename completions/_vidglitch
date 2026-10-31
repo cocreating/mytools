@@ -3,6 +3,8 @@ _arguments \
   '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
   '(-p --preset)'{-p,--preset}'[glitch preset]:preset:(rgb-split vhs crt 8bit cyberpunk badsignal tear datamosh nightvision gameboy matrix)' \
   '(-I --intensity)'{-I,--intensity}'[effect intensity]:intensity:(low med high 25 50 75 100)' \
+  '(--displace-with --datamosh-with)'{--displace-with,--datamosh-with}'[use 2nd video as pixel displacement map]:video file:_files -g "*.(mp4|mov|avi|mkv|webm|m4v)(-.)"' \
+  '--blend-glitch[bleed glitched ghost of 2nd video into frame]:video file:_files -g "*.(mp4|mov|avi|mkv|webm|m4v)(-.)"' \
   '--rgb-split[shift red and blue color channels in px]:offset' \
   '--scanlines[add CRT scanlines overlay]' \
   '--noise[add analog video noise]:level' \

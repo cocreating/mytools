@@ -13,32 +13,75 @@ RESOLUTION="auto"
 TRANSITION=""
 TRANSITION_DUR="0.5"
 LAYOUT=""
+BLEND=""
+OPACITY="0.6"
+PIP=""
+PIP_SCALE="0.32"
+LUMAKEY=0
+CHROMAKEY=""
+INTERLEAVE=""
+STROBE=""
+AUDIO_MODE="auto"
 LOOP=1
 MUTE=0
 FILES=()
 
 usage() { cat <<'EOF'
 Usage: vidglue [options] <video1> [video2...]
-Glue (concatenate or collage) video files into a single MP4.
+       videoglue / vidmix / videomix [options] <video1> [video2...]
+
+Glue, crossfade, collage, blend (double-exposure), key, or rhythmically interleave
+2 or more videos into a single MP4.
 
 Options:
   -i, --interactive               Interactive guided wizard 🧙
-  -o, --output <file>             Output MP4 file path (default: <first-video>-glued.mp4)
+  -o, --output <file>             Output MP4 file path (default: <first-video>-<mode>.mp4)
   -b, --bounce                    Play 1st video forward and 2nd reversed (or forward + reversed for 1 video)
   -r, --reencode                  Re-encode & normalize streams (auto-matches resolution, FPS & audio)
   --fit <pad|crop|blur>           Aspect ratio fit when normalizing mixed dimensions (default: pad)
                                   • pad:  Letterbox/pillarbox with black bars
                                   • crop: Center-crop to fill target frame
                                   • blur: Fill background with blurred copy of clip
-  --resolution <res>              Target resolution when re-encoding (auto, 1080p, 720p, vertical, or WxH)
-  -t, --transition <type>         Smooth crossfade transition between clips (auto-enables --reencode)
+  --resolution <res>              Target resolution when re-encoding (auto, 1080p, 720p, vertical, square, or WxH)
+
+Sequential Transitions:
+  -t, --transition <type>         Smooth crossfade or impact transition between clips (auto-enables --reencode)
                                   Available: fade, fadeblack, fadewhite, dissolve, wipeleft, wiperight,
-                                             slideup, slidedown, circleopen, pixelize, radial
+                                             slideup, slidedown, circleopen, pixelize, radial, smoothleft,
+                                             smoothright, glitch, film-burn
   --transition-duration <sec>     Transition duration in seconds (default: 0.5)
+
+Spatial Split-Screen & Collages:
   --layout, --grid <mode>         Spatial split-screen collage instead of sequential glue:
-                                  • hstack: Side-by-side horizontal split
-                                  • vstack: Top-and-bottom vertical split
-                                  • 2x2:    Quad 2x2 grid collage
+                                  • hstack:       Side-by-side horizontal split
+                                  • vstack:       Top-and-bottom vertical split
+                                  • 2x2:          Quad 2x2 grid collage
+                                  • triptych:     3-panel panoramic cinema triptych (3x1)
+                                  • 3x3:          9-panel matrix video wall
+                                  • diagonal:     45° diagonal split screen between 2 videos
+                                  • wipe-compare: Animated A/B sweeping comparison bar
+
+Multi-Layer Blending, Keying & Picture-in-Picture (2+ videos):
+  --blend <mode>                  Double-exposure layer blend (RGB color space):
+                                  screen, multiply, overlay, addition, difference,
+                                  hardlight, softlight, exclusion, phoenix, average
+  --opacity <0.1-1.0>             Blend opacity for overlay video(s) (default: 0.6)
+  --lumakey                       Key out dark regions of 2nd video over 1st (ideal for light leaks/particles)
+  --chromakey <green|blue|hex>    Key out green/blue screen of 2nd video over 1st
+  --pip <br|bl|tr|tl|center>      Picture-in-Picture floating window of 2nd video over 1st
+  --pip-scale <0.15-0.6>          Relative scale of Picture-in-Picture window (default: 0.32)
+
+Rhythmic Alternation & Strobe Splicing (2+ videos):
+  --interleave <sec>              Alternate between videos every N seconds (e.g. 0.5 or 1.0)
+  --strobe <frames>               Hypnotic A/B frame-by-frame strobe every N frames (e.g. 2)
+
+Audio & Looping:
+  --audio-mode <mode>             Multi-video audio strategy (default: auto):
+                                  • auto:   Concatenate for sequential; mix/master for layered modes
+                                  • first:  Keep continuous audio from 1st video only
+                                  • second: Keep continuous audio from 2nd video only
+                                  • mix:    Blend all audio tracks simultaneously
+                                  • duck:   Sidechain ducking (video 1 voice lowers video 2 music)
   -l, --loop <N>                  Repeat the final glued sequence N times (default: 1)
   --mute                          Discard audio from the output video
   -f, --force                     Overwrite existing output file
@@ -46,24 +89,24 @@ Options:
   -h, --help                      Show this help message
 
 Examples:
-  vidglue -i                                         # interactive guided wizard
-  vidglue part1.mp4 part2.mp4                        # fast lossless stream copy
-  vidglue --bounce clip.mp4                          # forward + reversed boomerang loop
-  vidglue --reencode --fit blur horiz.mp4 vert.mp4   # mix horizontal & vertical with blurred fill
-  vidglue -t fade --transition-duration 0.8 a.mp4 b.mp4
-  vidglue --layout hstack left.mp4 right.mp4         # side-by-side split screen
-  vidglue --bounce -l 3 short.mp4                    # bounce loop repeated 3x
+  vidglue -i                                                 # interactive guided wizard
+  vidglue part1.mp4 part2.mp4                                # fast lossless stream copy
+  vidglue -t glitch --transition-duration 0.6 a.mp4 b.mp4    # glitch-burst transition between clips
+  vidglue --blend screen --opacity 0.65 base.mp4 bokeh.mp4   # double-exposure screen blend
+  vidglue --pip br --audio-mode duck tutorial.mp4 cam.mp4    # PiP corner cam + auto audio ducking
+  vidglue --layout diagonal --audio-mode first a.mp4 b.mp4   # 45° diagonal split screen
+  vidglue --interleave 0.5 --audio-mode first cam1.mp4 cam2.mp4 # multi-cam cut every 0.5s keeping song
 EOF
 }
 
 interactive_wizard() {
-  echo "🎞️ Welcome to the vidglue interactive wizard!"
-  echo "────────────────────────────────────────────"
+  echo "🎞️ Welcome to the vidglue / vidmix interactive wizard!"
+  echo "─────────────────────────────────────────────────────"
 
   # Step 1: Input files with live ffprobe preview
-  wizard_select_files "vidglue" '\.(mp4|mov|avi|mkv|webm|m4v)$' "💡 [Tab] mark files (1 file = bounce/loop, 2+ = glue/xfade/collage) • [Enter] confirm"
+  wizard_select_files "vidglue" '\.(mp4|mov|avi|mkv|webm|m4v)$' "💡 [Tab] mark files (1 file = bounce/loop, 2+ = glue/blend/collage/interleave) • [Enter] confirm"
 
-  # Step 2: Glue Mode
+  # Step 2: Glue / Mix Mode
   if [ "${#FILES[@]}" -eq 1 ]; then
     if command -v fzf &>/dev/null; then
       local single_choice
@@ -85,12 +128,15 @@ interactive_wizard() {
       local mode_choice
       mode_choice=$(printf '%s\n' \
         'fast-copy — ⚡ Fast lossless stream copy (same codec/resolution)' \
-        'reencode — ⚙️ Smart normalize & re-encode (mixed resolutions/formats)' \
-        'transition — ✨ Crossfade transition between clips (xfade)' \
-        'bounce — 🪃 Alternating forward & reversed clips' \
-        'hstack — ◫ Side-by-side split screen (horizontal collage)' \
-        'vstack — ⊟ Top-and-bottom split screen (vertical collage)' \
-        '2x2 — ⊞ Quad 2x2 grid collage' | fzf --no-mouse --prompt="Select glue mode > " --height=45% --layout=reverse --border=horizontal || true)
+        'reencode — ⚙️ Smart normalize & sequential concat (mixed resolutions)' \
+        'transition — ✨ Crossfade or impact transition between clips (-t)' \
+        'blend — 🌈 Double-exposure layer blending (--blend screen/multiply/overlay...)' \
+        'pip — 🖼️ Picture-in-Picture floating window (--pip)' \
+        'keying — 🟢 Luma Key or Chroma Key overlay (--lumakey / --chromakey)' \
+        'interleave — 🥁 Rhythmic multi-cam alternation every N sec (--interleave)' \
+        'strobe — ⚡ Hypnotic A/B frame-by-frame strobe (--strobe)' \
+        'layout — ⊞ Spatial split-screen collage (hstack, vstack, 2x2, triptych, 3x3, diagonal, wipe-compare)' \
+        'bounce — 🪃 Alternating forward & reversed clips (--bounce)' | fzf --no-mouse --prompt="Select multi-video mode > " --height=55% --layout=reverse --border=horizontal || true)
       case "${mode_choice%% *}" in
         reencode) REENCODE=1 ;;
         transition)
@@ -98,16 +144,20 @@ interactive_wizard() {
           local t_choice
           t_choice=$(printf '%s\n' \
             'fade — Smooth cross-dissolve (default)' \
+            'glitch — ⚡ Glitch RGB + pixel burst transition' \
+            'film-burn — 🔥 Warm celluloid light-leak burn transition' \
             'fadeblack — Dip to black' \
             'fadewhite — Flash to white' \
             'dissolve — Dithered pixel dissolve' \
             'wipeleft — Wipe right to left' \
             'wiperight — Wipe left to right' \
+            'smoothleft — Smooth motion slide left' \
+            'smoothright — Smooth motion slide right' \
             'slideup — Slide upward' \
             'slidedown — Slide downward' \
             'pixelize — Digital pixel block transition' \
             'circleopen — Iris circle opening' \
-            'radial — Clockwise radar wipe' | fzf --no-mouse --prompt="Select transition style > " --height=50% --layout=reverse --border=horizontal || true)
+            'radial — Clockwise radar wipe' | fzf --no-mouse --prompt="Select transition style > " --height=55% --layout=reverse --border=horizontal || true)
           TRANSITION="${t_choice%% *}"
           TRANSITION="${TRANSITION:-fade}"
 
@@ -119,8 +169,91 @@ interactive_wizard() {
             '1.2 — 🌅 1.2s Slow dreamy transition' | fzf --no-mouse --prompt="Select transition duration > " --height=35% --layout=reverse --border=horizontal || true)
           [ -n "$td_choice" ] && TRANSITION_DUR="${td_choice%% *}"
           ;;
+        blend)
+          REENCODE=1
+          local b_choice
+          b_choice=$(printf '%s\n' \
+            'screen — 🌟 Brighten / double-exposure glow (ideal for light leaks, fire, bokeh)' \
+            'overlay — 🎨 High-contrast texture & color fusion' \
+            'multiply — 🌑 Dark ink / silhouette double exposure' \
+            'addition — ✨ Additive light energy blend' \
+            'hardlight — ⚡ Dramatic harsh contrast blend' \
+            'softlight — 🌸 Gentle dreamy atmospheric blend' \
+            'difference — 🌀 Psychedelic color inversion difference' \
+            'exclusion — 🔮 Soft-contrast negative exclusion' \
+            'phoenix — 🔥 Luminous contour phoenix blend' \
+            'average — ⚖️ 50/50 ghostly superimposition' | fzf --no-mouse --prompt="Select blend mode > " --height=50% --layout=reverse --border=horizontal || true)
+          BLEND="${b_choice%% *}"
+          BLEND="${BLEND:-screen}"
+
+          local op_choice
+          op_choice=$(printf '%s\n' \
+            '0.6 — ⚖️ 60% Balanced double exposure (default)' \
+            '0.4 — 🌱 40% Subtle atmospheric texture' \
+            '0.8 — 🔥 80% Strong foreground blend' \
+            '1.0 — 💯 100% Full blend math' | fzf --no-mouse --prompt="Select blend opacity > " --height=35% --layout=reverse --border=horizontal || true)
+          [ -n "$op_choice" ] && OPACITY="${op_choice%% *}"
+          ;;
+        pip)
+          REENCODE=1
+          local pip_choice
+          pip_choice=$(printf '%s\n' \
+            'br — ↘️ Bottom-Right corner (default)' \
+            'bl — ↙️ Bottom-Left corner' \
+            'tr — ↗️ Top-Right corner' \
+            'tl — ↖️ Top-Left corner' \
+            'center — 🎯 Center floating frame' | fzf --no-mouse --prompt="Select Picture-in-Picture position > " --height=40% --layout=reverse --border=horizontal || true)
+          PIP="${pip_choice%% *}"
+          PIP="${PIP:-br}"
+          ;;
+        keying)
+          REENCODE=1
+          local key_choice
+          key_choice=$(printf '%s\n' \
+            'lumakey — 🌑 Luma Key (make dark background of 2nd video transparent)' \
+            'green — 🟢 Chroma Key Green Screen (0x00ff00)' \
+            'blue — 🔵 Chroma Key Blue Screen (0x0000ff)' | fzf --no-mouse --prompt="Select keying mode > " --height=35% --layout=reverse --border=horizontal || true)
+          case "${key_choice%% *}" in
+            green|blue) CHROMAKEY="${key_choice%% *}" ;;
+            *) LUMAKEY=1 ;;
+          esac
+          ;;
+        interleave)
+          REENCODE=1
+          local il_choice
+          il_choice=$(printf '%s\n' \
+            '0.5 — ⚡ Switch camera/clip every 0.5s (energetic music video)' \
+            '0.25 — 🔥 Switch every 0.25s (hyper-kinetic teaser)' \
+            '1.0 — 🎬 Switch every 1.0s (steady multi-cam)' \
+            '2.0 — 🌊 Switch every 2.0s (relaxed parallel montage)' | fzf --no-mouse --prompt="Select alternation interval > " --height=38% --layout=reverse --border=horizontal || true)
+          INTERLEAVE="${il_choice%% *}"
+          INTERLEAVE="${INTERLEAVE:-0.5}"
+          ;;
+        strobe)
+          REENCODE=1
+          local st_choice
+          st_choice=$(printf '%s\n' \
+            '2 — ⚡ Alternate every 2 frames (classic retinal strobe)' \
+            '1 — 🔥 Alternate every 1 frame (60Hz/30Hz flicker fusion)' \
+            '4 — 🎞️ Alternate every 4 frames (rhythmic flutter)' | fzf --no-mouse --prompt="Select strobe frame interval > " --height=35% --layout=reverse --border=horizontal || true)
+          STROBE="${st_choice%% *}"
+          STROBE="${STROBE:-2}"
+          ;;
+        layout)
+          REENCODE=1
+          local l_choice
+          l_choice=$(printf '%s\n' \
+            'hstack — ◫ Side-by-side horizontal split (2+ videos)' \
+            'vstack — ⊟ Top-and-bottom vertical split (2+ videos)' \
+            '2x2 — ⊞ Quad 2x2 grid collage (up to 4 videos)' \
+            'triptych — lll 3-panel cinema triptych (3 videos side-by-side)' \
+            '3x3 — ⌗ 9-panel 3x3 video wall matrix' \
+            'diagonal — ◿ 45° diagonal split screen between 2 videos' \
+            'wipe-compare — ↔️ Animated sweeping A/B comparison bar' | fzf --no-mouse --prompt="Select collage layout > " --height=48% --layout=reverse --border=horizontal || true)
+          LAYOUT="${l_choice%% *}"
+          LAYOUT="${LAYOUT:-hstack}"
+          ;;
         bounce) BOUNCE=1; REENCODE=1 ;;
-        hstack|vstack|2x2) LAYOUT="${mode_choice%% *}"; REENCODE=1 ;;
       esac
     else
       printf "Re-encode and normalize resolutions? [y/N]: "
@@ -129,8 +262,26 @@ interactive_wizard() {
     fi
   fi
 
-  # Step 3: Fit mode & Resolution if re-encoding multiple files
-  if [ "$REENCODE" -eq 1 ] && [ -z "$LAYOUT" ] && [ "${#FILES[@]}" -gt 1 ] && command -v fzf &>/dev/null; then
+  # Step 3: Audio Strategy when using multi-layer / collage / interleave modes
+  if [ "$REENCODE" -eq 1 ] && [ "${#FILES[@]}" -gt 1 ] && command -v fzf &>/dev/null; then
+    if [ -n "$BLEND" ] || [ -n "$PIP" ] || [ "$LUMAKEY" -eq 1 ] || [ -n "$CHROMAKEY" ] || [ -n "$LAYOUT" ] || [ -n "$INTERLEAVE" ] || [ -n "$STROBE" ]; then
+      local am_choice
+      am_choice=$(printf '%s\n' \
+        'auto — 🎵 Smart default (master audio from 1st clip or balanced mix)' \
+        'first — 🥇 Keep only 1st video audio (ideal when clip 1 has the song/voice)' \
+        'second — 🥈 Keep only 2nd video audio' \
+        'duck — 🎙️ Sidechain ducking (clip 1 voice automatically lowers clip 2 audio)' \
+        'mix — 🎛️ Mix all audio tracks together simultaneously' \
+        'mute — 🔇 Mute all audio (--mute)' | fzf --no-mouse --prompt="Select multi-video audio strategy > " --height=45% --layout=reverse --border=horizontal || true)
+      case "${am_choice%% *}" in
+        mute) MUTE=1 ;;
+        first|second|duck|mix|auto) AUDIO_MODE="${am_choice%% *}" ;;
+      esac
+    fi
+  fi
+
+  # Step 4: Fit mode & Resolution if re-encoding multiple files
+  if [ "$REENCODE" -eq 1 ] && [ "${#FILES[@]}" -gt 1 ] && command -v fzf &>/dev/null; then
     local fit_choice
     fit_choice=$(printf '%s\n' \
       'pad — ⬛ Black letterbox/pillarbox bars (default)' \
@@ -148,7 +299,7 @@ interactive_wizard() {
     [ -n "$res_choice" ] && RESOLUTION="${res_choice%% *}"
   fi
 
-  # Step 4: Extra options (Loop, Mute, Force, Custom Output)
+  # Step 5: Extra options (Loop, Mute, Force, Custom Output)
   if command -v fzf &>/dev/null; then
     local extras
     extras=$(printf '%s\n' \
@@ -186,7 +337,16 @@ interactive_wizard() {
   [ "$BOUNCE" -eq 1 ] && eq_cmd+=" --bounce"
   [ -n "$TRANSITION" ] && eq_cmd+=" --transition $TRANSITION --transition-duration $TRANSITION_DUR"
   [ -n "$LAYOUT" ] && eq_cmd+=" --layout $LAYOUT"
-  [ "$REENCODE" -eq 1 ] && [ "$BOUNCE" -eq 0 ] && [ -z "$TRANSITION" ] && [ -z "$LAYOUT" ] && eq_cmd+=" --reencode"
+  [ -n "$BLEND" ] && eq_cmd+=" --blend $BLEND --opacity $OPACITY"
+  [ -n "$PIP" ] && eq_cmd+=" --pip $PIP"
+  [ "$LUMAKEY" -eq 1 ] && eq_cmd+=" --lumakey"
+  [ -n "$CHROMAKEY" ] && eq_cmd+=" --chromakey $CHROMAKEY"
+  [ -n "$INTERLEAVE" ] && eq_cmd+=" --interleave $INTERLEAVE"
+  [ -n "$STROBE" ] && eq_cmd+=" --strobe $STROBE"
+  [ "$AUDIO_MODE" != "auto" ] && eq_cmd+=" --audio-mode $AUDIO_MODE"
+  if [ "$REENCODE" -eq 1 ] && [ "$BOUNCE" -eq 0 ] && [ -z "$TRANSITION" ] && [ -z "$LAYOUT" ] && [ -z "$BLEND" ] && [ -z "$PIP" ] && [ "$LUMAKEY" -eq 0 ] && [ -z "$CHROMAKEY" ] && [ -z "$INTERLEAVE" ] && [ -z "$STROBE" ]; then
+    eq_cmd+=" --reencode"
+  fi
   [ "$FIT" != "pad" ] && eq_cmd+=" --fit $FIT"
   [ "$RESOLUTION" != "auto" ] && eq_cmd+=" --resolution $RESOLUTION"
   [ "$LOOP" -gt 1 ] && eq_cmd+=" --loop $LOOP"
@@ -198,14 +358,20 @@ interactive_wizard() {
   local mode_desc="Fast lossless stream copy (-c copy)"
   [ "$REENCODE" -eq 1 ] && mode_desc="Smart normalize & re-encode (fit: $FIT, res: $RESOLUTION)"
   [ "$BOUNCE" -eq 1 ] && mode_desc="Bounce loop (forward + reversed)"
-  [ -n "$TRANSITION" ] && mode_desc="Crossfade transition ($TRANSITION, ${TRANSITION_DUR}s, fit: $FIT)"
+  [ -n "$TRANSITION" ] && mode_desc="Transition ($TRANSITION, ${TRANSITION_DUR}s, fit: $FIT)"
   [ -n "$LAYOUT" ] && mode_desc="Spatial collage ($LAYOUT)"
+  [ -n "$BLEND" ] && mode_desc="Double-exposure blend ($BLEND, opacity: $OPACITY)"
+  [ -n "$PIP" ] && mode_desc="Picture-in-Picture ($PIP, scale: $PIP_SCALE)"
+  [ "$LUMAKEY" -eq 1 ] && mode_desc="Luma Key composite"
+  [ -n "$CHROMAKEY" ] && mode_desc="Chroma Key composite ($CHROMAKEY)"
+  [ -n "$INTERLEAVE" ] && mode_desc="Rhythmic multi-cam alternation (every ${INTERLEAVE}s)"
+  [ -n "$STROBE" ] && mode_desc="Frame strobe alternation (every ${STROBE} frames)"
 
   wizard_confirm_and_run "vidglue" "$eq_cmd" \
     "Files (${#FILES[@]})   : ${FILES[*]}" \
     "Mode          : $mode_desc" \
     "Loop          : ${LOOP}x" \
-    "Audio         : $([ "$MUTE" -eq 1 ] && echo "Muted" || echo "Preserved / Auto-synced")"
+    "Audio         : $([ "$MUTE" -eq 1 ] && echo "Muted" || echo "Mode: $AUDIO_MODE")"
 }
 
 while [ "$#" -gt 0 ]; do
@@ -217,8 +383,17 @@ while [ "$#" -gt 0 ]; do
     --fit) FIT="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
     --resolution) RESOLUTION="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
     -t|--transition|--xfade) TRANSITION="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
-    --transition-duration) TRANSITION_DUR="${2:?$1 requires a value}"; shift 2;;
+    -d|--transition-duration) TRANSITION_DUR="${2:?$1 requires a value}"; shift 2;;
     --layout|--grid) LAYOUT="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
+    --blend) BLEND="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
+    --opacity) OPACITY="${2:?$1 requires a value}"; OPACITY="${OPACITY//,/.}"; REENCODE=1; shift 2;;
+    --pip) PIP="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
+    --pip-scale) PIP_SCALE="${2:?$1 requires a value}"; PIP_SCALE="${PIP_SCALE//,/.}"; REENCODE=1; shift 2;;
+    --lumakey) LUMAKEY=1; REENCODE=1; shift;;
+    --chromakey) CHROMAKEY="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
+    --interleave) INTERLEAVE="${2:?$1 requires a value}"; INTERLEAVE="${INTERLEAVE//,/.}"; REENCODE=1; shift 2;;
+    --strobe) STROBE="${2:?$1 requires a value}"; REENCODE=1; shift 2;;
+    --audio-mode) AUDIO_MODE="${2:?$1 requires a value}"; shift 2;;
     -l|--loop) LOOP="${2:?$1 requires a value}"; shift 2;;
     --mute) MUTE=1; shift;;
     -f|--force) FORCE=1; shift;;
@@ -240,14 +415,37 @@ esac
 
 if [ -n "$LAYOUT" ]; then
   case "$LAYOUT" in
-    hstack|vstack|2x2) ;;
-    *) echo "❌ Error: Unknown --layout '$LAYOUT' (choose: hstack, vstack, 2x2)" >&2; exit 1 ;;
+    hstack|vstack|2x2|triptych|3x1|3x3|diagonal|wipe-compare)
+      [ "$LAYOUT" = "3x1" ] && LAYOUT="triptych"
+      ;;
+    *) echo "❌ Error: Unknown --layout '$LAYOUT' (choose: hstack, vstack, 2x2, triptych, 3x3, diagonal, wipe-compare)" >&2; exit 1 ;;
   esac
 fi
 
+if [ -n "$BLEND" ]; then
+  case "$BLEND" in
+    screen|multiply|overlay|addition|add|difference|hardlight|softlight|exclusion|phoenix|average|darken|lighten)
+      [ "$BLEND" = "add" ] && BLEND="addition"
+      ;;
+    *) echo "❌ Error: Unknown --blend mode '$BLEND' (choose: screen, multiply, overlay, addition, difference, hardlight, softlight, exclusion, phoenix, average)" >&2; exit 1 ;;
+  esac
+fi
+
+if [ -n "$PIP" ]; then
+  case "$PIP" in
+    br|bl|tr|tl|center) ;;
+    *) echo "❌ Error: Unknown --pip position '$PIP' (choose: br, bl, tr, tl, center)" >&2; exit 1 ;;
+  esac
+fi
+
+case "$AUDIO_MODE" in
+  auto|first|second|mix|duck) ;;
+  *) echo "❌ Error: Unknown --audio-mode '$AUDIO_MODE' (choose: auto, first, second, mix, duck)" >&2; exit 1 ;;
+esac
+
 if [ -n "$TRANSITION" ]; then
   case "$TRANSITION" in
-    fade|fadeblack|fadewhite|dissolve|wipeleft|wiperight|slideup|slidedown|circleopen|pixelize|radial|smoothleft|smoothright) ;;
+    fade|fadeblack|fadewhite|dissolve|wipeleft|wiperight|slideup|slidedown|circleopen|pixelize|radial|smoothleft|smoothright|glitch|film-burn) ;;
     *) echo "❌ Error: Unknown --transition '$TRANSITION'" >&2; exit 1 ;;
   esac
 fi
@@ -295,20 +493,38 @@ if [ -z "$OUTPUT" ]; then
   filename=$(basename "$first_file")
   suffix="glued"
   [ "$BOUNCE" -eq 1 ] && suffix="bounce"
-  [ -n "$TRANSITION" ] && suffix="xfade"
+  [ -n "$TRANSITION" ] && suffix="xfade-${TRANSITION}"
   [ -n "$LAYOUT" ] && suffix="$LAYOUT"
+  [ -n "$BLEND" ] && suffix="blend-${BLEND}"
+  [ -n "$PIP" ] && suffix="pip-${PIP}"
+  [ "$LUMAKEY" -eq 1 ] && suffix="lumakey"
+  [ -n "$CHROMAKEY" ] && suffix="chromakey"
+  [ -n "$INTERLEAVE" ] && suffix="interleave"
+  [ -n "$STROBE" ] && suffix="strobe"
   OUTPUT="$(dirname "$first_file")/${filename%.*}-${suffix}.mp4"
 fi
 
 if [ "$DRY_RUN" -eq 1 ]; then
-  echo "📝 Would glue the following files into: $OUTPUT"
+  echo "📝 Would glue/mix the following files into: $OUTPUT"
   for f in "${FILES[@]}"; do
     echo "  - $f"
   done
-  if [ -n "$LAYOUT" ]; then
+  if [ -n "$BLEND" ]; then
+    echo "ℹ️  Mode: Double-Exposure Blend ($BLEND, opacity: $OPACITY)"
+  elif [ -n "$PIP" ]; then
+    echo "ℹ️  Mode: Picture-in-Picture ($PIP, scale: $PIP_SCALE)"
+  elif [ "$LUMAKEY" -eq 1 ]; then
+    echo "ℹ️  Mode: Luma Key Composite"
+  elif [ -n "$CHROMAKEY" ]; then
+    echo "ℹ️  Mode: Chroma Key Composite ($CHROMAKEY)"
+  elif [ -n "$INTERLEAVE" ]; then
+    echo "ℹ️  Mode: Rhythmic Multi-Cam Interleave (every ${INTERLEAVE}s)"
+  elif [ -n "$STROBE" ]; then
+    echo "ℹ️  Mode: Hypnotic Frame Strobe (every ${STROBE} frames)"
+  elif [ -n "$LAYOUT" ]; then
     echo "ℹ️  Mode: Spatial Collage Layout ($LAYOUT)"
   elif [ -n "$TRANSITION" ]; then
-    echo "ℹ️  Mode: Crossfade Transition ($TRANSITION, ${TRANSITION_DUR}s, fit: $FIT)"
+    echo "ℹ️  Mode: Transition ($TRANSITION, ${TRANSITION_DUR}s, fit: $FIT)"
   elif [ "$BOUNCE" -eq 1 ]; then
     if [ "${#FILES[@]}" -eq 1 ]; then
       echo "ℹ️  Mode: Bounce (Forward + Reversed version of 1 video)"
@@ -320,6 +536,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
   else
     echo "ℹ️  Mode: Fast stream copy (-c copy)"
   fi
+  [ "$AUDIO_MODE" != "auto" ] && echo "🎵 Audio Mode: $AUDIO_MODE"
   [ "$LOOP" -gt 1 ] && echo "🔁 Loop: ${LOOP}x"
   [ "$MUTE" -eq 1 ] && echo "🔇 Audio: Muted"
   exit 0
@@ -400,18 +617,200 @@ build_norm_af() {
   fi
 }
 
+# Helper to build multi-stream audio output [a] for simultaneous modes (layout, blend, pip, keying, interleave, strobe)
+build_simultaneous_audio() {
+  local default_strategy="${1:-mix}"
+  local eff_mode="$AUDIO_MODE"
+  [ "$eff_mode" = "auto" ] && eff_mode="$default_strategy"
+
+  case "$eff_mode" in
+    first)
+      build_norm_af 0 "a"
+      ;;
+    second)
+      if [ "${#FILES[@]}" -ge 2 ]; then
+        build_norm_af 1 "a"
+      else
+        build_norm_af 0 "a"
+      fi
+      ;;
+    duck)
+      if [ "${#FILES[@]}" -ge 2 ]; then
+        printf "%s;%s;[a0raw]asplit=2[a0main][a0sc];[a1raw][a0sc]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=280[a1duck];[a0main][a1duck]amix=inputs=2:duration=shortest:weights='1.0 0.85'[a]" \
+          "$(build_norm_af 0 "a0raw")" "$(build_norm_af 1 "a1raw")"
+      else
+        build_norm_af 0 "a"
+      fi
+      ;;
+    mix|*)
+      local a_parts=()
+      local a_lbls=""
+      for i in "${!FILES[@]}"; do
+        a_parts+=("$(build_norm_af "$i" "a$i")")
+        a_lbls+="[a$i]"
+      done
+      local joined
+      IFS=';'; joined="${a_parts[*]}"; unset IFS
+      printf "%s;%samix=inputs=%d:duration=shortest[a]" "$joined" "$a_lbls" "${#FILES[@]}"
+      ;;
+  esac
+}
+
 TEMP_OUT="$OUTPUT"
 if [ "$LOOP" -gt 1 ] && [ "$REENCODE" -eq 1 ]; then
   TEMP_OUT="$(mktemp "${TMPDIR:-/tmp}/vidglue_base_XXXXXX.mp4")"
   trap 'rm -f "$TEMP_OUT"' EXIT
 fi
 
-if [ -n "$LAYOUT" ]; then
+if [ -n "$BLEND" ]; then
+  echo "🌈 Blending ${#FILES[@]} videos with '$BLEND' mode (opacity: $OPACITY) → $OUTPUT"
+  ffmpeg_inputs=()
+  filter_parts=()
+  for i in "${!FILES[@]}"; do
+    ffmpeg_inputs+=(-i "${FILES[$i]}")
+    filter_parts+=("$(build_norm_vf "$i" "$TW" "$TH" "vn$i")")
+    filter_parts+=("[vn$i]format=gbrp[vrgb$i]")
+  done
+  prev_v="vrgb0"
+  last_idx=$(( ${#FILES[@]} - 1 ))
+  for (( i=1; i<=last_idx; i++ )); do
+    out_v="vb$i"
+    if [ "$i" -eq "$last_idx" ]; then
+      filter_parts+=("[${prev_v}][vrgb${i}]blend=all_mode=${BLEND}:all_opacity=${OPACITY}:shortest=1,format=yuv420p[v]")
+    else
+      filter_parts+=("[${prev_v}][vrgb${i}]blend=all_mode=${BLEND}:all_opacity=${OPACITY}:shortest=1[${out_v}]")
+    fi
+    prev_v="$out_v"
+  done
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    filter_parts+=("$(build_simultaneous_audio "mix")")
+  fi
+  IFS=';'; filter_complex_str="${filter_parts[*]}"; unset IFS
+  map_args=(-map "[v]")
+  audio_enc=(-an)
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    map_args+=(-map "[a]")
+    audio_enc=(-c:a aac -b:a 192k)
+  fi
+  ffmpeg -y -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+    -filter_complex "$filter_complex_str" "${map_args[@]}" \
+    -c:v libx264 -preset fast -crf 22 "${audio_enc[@]}" "$TEMP_OUT"
+
+elif [ -n "$PIP" ]; then
+  echo "🖼️  Creating Picture-in-Picture ($PIP, scale: $PIP_SCALE) → $OUTPUT"
+  ffmpeg_inputs=(-i "${FILES[0]}" -i "${FILES[1]}")
+  pip_w=$(awk -v w="$TW" -v s="$PIP_SCALE" 'BEGIN { pw = int(w * s); if (pw % 2 != 0) pw++; if (pw < 64) pw = 64; print pw }')
+  pip_h=$(awk -v h="$TH" -v s="$PIP_SCALE" 'BEGIN { ph = int(h * s); if (ph % 2 != 0) ph++; if (ph < 64) ph = 64; print ph }')
+  case "$PIP" in
+    br) pip_xy="W-w-28:H-h-28" ;;
+    bl) pip_xy="28:H-h-28" ;;
+    tr) pip_xy="W-w-28:28" ;;
+    tl) pip_xy="28:28" ;;
+    center) pip_xy="(W-w)/2:(H-h)/2" ;;
+  esac
+  filter_parts=(
+    "$(build_norm_vf 0 "$TW" "$TH" "v0")"
+    "$(build_norm_vf 1 "$pip_w" "$pip_h" "v1raw")"
+    "[v1raw]pad=iw+6:ih+6:3:3:white[v1pip]"
+    "[v0][v1pip]overlay=${pip_xy}:shortest=1,format=yuv420p[v]"
+  )
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    filter_parts+=("$(build_simultaneous_audio "first")")
+  fi
+  IFS=';'; filter_complex_str="${filter_parts[*]}"; unset IFS
+  map_args=(-map "[v]")
+  audio_enc=(-an)
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    map_args+=(-map "[a]")
+    audio_enc=(-c:a aac -b:a 192k)
+  fi
+  ffmpeg -y -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+    -filter_complex "$filter_complex_str" "${map_args[@]}" \
+    -c:v libx264 -preset fast -crf 22 "${audio_enc[@]}" "$TEMP_OUT"
+
+elif [ "$LUMAKEY" -eq 1 ] || [ -n "$CHROMAKEY" ]; then
+  echo "🟢 Compositing with $([ "$LUMAKEY" -eq 1 ] && echo "Luma Key" || echo "Chroma Key ($CHROMAKEY)") → $OUTPUT"
+  ffmpeg_inputs=(-i "${FILES[0]}" -i "${FILES[1]}")
+  if [ "$LUMAKEY" -eq 1 ]; then
+    key_filter="format=yuva420p,lumakey=threshold=0.18:tolerance=0.12:softness=0.08"
+  else
+    ck_hex="0x00ff00"
+    case "$CHROMAKEY" in
+      green) ck_hex="0x00ff00" ;;
+      blue)  ck_hex="0x0000ff" ;;
+      0x*)   ck_hex="$CHROMAKEY" ;;
+      \#*)   ck_hex="0x${CHROMAKEY#\#}" ;;
+    esac
+    key_filter="format=yuva420p,chromakey=${ck_hex}:0.18:0.08"
+  fi
+  filter_parts=(
+    "$(build_norm_vf 0 "$TW" "$TH" "v0")"
+    "$(build_norm_vf 1 "$TW" "$TH" "v1raw")"
+    "[v1raw]${key_filter}[v1key]"
+    "[v0][v1key]overlay=0:0:shortest=1,format=yuv420p[v]"
+  )
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    filter_parts+=("$(build_simultaneous_audio "first")")
+  fi
+  IFS=';'; filter_complex_str="${filter_parts[*]}"; unset IFS
+  map_args=(-map "[v]")
+  audio_enc=(-an)
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    map_args+=(-map "[a]")
+    audio_enc=(-c:a aac -b:a 192k)
+  fi
+  ffmpeg -y -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+    -filter_complex "$filter_complex_str" "${map_args[@]}" \
+    -c:v libx264 -preset fast -crf 22 "${audio_enc[@]}" "$TEMP_OUT"
+
+elif [ -n "$INTERLEAVE" ] || [ -n "$STROBE" ]; then
+  if [ -n "$INTERLEAVE" ]; then
+    echo "🥁 Interleaving ${#FILES[@]} videos every ${INTERLEAVE}s → $OUTPUT"
+  else
+    echo "⚡ Strobing ${#FILES[@]} videos every ${STROBE} frames → $OUTPUT"
+  fi
+  ffmpeg_inputs=()
+  filter_parts=()
+  for i in "${!FILES[@]}"; do
+    ffmpeg_inputs+=(-i "${FILES[$i]}")
+    filter_parts+=("$(build_norm_vf "$i" "$TW" "$TH" "v$i")")
+  done
+  prev_v="v0"
+  last_idx=$(( ${#FILES[@]} - 1 ))
+  for (( i=1; i<=last_idx; i++ )); do
+    out_v="vil$i"
+    [ "$i" -eq "$last_idx" ] && out_v="v"
+    n_active=$(( i + 1 ))
+    if [ -n "$INTERLEAVE" ]; then
+      tot_p=$(awk -v s="$INTERLEAVE" -v n="$n_active" 'BEGIN { printf "%.4f", s * n }')
+      slot_start=$(awk -v s="$INTERLEAVE" -v idx="$i" 'BEGIN { printf "%.4f", s * idx }')
+      filter_parts+=("[${prev_v}][v${i}]blend=all_expr='if(gte(mod(T,${tot_p}),${slot_start}),B,A)':shortest=1[${out_v}]")
+    else
+      tot_f=$(( STROBE * n_active ))
+      slot_f=$(( STROBE * i ))
+      filter_parts+=("[${prev_v}][v${i}]blend=all_expr='if(gte(mod(N,${tot_f}),${slot_f}),B,A)':shortest=1[${out_v}]")
+    fi
+    prev_v="$out_v"
+  done
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    filter_parts+=("$(build_simultaneous_audio "first")")
+  fi
+  IFS=';'; filter_complex_str="${filter_parts[*]}"; unset IFS
+  map_args=(-map "[v]")
+  audio_enc=(-an)
+  if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+    map_args+=(-map "[a]")
+    audio_enc=(-c:a aac -b:a 192k)
+  fi
+  ffmpeg -y -hide_banner -loglevel error -stats "${ffmpeg_inputs[@]}" \
+    -filter_complex "$filter_complex_str" "${map_args[@]}" \
+    -c:v libx264 -preset fast -crf 22 "${audio_enc[@]}" "$TEMP_OUT"
+
+elif [ -n "$LAYOUT" ]; then
   echo "◫  Creating $LAYOUT split-screen collage → $OUTPUT"
   ffmpeg_inputs=()
   filter_parts=()
   v_labels=""
-  a_labels=""
   count="${#FILES[@]}"
   if [ "$count" -eq 1 ] && [ "$BOUNCE" -eq 1 ]; then
     ffmpeg_inputs+=(-i "${FILES[0]}")
@@ -423,41 +822,70 @@ if [ -n "$LAYOUT" ]; then
     if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
       filter_parts+=("[0:a]aresample=44100,asplit=2[a0][a1raw];[a1raw]areverse[a1];[a0][a1]amix=inputs=2:duration=shortest[a]")
     fi
+  elif [ "$LAYOUT" = "diagonal" ] || [ "$LAYOUT" = "wipe-compare" ]; then
+    ffmpeg_inputs=(-i "${FILES[0]}" -i "${FILES[1]}")
+    filter_parts+=("$(build_norm_vf 0 "$TW" "$TH" "v0")")
+    filter_parts+=("$(build_norm_vf 1 "$TW" "$TH" "v1")")
+    if [ "$LAYOUT" = "diagonal" ]; then
+      filter_parts+=("[v0][v1]blend=all_expr='if(gt(X*SH,Y*SW),B,A)':shortest=1,format=yuv420p[v]")
+    else
+      filter_parts+=("[v0][v1]blend=all_expr='if(lt(X,SW*(0.5+0.42*sin(2*PI*T/4))),A,B)':shortest=1,format=yuv420p[v]")
+    fi
+    if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
+      filter_parts+=("$(build_simultaneous_audio "first")")
+    fi
   else
     cell_w="$TW"
     cell_h="$TH"
     if [ "$LAYOUT" = "2x2" ]; then
       cell_w=$(( (TW / 4) * 2 ))
       cell_h=$(( (TH / 4) * 2 ))
+    elif [ "$LAYOUT" = "triptych" ]; then
+      cell_w=$(( (TW / 6) * 2 ))
+      cell_h="$TH"
+    elif [ "$LAYOUT" = "3x3" ]; then
+      cell_w=$(( (TW / 6) * 2 ))
+      cell_h=$(( (TH / 6) * 2 ))
     fi
     for i in "${!FILES[@]}"; do
       ffmpeg_inputs+=(-i "${FILES[$i]}")
       filter_parts+=("$(build_norm_vf "$i" "$cell_w" "$cell_h" "v$i")")
       v_labels+="[v$i]"
-      if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
-        filter_parts+=("$(build_norm_af "$i" "a$i")")
-        a_labels+="[a$i]"
-      fi
     done
-    # For 2x2 if fewer than 4 files provided, pad with black cells
     if [ "$LAYOUT" = "2x2" ] && [ "$count" -lt 4 ]; then
       while [ "$count" -lt 4 ]; do
         filter_parts+=("color=c=black:s=${cell_w}x${cell_h}:r=${TARGET_FPS}:d=${FILE_DUR[0]}[v$count]")
         v_labels+="[v$count]"
         count=$((count + 1))
       done
+    elif [ "$LAYOUT" = "triptych" ] && [ "$count" -lt 3 ]; then
+      while [ "$count" -lt 3 ]; do
+        src_idx=$(( count % ${#FILES[@]} ))
+        filter_parts+=("$(build_norm_vf "$src_idx" "$cell_w" "$cell_h" "v$count")")
+        v_labels+="[v$count]"
+        count=$((count + 1))
+      done
+    elif [ "$LAYOUT" = "3x3" ] && [ "$count" -lt 9 ]; then
+      while [ "$count" -lt 9 ]; do
+        src_idx=$(( count % ${#FILES[@]} ))
+        filter_parts+=("$(build_norm_vf "$src_idx" "$cell_w" "$cell_h" "v$count")")
+        v_labels+="[v$count]"
+        count=$((count + 1))
+      done
     fi
     if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
-      filter_parts+=("${a_labels}amix=inputs=${#FILES[@]}:duration=shortest[a]")
+      filter_parts+=("$(build_simultaneous_audio "mix")")
     fi
   fi
 
-  if [ "$LAYOUT" = "hstack" ]; then
+  if [ "$LAYOUT" = "hstack" ] || [ "$LAYOUT" = "triptych" ]; then
     filter_parts+=("${v_labels}hstack=inputs=${count}:shortest=1,format=yuv420p[v]")
   elif [ "$LAYOUT" = "vstack" ]; then
     filter_parts+=("${v_labels}vstack=inputs=${count}:shortest=1,format=yuv420p[v]")
-  else
+  elif [ "$LAYOUT" = "2x2" ]; then
     filter_parts+=("${v_labels}xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0:shortest=1,format=yuv420p[v]")
+  elif [ "$LAYOUT" = "3x3" ]; then
+    filter_parts+=("${v_labels}xstack=inputs=9:layout=0_0|w0_0|w0+w1_0|0_h0|w0_h0|w0+w1_h0|0_h0+h3|w0_h0+h3|w0+w1_h0+h3:shortest=1,format=yuv420p[v]")
   fi
 
   IFS=';'; filter_complex_str="${filter_parts[*]}"; unset IFS
@@ -483,10 +911,15 @@ elif [ -n "$TRANSITION" ]; then
     fi
   done
 
+  xfade_type="$TRANSITION"
+  [ "$TRANSITION" = "glitch" ] && xfade_type="pixelize"
+  [ "$TRANSITION" = "film-burn" ] && xfade_type="fadewhite"
+
   prev_v="v0"
   prev_a="a0"
   cum_offset="0"
   last_idx=$(( ${#FILES[@]} - 1 ))
+  burst_windows=()
   for (( i=1; i<=last_idx; i++ )); do
     prev_dur="${FILE_DUR[$((i-1))]}"
     offset=$(awk -v c="$cum_offset" -v d="$prev_dur" -v t="$TRANSITION_DUR" 'BEGIN {
@@ -500,17 +933,29 @@ elif [ -n "$TRANSITION" ]; then
       if (eff_t < 0.05) eff_t = 0.05;
       printf "%.3f", eff_t
     }')
+    end_win=$(awk -v o="$offset" -v td="$eff_td" 'BEGIN { printf "%.3f", o + td }')
+    burst_windows+=("between(t,${offset},${end_win})")
     cum_offset="$offset"
     out_v="vx$i"
     out_a="ax$i"
-    [ "$i" -eq "$last_idx" ] && out_v="v" && out_a="a"
-    filter_parts+=("[${prev_v}][v${i}]xfade=transition=${TRANSITION}:duration=${eff_td}:offset=${offset}[${out_v}]")
+    [ "$i" -eq "$last_idx" ] && [ "$TRANSITION" != "glitch" ] && [ "$TRANSITION" != "film-burn" ] && out_v="v"
+    [ "$i" -eq "$last_idx" ] && out_a="a"
+    filter_parts+=("[${prev_v}][v${i}]xfade=transition=${xfade_type}:duration=${eff_td}:offset=${offset}[${out_v}]")
     if [ "$HAS_ANY_AUDIO" -eq 1 ]; then
       filter_parts+=("[${prev_a}][a${i}]acrossfade=d=${eff_td}:c1=tri:c2=tri[${out_a}]")
     fi
     prev_v="$out_v"
     prev_a="$out_a"
   done
+
+  if [ "$TRANSITION" = "glitch" ] || [ "$TRANSITION" = "film-burn" ]; then
+    IFS='+'; win_expr="${burst_windows[*]}"; unset IFS
+    if [ "$TRANSITION" = "glitch" ]; then
+      filter_parts+=("[${prev_v}]rgbashift=rh=-18:bh=18:rv=6:bv=-6:enable='gt(${win_expr},0)',noise=alls=28:allf=t+u:enable='gt(${win_expr},0)',format=yuv420p[v]")
+    else
+      filter_parts+=("[${prev_v}]colorbalance=rs=0.45:gs=0.12:bs=-0.35:rh=0.55:gh=0.25:bh=-0.35:enable='gt(${win_expr},0)',eq=brightness=0.18:saturation=1.6:enable='gt(${win_expr},0)',format=yuv420p[v]")
+    fi
+  fi
 
   IFS=';'; filter_complex_str="${filter_parts[*]}"; unset IFS
   map_args=(-map "[v]")
@@ -631,5 +1076,5 @@ if [ "$LOOP" -gt 1 ] && [ "$REENCODE" -eq 1 ]; then
   ffmpeg -y -hide_banner -loglevel error -stats -f concat -safe 0 -i "$LOOP_MANIFEST" -c copy "$OUTPUT"
 fi
 
-notify "MP4 glue complete! 🎬" "vidglue"
+notify "MP4 glue/mix complete! 🎬" "vidglue"
 echo "🎉 Created: $OUTPUT"

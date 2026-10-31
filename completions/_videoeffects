@@ -2,18 +2,28 @@
 _arguments \
   '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
   '(-p --preset --look)'{-p,--preset,--look}'[color look preset]:preset:(cinema noir vintage sepia synthwave thermal bleach kodak dream)' \
+  '--duotone[two-tone stylized gradient map]:style:(cyber spotify amber-teal crimson)' \
   '--speed[playback speed multiplier (0.25 to 4.0)]:factor:(0.5 0.75 1.25 1.5 2.0 3.0)' \
+  '--speed-ramp[dynamic speed ramping curve]:curve:(slow-mid fast-slow-fast)' \
   '--smooth-slowmo[enable optical-flow motion interpolation]' \
   '--reverse[reverse video and audio streams backward]' \
   '--stopmotion[claymation/anime frame-step FPS]:fps:(8 10 12 15)' \
   '--trails[motion ghosting / phosphor trails (1-10)]:frames' \
   '--vignette[add optical lens vignette]' \
   '(--bloom --glow)'{--bloom,--glow}'[add soft highlight halation glow]' \
+  '--prism[chromatic lens edge refraction and prism dispersion]' \
+  '--anamorphic[horizontal cyan cinema lens flare streaks]' \
+  '--light-leak[dynamic warm analog film light leaks]' \
+  '--halftone[retro comic / print raster dot aesthetic]' \
   '--blur[Gaussian blur sigma]:sigma' \
   '--tilt-shift[miniature toy-world focus effect]' \
   '--sharpen[crisp unsharp mask edge enhancement]' \
   '--mirror[kaleidoscope symmetry mode]:mode:(h v quad)' \
   '--zoom[smooth Ken Burns push-in or pull-out]:direction:(in out)' \
+  '(--blend-video --overlay-video)'{--blend-video,--overlay-video}'[second video to blend over input]:video file:_files -g "*.(mp4|mov|avi|mkv|webm|m4v)(-.)"' \
+  '--blend-mode[blend mode for --blend-video]:mode:(screen overlay multiply addition hardlight)' \
+  '--blend-opacity[blend opacity for --blend-video]:opacity:(0.35 0.55 0.75)' \
+  '--compare[split-screen 50/50 Before vs After comparison view]' \
   '--letterbox[cinematic aspect ratio bars]:ratio:(2.35 1.85 4:3)' \
   '--fade-in[smooth video and audio fade-in from black (sec)]:seconds' \
   '--fade-out[smooth video and audio fade-out to black (sec)]:seconds' \

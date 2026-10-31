@@ -2,8 +2,9 @@
 _arguments \
   '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
   '(-p --percent --cut)'{-p,--percent,--cut}'[percentage of frames to erase (1-90)]:percentage' \
-  '(-m --mode)'{-m,--mode}'[cut mode]:mode:(frames jumps stutter freeze beat silence)' \
-  '--bpm[target BPM for beat mode]:bpm' \
+  '(-m --mode)'{-m,--mode}'[cut mode]:mode:(frames jumps stutter freeze beat silence multicam)' \
+  '--multicam[combine 2+ videos by switching camera angles on the BPM beat]' \
+  '--bpm[target BPM for beat or multicam mode]:bpm' \
   '--threshold[silence threshold in dB for silence mode]:db' \
   '--seed[seed for random cut pattern]:integer' \
   '--keep-audio[keep continuous original audio using freeze-cut timing]' \

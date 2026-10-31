@@ -194,23 +194,25 @@ img2webp --width 1200 -q 85 -a -n	Dry-run preview without creating files
 img2webp -i	Launch interactive step-by-step wizard
 EOF
       ;;
-    vidglue|videoglue)
+    vidglue|videoglue|vidmix|videomix)
       cat <<'EOF'
 vidglue clip1.mp4 clip2.mp4	Fast lossless stream-copy merge
-vidglue -t fade --transition-duration 0.8 a.mp4 b.mp4	Smooth 0.8s crossfade transition between clips
-vidglue --reencode --fit blur horiz.mp4 vert.mp4	Join mixed aspect ratios with blurred background fill
-vidglue --bounce -l 3 clip.mp4	Boomerang forward + reverse loop repeated 3 times
-vidglue --layout hstack left.mp4 right.mp4	Side-by-side split-screen collage
-vidglue --layout 2x2 a.mp4 b.mp4 c.mp4 d.mp4	2x2 quad video wall grid
-vidglue -i	Launch interactive vidglue wizard
+vidglue -t glitch --transition-duration 0.6 a.mp4 b.mp4	Glitch-burst transition between clips
+vidglue --blend screen --opacity 0.65 base.mp4 bokeh.mp4	Double-exposure RGB screen blend of 2+ videos
+vidglue --pip br --audio-mode duck tutorial.mp4 cam.mp4	Picture-in-Picture corner window + sidechain audio ducking
+vidglue --lumakey scene.mp4 lightleak.mp4	Luma key composite (makes dark regions of 2nd video transparent)
+vidglue --interleave 0.5 --audio-mode first cam1.mp4 cam2.mp4	Rhythmic multi-cam cut every 0.5s keeping 1st video song
+vidglue --layout diagonal a.mp4 b.mp4	45° diagonal split-screen comparison
+vidglue --layout triptych a.mp4 b.mp4 c.mp4	3-panel panoramic cinema triptych
+vidglue -i	Launch interactive vidglue / vidmix wizard
 EOF
       ;;
     vidglitch|videoglitch)
       cat <<'EOF'
 vidglitch --preset vhs --audio-glitch --osd clip.mp4	VHS tape look + audio wow/flutter + camcorder REC HUD
+vidglitch --displace-with motion.mp4 --preset datamosh a.mp4	Warp pixels of video A using motion vectors of video B
+vidglitch --blend-glitch b.mp4 --organic-burst a.mp4	Bleed glitched ghost of video B into video A
 vidglitch --preset cyberpunk --organic-burst clip.mp4	Cyberpunk neon split with erratic hardware bursts
-vidglitch --preset datamosh -I high dance.mp4	High-intensity motion pixel smear & ghosting
-vidglitch --preset crt --scanlines clip.mp4	Retro arcade CRT monitor scanlines
 vidglitch --preset nightvision --osd clip.mp4	Tactical green phosphor nightvision + HUD
 vidglitch -i	Launch interactive vidglitch wizard
 EOF
@@ -218,20 +220,20 @@ EOF
     vidcuts|videocuts)
       cat <<'EOF'
 vidcuts --mode silence interview.mp4	Auto-remove silent pauses from talking-head video
+vidcuts --multicam --bpm 120 --film-burn cam1.mp4 cam2.mp4	Switch between 2+ videos on every BPM beat with film burn
 vidcuts --mode beat --bpm 128 --flash dance.mp4	Cut rhythmically on 128 BPM beats with white flashes
 vidcuts -p 35 --mode freeze --film-burn musicvideo.mp4	Freeze-cuts keeping original duration & song intact
-vidcuts -p 25 --mode jumps clip.mp4	Excise 25% of video as kinetic ~0.2s jump cuts
 vidcuts -p 20 --jitter --grain --scratches --super8 clip.mp4	Damaged 16mm/Super-8 archival film projector look
 vidcuts -i	Launch interactive vidcuts wizard
 EOF
       ;;
     videoeffects|vidfx)
       cat <<'EOF'
-videoeffects --preset cinema --letterbox 2.35 clip.mp4	Blockbuster teal & orange grade + 2.35:1 CinemaScope bars
-videoeffects --speed 0.5 --smooth-slowmo action.mp4	Silky 2x slow-motion using optical flow interpolation
+videoeffects --preset cinema --anamorphic --letterbox 2.35 clip.mp4	Blockbuster teal & orange + anamorphic streaks + 2.35:1 bars
+videoeffects --speed-ramp slow-mid --bloom action.mp4	Dynamic speed ramp (1x → 0.45x hero slow-mo → 1x)
+videoeffects --blend-video bokeh.mp4 --blend-mode screen clip.mp4	Blend external texture/light-leak video over clip
+videoeffects --preset kodak --light-leak --compare clip.mp4	50/50 split-screen Before/After comparison view
 videoeffects --mirror quad --preset synthwave dance.mp4	4-way neon synthwave kaleidoscope mirror
-videoeffects --reverse --bloom --trails 6 dream.mov	Reversed playback with highlight glow & phosphor trails
-videoeffects --preset noir --vignette --grain scene.mp4	Classic high-contrast B&W film noir look
 videoeffects -i	Launch interactive videoeffects wizard
 EOF
       ;;

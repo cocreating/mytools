@@ -1,4 +1,4 @@
-#compdef vidglue videoglue
+#compdef vidglue videoglue vidmix videomix
 _arguments \
   '(-i --interactive)'{-i,--interactive}'[interactive guided wizard]' \
   '(-o --output)'{-o,--output}'[output MP4 file]:file:_files -g "*.(mp4)(-.)"' \
@@ -6,9 +6,18 @@ _arguments \
   '(-r --reencode)'{-r,--reencode}'[re-encode and normalize streams]' \
   '--fit[aspect ratio fit mode when normalizing]:fit:(pad crop blur)' \
   '--resolution[target resolution when re-encoding]:resolution:(auto 1080p 720p vertical square)' \
-  '(-t --transition --xfade)'{-t,--transition,--xfade}'[crossfade transition between clips]:transition:(fade fadeblack fadewhite dissolve wipeleft wiperight slideup slidedown circleopen pixelize radial)' \
+  '(-t --transition --xfade)'{-t,--transition,--xfade}'[crossfade or impact transition between clips]:transition:(fade glitch film-burn fadeblack fadewhite dissolve wipeleft wiperight smoothleft smoothright slideup slidedown circleopen pixelize radial)' \
   '--transition-duration[transition duration in seconds]:seconds' \
-  '(--layout --grid)'{--layout,--grid}'[spatial split-screen collage layout]:layout:(hstack vstack 2x2)' \
+  '(--layout --grid)'{--layout,--grid}'[spatial split-screen collage layout]:layout:(hstack vstack 2x2 triptych 3x3 diagonal wipe-compare)' \
+  '--blend[double-exposure layer blend mode]:blend:(screen multiply overlay addition difference hardlight softlight exclusion phoenix average)' \
+  '--opacity[blend opacity for overlay video(s)]:opacity:(0.4 0.6 0.8 1.0)' \
+  '--lumakey[key out dark regions of 2nd video over 1st]' \
+  '--chromakey[key out green/blue screen of 2nd video over 1st]:color:(green blue)' \
+  '--pip[Picture-in-Picture corner position]:position:(br bl tr tl center)' \
+  '--pip-scale[Picture-in-Picture relative scale]:scale:(0.25 0.32 0.4)' \
+  '--interleave[alternate between videos every N seconds]:seconds:(0.25 0.5 1.0 2.0)' \
+  '--strobe[hypnotic A/B frame strobe every N frames]:frames:(1 2 4)' \
+  '--audio-mode[multi-video audio strategy]:mode:(auto first second mix duck)' \
   '(-l --loop)'{-l,--loop}'[repeat glued sequence N times]:count' \
   '--mute[discard audio track]' \
   '(-f --force)'{-f,--force}'[overwrite output]' \

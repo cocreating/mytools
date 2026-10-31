@@ -4,12 +4,15 @@ SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(c
 
 PRESET="rgb-split"; CUSTOM_RGB=""; SCANLINES=0; NOISE=0; PIXELATE=0; TEAR=0; BURST=0; BURST_ORGANIC=0; MUTE=0
 INTENSITY="med"; AUDIO_GLITCH=0; TRACKING=0; OSD=0
+DISPLACE_WITH=""; BLEND_GLITCH=""
 OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; START=""; END=""; FILES=(); HAS_CUSTOM=0; INTERACTIVE=0
 
 usage() { cat <<'EOF'
 Usage: vidglitch [options] <video...>
+       videoglitch [options] <video...>
 
-Apply glitch, analog tape, and retro visual/audio effects to video files.
+Apply glitch, analog tape, retro visual/audio effects, and cross-video pixel
+displacement (datamosh warping) to video files.
 
 Options:
   -i, --interactive           Interactive wizard (prompts for presets & files) 🧙
@@ -28,6 +31,11 @@ Presets:
                                 • nightvision 🟢 Tactical green phosphor, high-ISO grain & vignette
                                 • gameboy     🟩 4-shade handheld LCD pixel matrix
                                 • matrix      💻 Digital green code phosphor & vertical glitch
+
+Cross-Video Glitch & Datamosh Modulation (2 videos):
+  --displace-with <video2>    Use a 2nd video as an optical-flow pixel displacement map
+                              to warp and datamosh the 1st video (alias: --datamosh-with)
+  --blend-glitch <video2>     Bleed a glitched ghost of a 2nd video into the 1st video
 
 Effect Modifiers & Audio:
   -I, --intensity <level>     Effect strength: low, med, high, or 1-100 (default: med / 50)
@@ -57,8 +65,8 @@ Examples:
   vidglitch -i                                                # interactive guided wizard
   vidglitch clip.mp4                                          # default chromatic aberration
   vidglitch --preset vhs --audio-glitch --osd recording.mov   # full VHS tape + camcorder HUD + tape audio
-  vidglitch --preset cyberpunk --organic-burst promo.mp4      # erratic neon glitches
-  vidglitch --preset datamosh -I high dance.mp4               # intense motion trails & pixel smear
+  vidglitch --displace-with motion.mp4 --preset datamosh a.mp4 # warp video A using motion of video B
+  vidglitch --blend-glitch b.mp4 --organic-burst a.mp4        # glitch-bleed video B into video A
   vidglitch --preset 8bit -A -o ./glitched *.mp4              # 8-bit video + bitcrushed chiptune audio
 EOF
 }
@@ -161,21 +169,33 @@ interactive_wizard() {
     esac
   fi
 
-  # Step 5: Audio Glitch, HUD & Output Modifiers via fzf multi-select
+  # Step 5: Audio Glitch, Cross-Video Displacement, HUD & Output Modifiers via fzf multi-select
   if command -v fzf &>/dev/null; then
     local ex_choice
     ex_choice=$(printf '%s\n' \
       'none — ✅ No extra modifiers (continue)' \
       'audio-glitch — 🔊 Corrupt audio in sync with visual preset (bitcrush / tape flutter)' \
+      'displace-with — 🌀 Warp pixels using a 2nd video as displacement map (--displace-with)' \
+      'blend-glitch — 👻 Bleed a glitched ghost of a 2nd video into frame (--blend-glitch)' \
       'osd — 🔴 Retro camcorder viewfinder HUD & blinking REC indicator' \
       'tracking — 📼 Scrolling VHS tracking distortion bar' \
       'mute — 🔇 Discard audio track (--mute)' \
       'trim — ✂️ Trim start/end timestamps (--from / --to)' \
-      'force — ⚡ Overwrite existing output (--force)' | fzf --no-mouse -m --prompt="Extra modifiers ([Tab] multi-select) > " --height=45% --layout=reverse --border=horizontal || true)
+      'force — ⚡ Overwrite existing output (--force)' | fzf --no-mouse -m --prompt="Extra modifiers ([Tab] multi-select) > " --height=50% --layout=reverse --border=horizontal || true)
     if [ -n "$ex_choice" ]; then
       while IFS= read -r line; do
         case "${line%% *}" in
           audio-glitch) AUDIO_GLITCH=1 ;;
+          displace-with)
+            local dw_choice
+            dw_choice=$(find . -maxdepth 2 -type f 2>/dev/null | grep -iE '\.(mp4|mov|avi|mkv|webm|m4v)$' | sed 's|^\./||' | sort | fzf --no-mouse --prompt="Select modulator video for pixel displacement > " --height=45% --layout=reverse --border=horizontal || true)
+            [ -n "$dw_choice" ] && DISPLACE_WITH="$dw_choice"
+            ;;
+          blend-glitch)
+            local bg_choice
+            bg_choice=$(find . -maxdepth 2 -type f 2>/dev/null | grep -iE '\.(mp4|mov|avi|mkv|webm|m4v)$' | sed 's|^\./||' | sort | fzf --no-mouse --prompt="Select 2nd video for glitch ghost bleed > " --height=45% --layout=reverse --border=horizontal || true)
+            [ -n "$bg_choice" ] && BLEND_GLITCH="$bg_choice"
+            ;;
           osd) OSD=1 ;;
           tracking) TRACKING=1 ;;
           mute) MUTE=1 ;;
@@ -205,6 +225,8 @@ interactive_wizard() {
   if [ "$BURST" -eq 1 ]; then
     if [ "$BURST_ORGANIC" -eq 1 ]; then eq_cmd+=" --organic-burst"; else eq_cmd+=" --burst"; fi
   fi
+  [ -n "$DISPLACE_WITH" ] && eq_cmd+=" --displace-with \"$DISPLACE_WITH\""
+  [ -n "$BLEND_GLITCH" ] && eq_cmd+=" --blend-glitch \"$BLEND_GLITCH\""
   [ "$AUDIO_GLITCH" -eq 1 ] && eq_cmd+=" --audio-glitch"
   [ "$TRACKING" -eq 1 ] && eq_cmd+=" --tracking"
   [ "$OSD" -eq 1 ] && eq_cmd+=" --osd"
@@ -222,7 +244,7 @@ interactive_wizard() {
   wizard_confirm_and_run "vidglitch" "$eq_cmd" \
     "Files (${#FILES[@]})   : ${FILES[*]}" \
     "Preset / Mode : $([ "$HAS_CUSTOM" -eq 1 ] && echo "Custom stack" || echo "$PRESET") (intensity: $INTENSITY)" \
-    "Timing        : $timing_desc" \
+    "Timing / 2ndV : $timing_desc, displace=${DISPLACE_WITH:-none}, blend=${BLEND_GLITCH:-none}" \
     "Extras        : audio-glitch=$([ "$AUDIO_GLITCH" -eq 1 ] && echo "on" || echo "off"), osd=$([ "$OSD" -eq 1 ] && echo "on" || echo "off"), tracking=$([ "$TRACKING" -eq 1 ] && echo "on" || echo "off")"
 }
 
@@ -230,6 +252,8 @@ while [ "$#" -gt 0 ]; do case "$1" in
   -i|--interactive) INTERACTIVE=1; shift;;
   -p|--preset) PRESET="${2:?$1 requires a value}"; shift 2;;
   -I|--intensity) INTENSITY="${2:?$1 requires a value}"; shift 2;;
+  --displace-with|--datamosh-with) DISPLACE_WITH="${2:?$1 requires a value}"; shift 2;;
+  --blend-glitch) BLEND_GLITCH="${2:?$1 requires a value}"; shift 2;;
   --rgb-split) CUSTOM_RGB="${2:?$1 requires a value}"; HAS_CUSTOM=1; shift 2;;
   --scanlines) SCANLINES=1; HAS_CUSTOM=1; shift;;
   --noise) NOISE="${2:?$1 requires a value}"; HAS_CUSTOM=1; shift 2;;
@@ -257,6 +281,16 @@ fi
 
 [ "${#FILES[@]}" -gt 0 ] || { usage >&2; exit 1; }
 require_commands ffmpeg ffprobe
+
+if [ -n "$DISPLACE_WITH" ] && [ ! -f "$DISPLACE_WITH" ]; then
+  echo "❌ Error: --displace-with file not found: $DISPLACE_WITH" >&2
+  exit 1
+fi
+
+if [ -n "$BLEND_GLITCH" ] && [ ! -f "$BLEND_GLITCH" ]; then
+  echo "❌ Error: --blend-glitch file not found: $BLEND_GLITCH" >&2
+  exit 1
+fi
 
 # Convert intensity into numeric percentage (10..200, where 50 is 1.0x)
 INT_NUM=50
@@ -396,9 +430,11 @@ if [ "$TRACKING" -eq 1 ] && [ "$PRESET" != "vhs" ]; then
 fi
 
 if [ "$OSD" -eq 1 ]; then
-  # Viewfinder outer frame + blinking red REC indicator
   VF="${VF},drawbox=x=iw*0.04:y=ih*0.04:w=iw*0.92:h=ih*0.92:c=white@0.35:t=2,drawbox=x=iw*0.07:y=ih*0.07:w=16:h=16:c=red@0.85:t=fill:enable='lt(mod(t\\,1.2)\\,0.7)'"
 fi
+
+[ -n "$DISPLACE_WITH" ] && TAG="${TAG}-displaced"
+[ -n "$BLEND_GLITCH" ] && TAG="${TAG}-blend"
 
 VF="${VF},format=yuv420p"
 
@@ -441,11 +477,30 @@ for input in "${FILES[@]}"; do
     continue
   fi
 
+  probe_wh=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$input" 2>/dev/null | head -n1 || echo "1920x1080")
+  VW="${probe_wh%x*}"
+  VH="${probe_wh#*x}"
+  [[ "$VW" =~ ^[0-9]+$ ]] || VW=1920
+  [[ "$VH" =~ ^[0-9]+$ ]] || VH=1080
+  VW=$(( (VW / 2) * 2 ))
+  VH=$(( (VH / 2) * 2 ))
+
   args=(-hide_banner -loglevel error -stats)
   [ -n "$START" ] && args+=(-ss "$START")
   args+=(-i "$input")
   [ -n "$END" ] && args+=(-to "$END")
-  args+=(-vf "$VF" -c:v libx264 -crf 20 -preset medium)
+
+  if [ -n "$DISPLACE_WITH" ]; then
+    args+=(-stream_loop -1 -i "$DISPLACE_WITH")
+    F_COMPLEX="[0:v]scale=${VW}:${VH},format=gbrp[v0];[1:v]scale=${VW}:${VH}:force_original_aspect_ratio=increase,crop=${VW}:${VH},format=gbrp,split=2[dx][dy];[v0][dx][dy]displace=edge=mirror,${VF}[vout]"
+    args+=(-filter_complex "$F_COMPLEX" -map "[vout]" -c:v libx264 -crf 20 -preset medium)
+  elif [ -n "$BLEND_GLITCH" ]; then
+    args+=(-stream_loop -1 -i "$BLEND_GLITCH")
+    F_COMPLEX="[0:v]scale=${VW}:${VH},format=gbrp[v0];[1:v]scale=${VW}:${VH}:force_original_aspect_ratio=increase,crop=${VW}:${VH},format=gbrp[v1];[v0][v1]blend=all_mode=difference:all_opacity=0.45:shortest=1,${VF}[vout]"
+    args+=(-filter_complex "$F_COMPLEX" -map "[vout]" -c:v libx264 -crf 20 -preset medium)
+  else
+    args+=(-vf "$VF" -c:v libx264 -crf 20 -preset medium)
+  fi
 
   if [ "$MUTE" -eq 1 ]; then
     args+=(-an)
@@ -454,6 +509,9 @@ for input in "${FILES[@]}"; do
     AUDIO_STREAM=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of default=nw=1:nk=1 "$input" 2>/dev/null | head -n1 || true)
     [ "$AUDIO_STREAM" = "audio" ] && HAS_AUDIO=1
     if [ "$HAS_AUDIO" -eq 1 ]; then
+      if [ -n "$DISPLACE_WITH" ] || [ -n "$BLEND_GLITCH" ]; then
+        args+=(-map "0:a:0")
+      fi
       [ -n "$AF" ] && args+=(-af "$AF")
       args+=(-c:a aac -b:a 192k)
     else

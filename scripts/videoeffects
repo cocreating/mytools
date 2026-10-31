@@ -2,8 +2,11 @@
 set -euo pipefail
 SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
 
-PRESET=""; SPEED=""; SMOOTH_SLOWMO=0; REVERSE=0; STOPMOTION=""; TRAILS=""
-VIGNETTE=0; BLOOM=0; BLUR=""; TILT_SHIFT=0; SHARPEN=0; MIRROR=""; ZOOM=""
+PRESET=""; DUOTONE=""; SPEED=""; SPEED_RAMP=""; SMOOTH_SLOWMO=0; REVERSE=0; STOPMOTION=""; TRAILS=""
+VIGNETTE=0; BLOOM=0; PRISM=0; ANAMORPHIC=0; LIGHT_LEAK=0; HALFTONE=0
+BLUR=""; TILT_SHIFT=0; SHARPEN=0; MIRROR=""; ZOOM=""
+BLEND_VIDEO=""; BLEND_MODE="screen"; BLEND_OPACITY="0.55"
+COMPARE=0
 LETTERBOX=""; FADE_IN=""; FADE_OUT=""; ROTATE=""; FLIP=""; MUTE=0
 OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; START=""; END=""; FILES=(); INTERACTIVE=0; HAS_EFFECT=0
 
@@ -12,7 +15,7 @@ Usage: videoeffects [options] <video...>
        vidfx [options] <video...>
 
 Apply cinematic color grading, temporal/speed effects, lens optics, symmetry,
-and framing transformations to video files. Multiple effects can be combined!
+multi-video texture blending, and framing transformations to video files.
 
 Options:
   -i, --interactive           Interactive wizard (prompts for effects & files) 🧙
@@ -28,9 +31,17 @@ Color Grading & Look Presets:
                                 • bleach      ⚔️ Gritty desaturated bleach bypass
                                 • kodak       ☀️ Golden-hour 35mm analog film stock
                                 • dream       ✨ Ethereal soft highlight bloom & pastel warmth
+  --duotone <style>           Two-tone stylized gradient map:
+                                • cyber       🟣 Magenta & electric cyan
+                                • spotify     🟢 Deep indigo & neon green
+                                • amber-teal  🟠 Warm amber & deep ocean teal
+                                • crimson     🔴 Dark obsidian & crimson gold
 
 Time & Motion Effects:
   --speed <factor>            Playback speed multiplier (0.25 to 4.0, e.g. 0.5 slow-mo, 2.0 fast)
+  --speed-ramp <curve>        Dynamic speed ramping across clip duration:
+                                • slow-mid       1.0x → 0.45x hero slow-mo in middle → 1.0x
+                                • fast-slow-fast 1.8x → 0.45x slow-mo center → 1.8x
   --smooth-slowmo             Enable optical-flow motion interpolation (minterpolate)
   --reverse                   Reverse video and audio streams backward in time 🔄
   --stopmotion <fps>          Claymation / anime frame-step look (e.g. 8 or 12 fps)
@@ -39,11 +50,21 @@ Time & Motion Effects:
 Lens, Optics & Spatial Effects:
   --vignette                  Add optical lens vignette darkening at edges
   --bloom, --glow             Add dreamy halation / soft highlight glow
+  --prism                     Chromatic lens edge refraction & prism dispersion
+  --anamorphic                Horizontal cyan cinema lens flare streaks on highlights
+  --light-leak                Dynamic warm amber/magenta analog film light leaks
+  --halftone                  Retro comic / print raster dot aesthetic
   --blur <sigma>              Gaussian blur strength (e.g. 8)
   --tilt-shift                Miniature toy-world focus effect (blurred top & bottom)
   --sharpen                   Crisp unsharp mask edge enhancement
   --mirror <h|v|quad>         Kaleidoscope symmetry (h: horizontal, v: vertical, quad: 4-way)
   --zoom <in|out>             Smooth cinematic Ken Burns push-in or pull-out
+
+Multi-Video Texture / Overlay Blending & Comparison:
+  --blend-video <file>        Second video (texture, rain, bokeh, clip) to blend over input(s)
+  --blend-mode <mode>         Blend mode for --blend-video (screen, overlay, multiply, addition, hardlight)
+  --blend-opacity <0.1-1.0>   Blend opacity for --blend-video (default: 0.55)
+  --compare                   Split-screen 50/50 Before (left) vs After (right) comparison view
 
 Framing, Geometry & Fades:
   --letterbox <2.35|1.85|4:3> Add cinema scope bars (2.35, 1.85) or 4:3 pillarbox
@@ -62,12 +83,11 @@ Trimming & Output:
   -h, --help                  Show help
 
 Examples:
-  videoeffects -i                                             # interactive guided wizard
-  videoeffects --preset cinema --letterbox 2.35 clip.mp4      # widescreen blockbuster look
-  videoeffects --preset noir --vignette --fade-in 1 a.mp4     # classic film noir opening
-  videoeffects --speed 0.5 --smooth-slowmo action.mp4         # silky 2x slow-motion
-  videoeffects --mirror quad --preset synthwave dance.mp4     # 4-way neon kaleidoscope
-  vidfx --reverse --bloom --trails 6 dream.mov                # reversed ethereal motion trails
+  videoeffects -i                                                  # interactive guided wizard
+  videoeffects --preset cinema --anamorphic --letterbox 2.35 a.mp4 # blockbuster anamorphic look
+  videoeffects --speed-ramp slow-mid --bloom action.mp4            # dynamic hero slow-motion ramp
+  videoeffects --preset kodak --light-leak --compare clip.mp4      # 50/50 before/after film grade
+  vidfx --blend-video bokeh.mp4 --blend-mode screen dance.mp4      # blend texture video over clip
 EOF
 }
 
@@ -91,9 +111,15 @@ interactive_wizard() {
       'thermal — 🌡️ Infrared false-color heat vision' \
       'bleach — ⚔️ Gritty desaturated bleach bypass' \
       'sepia — 📜 Classic archival warm sepia' \
-      'none — ⏭️ Skip color preset (use optical/time effects only)' | fzf --no-mouse --prompt="Select color look preset > " --height=50% --layout=reverse --border=horizontal || true)
+      'duotone-cyber — 🟣 Duotone Cyber (Magenta & Electric Cyan)' \
+      'duotone-amber — 🟠 Duotone Amber-Teal' \
+      'none — ⏭️ Skip color preset (use optical/time/blend effects only)' | fzf --no-mouse --prompt="Select color look preset > " --height=55% --layout=reverse --border=horizontal || true)
     local p_val="${p_choice%% *}"
-    if [ -n "$p_val" ] && [ "$p_val" != "none" ]; then
+    if [ "$p_val" = "duotone-cyber" ]; then
+      DUOTONE="cyber"; HAS_EFFECT=1
+    elif [ "$p_val" = "duotone-amber" ]; then
+      DUOTONE="amber-teal"; HAS_EFFECT=1
+    elif [ -n "$p_val" ] && [ "$p_val" != "none" ]; then
       PRESET="$p_val"
       HAS_EFFECT=1
     fi
@@ -104,20 +130,22 @@ interactive_wizard() {
     HAS_EFFECT=1
   fi
 
-  # Step 3: Multi-select extra optical / temporal / framing effects
+  # Step 3: Multi-select extra optical / temporal / framing / multi-video effects
   if command -v fzf &>/dev/null; then
     echo "✨ Step 3: Select additional effects (press [Tab] to toggle multiple, [Enter] to confirm)"
     local extras
     extras=$(printf '%s\n' \
       'none — ✅ No extra effects (continue)' \
-      'letterbox-235 — 🖼️ 2.35:1 CinemaScope widescreen bars' \
-      'letterbox-185 — 🖼️ 1.85:1 Flat widescreen bars' \
-      'letterbox-43 — 🖼️ 4:3 Pillarbox vertical bars' \
+      'anamorphic — 💠 Horizontal cyan anamorphic lens flare streaks (--anamorphic)' \
+      'light-leak — 🔥 Warm analog film light leaks (--light-leak)' \
+      'prism — 🌈 Chromatic prism lens dispersion (--prism)' \
       'bloom — 🌟 Soft highlight halation glow (--bloom)' \
       'vignette — 🌑 Optical lens vignette (--vignette)' \
       'tilt-shift — 🏙️ Miniature toy-world focus band (--tilt-shift)' \
+      'halftone — 📰 Retro comic / print raster look (--halftone)' \
       'sharpen — 🔪 Crisp unsharp edge enhancement (--sharpen)' \
       'blur — 🌫️ Gaussian defocus blur (--blur 8)' \
+      'speed-ramp — 🎢 Dynamic speed ramp: 1x → 0.45x slow-mo center → 1x (--speed-ramp slow-mid)' \
       'trails — ☄️ Motion ghosting / phosphor trails (--trails 5)' \
       'slowmo — 🐢 0.5x Half-speed slow motion (--speed 0.5)' \
       'smooth-slowmo — 🌊 0.5x Optical-flow silky slow motion (--speed 0.5 --smooth-slowmo)' \
@@ -129,22 +157,29 @@ interactive_wizard() {
       'mirror-quad — 💠 4-way kaleidoscope mirror (--mirror quad)' \
       'zoom-in — 🔍 Smooth Ken Burns push-in zoom (--zoom in)' \
       'zoom-out — 🔎 Smooth Ken Burns pull-out zoom (--zoom out)' \
+      'letterbox-235 — 🖼️ 2.35:1 CinemaScope widescreen bars' \
+      'letterbox-185 — 🖼️ 1.85:1 Flat widescreen bars' \
+      'letterbox-43 — 🖼️ 4:3 Pillarbox vertical bars' \
+      'blend-video — 🎞️ Blend a 2nd texture/overlay video on top (--blend-video)' \
+      'compare — ↔️ 50/50 Split-screen Before/After preview (--compare)' \
       'fades — 🌅 Smooth 1s fade-in & fade-out (--fade-in 1.0 --fade-out 1.0)' \
       'rotate-90 — 🔄 Rotate 90° clockwise (--rotate 90)' \
       'flip-h — 🔃 Flip horizontally (--flip h)' \
       'mute — 🔇 Discard audio track (--mute)' \
-      'force — ⚡ Overwrite existing output (--force)' | fzf --no-mouse -m --prompt="Extra effects ([Tab] multi-select) > " --height=60% --layout=reverse --border=horizontal || true)
+      'force — ⚡ Overwrite existing output (--force)' | fzf --no-mouse -m --prompt="Extra effects ([Tab] multi-select) > " --height=65% --layout=reverse --border=horizontal || true)
     if [ -n "$extras" ]; then
       while IFS= read -r line; do
         case "${line%% *}" in
-          letterbox-235) LETTERBOX="2.35"; HAS_EFFECT=1 ;;
-          letterbox-185) LETTERBOX="1.85"; HAS_EFFECT=1 ;;
-          letterbox-43) LETTERBOX="4:3"; HAS_EFFECT=1 ;;
+          anamorphic) ANAMORPHIC=1; HAS_EFFECT=1 ;;
+          light-leak) LIGHT_LEAK=1; HAS_EFFECT=1 ;;
+          prism) PRISM=1; HAS_EFFECT=1 ;;
           bloom) BLOOM=1; HAS_EFFECT=1 ;;
           vignette) VIGNETTE=1; HAS_EFFECT=1 ;;
           tilt-shift) TILT_SHIFT=1; HAS_EFFECT=1 ;;
+          halftone) HALFTONE=1; HAS_EFFECT=1 ;;
           sharpen) SHARPEN=1; HAS_EFFECT=1 ;;
           blur) BLUR="8"; HAS_EFFECT=1 ;;
+          speed-ramp) SPEED_RAMP="slow-mid"; HAS_EFFECT=1 ;;
           trails) TRAILS="5"; HAS_EFFECT=1 ;;
           slowmo) SPEED="0.5"; HAS_EFFECT=1 ;;
           smooth-slowmo) SPEED="0.5"; SMOOTH_SLOWMO=1; HAS_EFFECT=1 ;;
@@ -156,6 +191,18 @@ interactive_wizard() {
           mirror-quad) MIRROR="quad"; HAS_EFFECT=1 ;;
           zoom-in) ZOOM="in"; HAS_EFFECT=1 ;;
           zoom-out) ZOOM="out"; HAS_EFFECT=1 ;;
+          letterbox-235) LETTERBOX="2.35"; HAS_EFFECT=1 ;;
+          letterbox-185) LETTERBOX="1.85"; HAS_EFFECT=1 ;;
+          letterbox-43) LETTERBOX="4:3"; HAS_EFFECT=1 ;;
+          blend-video)
+            local bv_choice
+            bv_choice=$(find . -maxdepth 2 -type f 2>/dev/null | grep -iE '\.(mp4|mov|avi|mkv|webm|m4v)$' | sed 's|^\./||' | sort | fzf --no-mouse --prompt="Select overlay/texture video > " --height=45% --layout=reverse --border=horizontal || true)
+            if [ -n "$bv_choice" ]; then
+              BLEND_VIDEO="$bv_choice"
+              HAS_EFFECT=1
+            fi
+            ;;
+          compare) COMPARE=1; HAS_EFFECT=1 ;;
           fades) FADE_IN="1.0"; FADE_OUT="1.0"; HAS_EFFECT=1 ;;
           rotate-90) ROTATE="90"; HAS_EFFECT=1 ;;
           flip-h) FLIP="h"; HAS_EFFECT=1 ;;
@@ -174,18 +221,26 @@ interactive_wizard() {
 
   local eq_cmd="videoeffects"
   [ -n "$PRESET" ] && eq_cmd+=" --preset $PRESET"
+  [ -n "$DUOTONE" ] && eq_cmd+=" --duotone $DUOTONE"
   [ -n "$SPEED" ] && eq_cmd+=" --speed $SPEED"
+  [ -n "$SPEED_RAMP" ] && eq_cmd+=" --speed-ramp $SPEED_RAMP"
   [ "$SMOOTH_SLOWMO" -eq 1 ] && eq_cmd+=" --smooth-slowmo"
   [ "$REVERSE" -eq 1 ] && eq_cmd+=" --reverse"
   [ -n "$STOPMOTION" ] && eq_cmd+=" --stopmotion $STOPMOTION"
   [ -n "$TRAILS" ] && eq_cmd+=" --trails $TRAILS"
   [ "$VIGNETTE" -eq 1 ] && eq_cmd+=" --vignette"
   [ "$BLOOM" -eq 1 ] && eq_cmd+=" --bloom"
+  [ "$PRISM" -eq 1 ] && eq_cmd+=" --prism"
+  [ "$ANAMORPHIC" -eq 1 ] && eq_cmd+=" --anamorphic"
+  [ "$LIGHT_LEAK" -eq 1 ] && eq_cmd+=" --light-leak"
+  [ "$HALFTONE" -eq 1 ] && eq_cmd+=" --halftone"
   [ -n "$BLUR" ] && eq_cmd+=" --blur $BLUR"
   [ "$TILT_SHIFT" -eq 1 ] && eq_cmd+=" --tilt-shift"
   [ "$SHARPEN" -eq 1 ] && eq_cmd+=" --sharpen"
   [ -n "$MIRROR" ] && eq_cmd+=" --mirror $MIRROR"
   [ -n "$ZOOM" ] && eq_cmd+=" --zoom $ZOOM"
+  [ -n "$BLEND_VIDEO" ] && eq_cmd+=" --blend-video \"$BLEND_VIDEO\" --blend-mode $BLEND_MODE"
+  [ "$COMPARE" -eq 1 ] && eq_cmd+=" --compare"
   [ -n "$LETTERBOX" ] && eq_cmd+=" --letterbox $LETTERBOX"
   [ -n "$FADE_IN" ] && eq_cmd+=" --fade-in $FADE_IN"
   [ -n "$FADE_OUT" ] && eq_cmd+=" --fade-out $FADE_OUT"
@@ -198,26 +253,36 @@ interactive_wizard() {
 
   wizard_confirm_and_run "videoeffects" "$eq_cmd" \
     "Files (${#FILES[@]})   : ${FILES[*]}" \
-    "Color Preset  : ${PRESET:-none}" \
-    "Time / Motion : speed=${SPEED:-1.0x}, reverse=$REVERSE, stopmotion=${STOPMOTION:-off}, trails=${TRAILS:-off}" \
-    "Optics/Frame  : bloom=$BLOOM, vignette=$VIGNETTE, tilt-shift=$TILT_SHIFT, mirror=${MIRROR:-off}, letterbox=${LETTERBOX:-off}"
+    "Color / Look  : preset=${PRESET:-none}, duotone=${DUOTONE:-off}" \
+    "Time / Motion : speed=${SPEED:-1.0x}, ramp=${SPEED_RAMP:-off}, reverse=$REVERSE, trails=${TRAILS:-off}" \
+    "Optics/Blend  : bloom=$BLOOM, anamorphic=$ANAMORPHIC, light-leak=$LIGHT_LEAK, blend-video=${BLEND_VIDEO:-none}, compare=$COMPARE"
 }
 
 while [ "$#" -gt 0 ]; do case "$1" in
   -i|--interactive) INTERACTIVE=1; shift;;
   -p|--preset|--look) PRESET="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
+  --duotone) DUOTONE="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
   --speed) SPEED="${2:?$1 requires a value}"; SPEED="${SPEED//,/.}"; HAS_EFFECT=1; shift 2;;
+  --speed-ramp) SPEED_RAMP="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
   --smooth-slowmo|--interpolate) SMOOTH_SLOWMO=1; HAS_EFFECT=1; shift;;
   --reverse) REVERSE=1; HAS_EFFECT=1; shift;;
   --stopmotion) STOPMOTION="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
   --trails|--ghost) TRAILS="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
   --vignette) VIGNETTE=1; HAS_EFFECT=1; shift;;
   --bloom|--glow) BLOOM=1; HAS_EFFECT=1; shift;;
+  --prism) PRISM=1; HAS_EFFECT=1; shift;;
+  --anamorphic) ANAMORPHIC=1; HAS_EFFECT=1; shift;;
+  --light-leak) LIGHT_LEAK=1; HAS_EFFECT=1; shift;;
+  --halftone|--dither) HALFTONE=1; HAS_EFFECT=1; shift;;
   --blur) BLUR="${2:?$1 requires a value}"; BLUR="${BLUR//,/.}"; HAS_EFFECT=1; shift 2;;
   --tilt-shift) TILT_SHIFT=1; HAS_EFFECT=1; shift;;
   --sharpen) SHARPEN=1; HAS_EFFECT=1; shift;;
   --mirror) MIRROR="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
   --zoom) ZOOM="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
+  --blend-video|--overlay-video) BLEND_VIDEO="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
+  --blend-mode) BLEND_MODE="${2:?$1 requires a value}"; shift 2;;
+  --blend-opacity) BLEND_OPACITY="${2:?$1 requires a value}"; BLEND_OPACITY="${BLEND_OPACITY//,/.}"; shift 2;;
+  --compare) COMPARE=1; HAS_EFFECT=1; shift;;
   --letterbox) LETTERBOX="${2:?$1 requires a value}"; HAS_EFFECT=1; shift 2;;
   --fade-in) FADE_IN="${2:?$1 requires a value}"; FADE_IN="${FADE_IN//,/.}"; HAS_EFFECT=1; shift 2;;
   --fade-out) FADE_OUT="${2:?$1 requires a value}"; FADE_OUT="${FADE_OUT//,/.}"; HAS_EFFECT=1; shift 2;;
@@ -252,6 +317,25 @@ if [ -n "$PRESET" ]; then
     cinema|noir|vintage|sepia|synthwave|thermal|bleach|kodak|dream) ;;
     *) echo "❌ Unknown preset '$PRESET'. Choose from: cinema, noir, vintage, sepia, synthwave, thermal, bleach, kodak, dream" >&2; exit 1 ;;
   esac
+fi
+
+if [ -n "$DUOTONE" ]; then
+  case "$DUOTONE" in
+    cyber|spotify|amber-teal|crimson) ;;
+    *) echo "❌ Unknown --duotone '$DUOTONE'. Choose from: cyber, spotify, amber-teal, crimson" >&2; exit 1 ;;
+  esac
+fi
+
+if [ -n "$SPEED_RAMP" ]; then
+  case "$SPEED_RAMP" in
+    slow-mid|fast-slow-fast) ;;
+    *) echo "❌ Unknown --speed-ramp '$SPEED_RAMP'. Choose from: slow-mid, fast-slow-fast" >&2; exit 1 ;;
+  esac
+fi
+
+if [ -n "$BLEND_VIDEO" ] && [ ! -f "$BLEND_VIDEO" ]; then
+  echo "❌ Error: --blend-video file not found: $BLEND_VIDEO" >&2
+  exit 1
 fi
 
 if [ -n "$SPEED" ]; then
@@ -289,9 +373,11 @@ if [ -n "$FLIP" ]; then
 fi
 
 TAG="${PRESET:-fx}"
+[ -z "$PRESET" ] && [ -n "$DUOTONE" ] && TAG="duotone-${DUOTONE}"
 [ -z "$PRESET" ] && [ "$REVERSE" -eq 1 ] && TAG="reversed"
 [ -z "$PRESET" ] && [ -n "$MIRROR" ] && TAG="mirror-${MIRROR}"
 [ -z "$PRESET" ] && [ -n "$SPEED" ] && TAG="speed-${SPEED}x"
+[ -z "$PRESET" ] && [ -n "$SPEED_RAMP" ] && TAG="ramp-${SPEED_RAMP}"
 
 [ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
 
@@ -334,7 +420,6 @@ for input in "${FILES[@]}"; do
     [ "$AUDIO_STREAM" = "audio" ] && HAS_AUDIO=1
   fi
 
-  # Build sequential filter chain stages (using labeled links in filter_complex so split/blend/overlay work cleanly)
   V_STEPS=()
   step_idx=0
   cur_v="[0:v]"
@@ -342,6 +427,13 @@ for input in "${FILES[@]}"; do
     step_idx=$((step_idx + 1))
     printf "[v%d]" "$step_idx"
   }
+
+  # If --compare is enabled, fork original stream before visual grading/optics
+  if [ "$COMPARE" -eq 1 ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}scale=${VW}:${VH},format=yuv420p,split=2[vorig_cmp]${nv}")
+    cur_v="$nv"
+  fi
 
   # 1. Geometry: Rotate & Flip
   if [ -n "$ROTATE" ]; then
@@ -392,7 +484,7 @@ for input in "${FILES[@]}"; do
     cur_v="$nv"
   fi
 
-  # 4. Color Look Preset
+  # 4. Color Look Preset & Duotone
   if [ -n "$PRESET" ]; then
     nv=$(next_v)
     s="$step_idx"
@@ -428,11 +520,29 @@ for input in "${FILES[@]}"; do
     cur_v="$nv"
   fi
 
-  # 5. Optical Filters: Tilt-Shift, Blur, Bloom, Sharpen, Vignette
+  if [ -n "$DUOTONE" ]; then
+    nv=$(next_v)
+    case "$DUOTONE" in
+      cyber)
+        V_STEPS+=("${cur_v}hue=s=0,colorbalance=rs=0.55:gs=-0.35:bs=0.45:rh=-0.45:gh=0.45:bh=0.65,eq=contrast=1.25${nv}")
+        ;;
+      spotify)
+        V_STEPS+=("${cur_v}hue=s=0,colorbalance=rs=-0.35:gs=-0.25:bs=0.45:rh=-0.25:gh=0.65:bh=-0.15,eq=contrast=1.28${nv}")
+        ;;
+      amber-teal)
+        V_STEPS+=("${cur_v}hue=s=0,colorbalance=rs=-0.45:gs=0.05:bs=0.38:rh=0.65:gh=0.25:bh=-0.45,eq=contrast=1.22${nv}")
+        ;;
+      crimson)
+        V_STEPS+=("${cur_v}hue=s=0,colorbalance=rs=0.45:gs=-0.35:bs=-0.25:rh=0.65:gh=0.35:bh=-0.35,eq=contrast=1.30${nv}")
+        ;;
+    esac
+    cur_v="$nv"
+  fi
+
+  # 5. Optical Filters: Tilt-Shift, Blur, Bloom, Prism, Anamorphic, Light-Leak, Halftone, Sharpen, Vignette
   if [ "$TILT_SHIFT" -eq 1 ]; then
     nv=$(next_v)
     s="$step_idx"
-    # Keep middle 40% sharp over a blurred background
     V_STEPS+=("${cur_v}split=2[ts_bg_${s}][ts_fg_${s}];[ts_bg_${s}]gblur=sigma=14[ts_blur_${s}];[ts_fg_${s}]crop=iw:ih*0.42:0:ih*0.29[ts_sharp_${s}];[ts_blur_${s}][ts_sharp_${s}]overlay=0:H*0.29,eq=saturation=1.25:contrast=1.08${nv}")
     cur_v="$nv"
   fi
@@ -450,6 +560,32 @@ for input in "${FILES[@]}"; do
     cur_v="$nv"
   fi
 
+  if [ "$PRISM" -eq 1 ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}rgbashift=rh=-10:bh=10:rv=4:bv=-4:edge=smear,vignette=PI/4.5${nv}")
+    cur_v="$nv"
+  fi
+
+  if [ "$ANAMORPHIC" -eq 1 ]; then
+    nv=$(next_v)
+    s="$step_idx"
+    V_STEPS+=("${cur_v}format=yuv420p,split=2[am_m_${s}][am_b_${s}];[am_b_${s}]lutyuv=y='if(gt(val,180),val,0)',gblur=sigma=26:sigmaV=1.2,colorbalance=rh=-0.25:gh=0.18:bh=0.65[am_f_${s}];[am_m_${s}][am_f_${s}]blend=all_mode=screen:all_opacity=0.55${nv}")
+    cur_v="$nv"
+  fi
+
+  if [ "$LIGHT_LEAK" -eq 1 ]; then
+    nv=$(next_v)
+    s="$step_idx"
+    V_STEPS+=("${cur_v}format=gbrp,split=2[ll_m_${s}][ll_b_${s}];[ll_b_${s}]hflip,vflip,gblur=sigma=42,colorbalance=rs=0.55:gs=0.12:bs=-0.35:rh=0.65:gh=0.22:bh=-0.45,eq=brightness=0.12:saturation=1.8[ll_g_${s}];[ll_m_${s}][ll_g_${s}]blend=all_mode=screen:all_opacity=0.42,format=yuv420p${nv}")
+    cur_v="$nv"
+  fi
+
+  if [ "$HALFTONE" -eq 1 ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}scale=iw/4:ih/4:flags=neighbor,eq=contrast=1.55:saturation=0.75,scale=${VW}:${VH}:flags=neighbor,unsharp=3:3:1.4${nv}")
+    cur_v="$nv"
+  fi
+
   if [ "$SHARPEN" -eq 1 ]; then
     nv=$(next_v)
     V_STEPS+=("${cur_v}unsharp=5:5:1.1:5:5:0.0${nv}")
@@ -462,7 +598,17 @@ for input in "${FILES[@]}"; do
     cur_v="$nv"
   fi
 
-  # 6. Temporal & Motion FX: Trails, Stopmotion, Reverse, Speed, Smooth-Slowmo
+  # 5b. Multi-Video Texture / Overlay Blending (--blend-video)
+  if [ -n "$BLEND_VIDEO" ]; then
+    nv=$(next_v)
+    s="$step_idx"
+    bmode="$BLEND_MODE"
+    [ "$bmode" = "add" ] && bmode="addition"
+    V_STEPS+=("[1:v]scale=${VW}:${VH}:force_original_aspect_ratio=increase,crop=${VW}:${VH},setsar=1,fps=30,format=gbrp[bv_${s}];${cur_v}scale=${VW}:${VH},setsar=1,format=gbrp[bm_${s}];[bm_${s}][bv_${s}]blend=all_mode=${bmode}:all_opacity=${BLEND_OPACITY}:shortest=1,format=yuv420p${nv}")
+    cur_v="$nv"
+  fi
+
+  # 6. Temporal & Motion FX: Trails, Stopmotion, Reverse, Speed, Speed-Ramp, Smooth-Slowmo
   if [ -n "$TRAILS" ]; then
     nv=$(next_v)
     T_FRAMES="$TRAILS"
@@ -484,7 +630,18 @@ for input in "${FILES[@]}"; do
     cur_v="$nv"
   fi
 
-  if [ -n "$SPEED" ]; then
+  if [ -n "$SPEED_RAMP" ]; then
+    nv=$(next_v)
+    s="$step_idx"
+    t1=$(awk -v d="$DUR" 'BEGIN { printf "%.3f", d * 0.30 }')
+    t2=$(awk -v d="$DUR" 'BEGIN { printf "%.3f", d * 0.70 }')
+    s_edge="1.0"
+    s_mid="0.45"
+    [ "$SPEED_RAMP" = "fast-slow-fast" ] && s_edge="1.8"
+    V_STEPS+=("${cur_v}split=3[sr1_${s}][sr2_${s}][sr3_${s}];[sr1_${s}]trim=0:${t1},setpts=(PTS-STARTPTS)/${s_edge}[srv1_${s}];[sr2_${s}]trim=${t1}:${t2},setpts=(PTS-STARTPTS)/${s_mid}[srv2_${s}];[sr3_${s}]trim=${t2}:${DUR},setpts=(PTS-STARTPTS)/${s_edge}[srv3_${s}];[srv1_${s}][srv2_${s}][srv3_${s}]concat=n=3:v=1:a=0${nv}")
+    cur_v="$nv"
+    DUR=$(awk -v d="$DUR" -v se="$s_edge" -v sm="$s_mid" 'BEGIN { printf "%.3f", (d*0.30/se) + (d*0.40/sm) + (d*0.30/se) }')
+  elif [ -n "$SPEED" ]; then
     nv=$(next_v)
     V_STEPS+=("${cur_v}setpts=PTS/${SPEED}${nv}")
     cur_v="$nv"
@@ -530,14 +687,30 @@ for input in "${FILES[@]}"; do
     cur_v="$nv"
   fi
 
+  # 8. Split-screen Before/After comparison (--compare)
+  if [ "$COMPARE" -eq 1 ]; then
+    nv=$(next_v)
+    V_STEPS+=("${cur_v}scale=${VW}:${VH},format=yuv420p[vfx_cmp];[vorig_cmp][vfx_cmp]blend=all_expr='if(lt(X,SW/2-1),A,if(gt(X,SW/2+1),B,235))':shortest=1${nv}")
+    cur_v="$nv"
+  fi
+
   # Final pixel format normalization
   V_STEPS+=("${cur_v}format=yuv420p[vout]")
 
   # Build audio filter chain if audio exists
   AF_CHAIN=()
+  AUDIO_RAMP_COMPLEX=""
   if [ "$HAS_AUDIO" -eq 1 ]; then
     [ "$REVERSE" -eq 1 ] && AF_CHAIN+=("areverse")
-    if [ -n "$SPEED" ]; then
+    if [ -n "$SPEED_RAMP" ]; then
+      t1=$(awk -v d="$DUR" 'BEGIN { printf "%.3f", d * 0.30 }')
+      orig_dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$input" 2>/dev/null | head -n1 || echo "5.0")
+      ot1=$(awk -v d="$orig_dur" 'BEGIN { printf "%.3f", d * 0.30 }')
+      ot2=$(awk -v d="$orig_dur" 'BEGIN { printf "%.3f", d * 0.70 }')
+      s_edge="1.0"
+      [ "$SPEED_RAMP" = "fast-slow-fast" ] && s_edge="1.8"
+      AUDIO_RAMP_COMPLEX="[0:a]asplit=3[ar1][ar2][ar3];[ar1]atrim=0:${ot1},asetpts=PTS-STARTPTS,atempo=${s_edge}[ara1];[ar2]atrim=${ot1}:${ot2},asetpts=PTS-STARTPTS,atempo=0.5,atempo=0.9[ara2];[ar3]atrim=${ot2}:${orig_dur},asetpts=PTS-STARTPTS,atempo=${s_edge}[ara3];[ara1][ara2][ara3]concat=n=3:v=0:a=1[aout]"
+    elif [ -n "$SPEED" ]; then
       ATEMPO_STR=$(awk -v s="$SPEED" 'BEGIN {
         if (s < 0.5) {
           printf "atempo=0.5,atempo=%.4f", s / 0.5
@@ -561,10 +734,14 @@ for input in "${FILES[@]}"; do
   args=(-hide_banner -loglevel error -stats)
   [ -n "$START" ] && args+=(-ss "$START")
   args+=(-i "$input")
+  [ -n "$BLEND_VIDEO" ] && args+=(-stream_loop -1 -i "$BLEND_VIDEO")
   [ -n "$END" ] && args+=(-to "$END")
 
   if [ "$HAS_AUDIO" -eq 1 ]; then
-    if [ "${#AF_CHAIN[@]}" -gt 0 ]; then
+    if [ -n "$AUDIO_RAMP_COMPLEX" ]; then
+      FILTER_COMPLEX="${FILTER_COMPLEX};${AUDIO_RAMP_COMPLEX}"
+      args+=(-filter_complex "$FILTER_COMPLEX" -map "[vout]" -map "[aout]" -c:v libx264 -crf 20 -preset medium -c:a aac -b:a 192k)
+    elif [ "${#AF_CHAIN[@]}" -gt 0 ]; then
       IFS=','; AF_STR="${AF_CHAIN[*]}"; unset IFS
       FILTER_COMPLEX="${FILTER_COMPLEX};[0:a]${AF_STR}[aout]"
       args+=(-filter_complex "$FILTER_COMPLEX" -map "[vout]" -map "[aout]" -c:v libx264 -crf 20 -preset medium -c:a aac -b:a 192k)
