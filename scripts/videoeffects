@@ -91,7 +91,7 @@ interactive_wizard() {
       'thermal — 🌡️ Infrared false-color heat vision' \
       'bleach — ⚔️ Gritty desaturated bleach bypass' \
       'sepia — 📜 Classic archival warm sepia' \
-      'none — ⏭️ Skip color preset (use optical/time effects only)' | fzf --prompt="Select color look preset > " --height=50% --layout=reverse --border || true)
+      'none — ⏭️ Skip color preset (use optical/time effects only)' | fzf --no-mouse --prompt="Select color look preset > " --height=50% --layout=reverse --border=horizontal || true)
     local p_val="${p_choice%% *}"
     if [ -n "$p_val" ] && [ "$p_val" != "none" ]; then
       PRESET="$p_val"
@@ -133,7 +133,7 @@ interactive_wizard() {
       'rotate-90 — 🔄 Rotate 90° clockwise (--rotate 90)' \
       'flip-h — 🔃 Flip horizontally (--flip h)' \
       'mute — 🔇 Discard audio track (--mute)' \
-      'force — ⚡ Overwrite existing output (--force)' | fzf -m --prompt="Extra effects ([Tab] multi-select) > " --height=60% --layout=reverse --border || true)
+      'force — ⚡ Overwrite existing output (--force)' | fzf --no-mouse -m --prompt="Extra effects ([Tab] multi-select) > " --height=60% --layout=reverse --border=horizontal || true)
     if [ -n "$extras" ]; then
       while IFS= read -r line; do
         case "${line%% *}" in

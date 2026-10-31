@@ -1124,11 +1124,12 @@ copy_recipe_menu() {
 
   local picked
   picked=$(printf '%s\n' "$recipes" | awk -F'\t' '{ printf "%-52s  # %s\n", $1, $2 }' | fzf \
+    --no-mouse \
     --prompt="copy $tool recipe > " \
-    --header="📋 Press [Enter] to copy command to clipboard (pbcopy) • [Esc] cancel" \
+    --header="📋 Press [Enter] to copy command to clipboard (pbcopy) • Mouse drag selects text • [Esc] cancel" \
     --height=50% \
     --layout=reverse \
-    --border || true)
+    --border=horizontal || true)
 
   [ -n "$picked" ] || return 0
   local cmd="${picked%%  # *}"
@@ -1138,6 +1139,16 @@ copy_recipe_menu() {
     echo "✅ Copied to clipboard: $cmd"
   else
     echo "📋 Command: $cmd"
+  fi
+}
+
+copy_full_guide() {
+  local tool="$1"
+  if command -v pbcopy >/dev/null 2>&1; then
+    show_tool_help "$tool" | pbcopy
+    echo "✅ Full '$tool' explanation & Short Code Sheet copied to clipboard (pbcopy)!"
+  else
+    show_tool_help "$tool"
   fi
 }
 
@@ -1185,31 +1196,37 @@ interactive_guide() {
   while true; do
     local choice
     choice=$(echo "$topics" | fzf \
+      --no-mouse \
       --prompt='mytools guide > ' \
-      --header='📖 Browse guides & short code sheets • [Enter] actions & recipe copier • [Esc] exit' \
-      --height=90% \
+      --header='📖 Drag mouse to select & copy text (⌘C) • [Enter] actions & recipe copier • [Ctrl-Y] copy full guide • [?] toggle layout • [Esc] exit' \
+      --height=92% \
       --layout=reverse \
-      --border \
+      --border=horizontal \
+      --bind="?:change-preview-window(right:60%:wrap:border-left|down:65%:wrap:border-top)" \
+      --bind="ctrl-y:execute-silent(bash \"$SOURCE_PATH\" preview {1} | pbcopy)" \
       --preview="bash \"$SOURCE_PATH\" preview {1}" \
-      --preview-window=right:62%:wrap || true)
+      --preview-window=down:65%:wrap:border-top || true)
 
     [ -n "$choice" ] || exit 0
     local tool="${choice%% *}"
     show_tool_help "$tool"
     echo ""
+    echo "💡 Tip: You can highlight any explanation or command above with your mouse to copy (⌘C)."
 
     if [ -t 0 ]; then
       case "$tool" in
         img2webp|vidglue|vidglitch|vidcuts|videoeffects|videorandfram|vidrandfram)
           local next_act
           next_act=$(printf '%s\n' \
+            "copy — 📋 Pick & copy a ready-made '$tool' one-liner to clipboard (pbcopy)" \
+            "copy-guide — 📄 Copy entire '$tool' explanation & code sheet to clipboard" \
             "wizard — 🧙 Launch '$tool -i' interactive wizard right now" \
-            "copy — 📋 Pick & copy a ready-made '$tool' one-liner to clipboard" \
-            "back — 🔙 Back to guide browser" \
-            "exit — 👋 Exit guide" | fzf --prompt="$tool > " --height=35% --layout=reverse --border || true)
+            "print — 🖨️ Keep explanation on screen & exit to shell prompt" \
+            "back — 🔙 Back to guide browser" | fzf --no-mouse --prompt="$tool > " --height=35% --layout=reverse --border=horizontal || true)
           case "${next_act%% *}" in
             wizard) exec "$SCRIPT_DIR/$tool" -i ;;
             copy) copy_recipe_menu "$tool" ;;
+            copy-guide) copy_full_guide "$tool" ;;
             back) continue ;;
             *) exit 0 ;;
           esac
@@ -1218,10 +1235,12 @@ interactive_guide() {
           local next_act
           next_act=$(printf '%s\n' \
             "run — 🚀 Run 'mytools $tool' now" \
-            "back — 🔙 Back to guide browser" \
-            "exit — 👋 Exit guide" | fzf --prompt="$tool > " --height=30% --layout=reverse --border || true)
+            "copy-guide — 📄 Copy entire '$tool' explanation to clipboard" \
+            "print — 🖨️ Keep explanation on screen & exit to shell prompt" \
+            "back — 🔙 Back to guide browser" | fzf --no-mouse --prompt="$tool > " --height=30% --layout=reverse --border=horizontal || true)
           case "${next_act%% *}" in
             run) exec "$SCRIPT_DIR/mytools-$tool" ;;
+            copy-guide) copy_full_guide "$tool" ;;
             back) continue ;;
             *) exit 0 ;;
           esac
@@ -1229,12 +1248,14 @@ interactive_guide() {
         *)
           local next_act
           next_act=$(printf '%s\n' \
-            "copy — 📋 Pick & copy a ready-made command recipe to clipboard" \
-            "back — 🔙 Back to guide browser" \
+            "copy — 📋 Pick & copy a ready-made command recipe to clipboard (pbcopy)" \
+            "copy-guide — 📄 Copy entire '$tool' explanation & code sheet to clipboard" \
+            "print — 🖨️ Keep explanation on screen & exit to shell prompt" \
             "launcher — 🧰 Open 'mytools' interactive file launcher" \
-            "exit — 👋 Exit guide" | fzf --prompt="$tool > " --height=35% --layout=reverse --border || true)
+            "back — 🔙 Back to guide browser" | fzf --no-mouse --prompt="$tool > " --height=35% --layout=reverse --border=horizontal || true)
           case "${next_act%% *}" in
             copy) copy_recipe_menu "$tool" ;;
+            copy-guide) copy_full_guide "$tool" ;;
             back) continue ;;
             launcher) exec "$SCRIPT_DIR/mytools" ;;
             *) exit 0 ;;

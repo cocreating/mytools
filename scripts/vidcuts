@@ -71,7 +71,7 @@ interactive_wizard() {
       'stutter — 📽️ 2-frame skips (mechanical projector chatter)' \
       'freeze — 🧊 Freeze-hold cuts (keeps original duration & continuous audio!)' \
       'beat — 🥁 BPM rhythmic cuts (synced to music tempo)' \
-      'silence — 🎙️ Auto-strip silent pauses (vlogger / podcast jump cuts)' | fzf --prompt="Select cut mode > " --height=45% --layout=reverse --border || true)
+      'silence — 🎙️ Auto-strip silent pauses (vlogger / podcast jump cuts)' | fzf --no-mouse --prompt="Select cut mode > " --height=45% --layout=reverse --border=horizontal || true)
     [ -n "$m_choice" ] && MODE="${m_choice%% *}"
   fi
 
@@ -82,7 +82,7 @@ interactive_wizard() {
       th_choice=$(printf '%s\n' \
         '-38 — 🎙️ Balanced speech threshold (-38dB, default)' \
         '-32 — ⚡ Aggressive pause removal (-32dB, loud studio)' \
-        '-45 — 🤫 Gentle silence removal (-45dB, quiet room)' | fzf --prompt="Select silence threshold > " --height=35% --layout=reverse --border || true)
+        '-45 — 🤫 Gentle silence removal (-45dB, quiet room)' | fzf --no-mouse --prompt="Select silence threshold > " --height=35% --layout=reverse --border=horizontal || true)
       [ -n "$th_choice" ] && SILENCE_DB="${th_choice%% *}"
     fi
   else
@@ -94,7 +94,7 @@ interactive_wizard() {
         '30% — 🎬 Energetic jump cuts' \
         '40% — 🔥 Heavy kinetic cuts' \
         '50% — ⚡ Frantic staccato cuts' \
-        'Custom — ✍️ Enter custom percentage' | fzf --prompt="Select cut percentage > " --height=42% --layout=reverse --border || true)
+        'Custom — ✍️ Enter custom percentage' | fzf --no-mouse --prompt="Select cut percentage > " --height=42% --layout=reverse --border=horizontal || true)
       case "${p_choice%% *}" in
         10%) PERCENT=10;;
         20%) PERCENT=20;;
@@ -123,7 +123,7 @@ interactive_wizard() {
         '128 — ⚡ 128 BPM (Club / Electro / Techno)' \
         '140 — 🔥 140 BPM (Trap / Dubstep / Fast)' \
         '90 — 🎧 90 BPM (Boom-bap / Lo-Fi Hip-Hop)' \
-        'custom — ✍️ Enter custom BPM' | fzf --prompt="Select BPM > " --height=42% --layout=reverse --border || true)
+        'custom — ✍️ Enter custom BPM' | fzf --no-mouse --prompt="Select BPM > " --height=42% --layout=reverse --border=horizontal || true)
       case "${bpm_choice%% *}" in
         auto|"") BPM="" ;;
         120|128|140|90) BPM="${bpm_choice%% *}" ;;
@@ -154,7 +154,7 @@ interactive_wizard() {
       'keep-audio — 🎵 Keep continuous original audio (--keep-audio)' \
       'mute — 🔇 Mute audio track (--mute)' \
       'trim — ✂️ Trim start/end timestamps (--from / --to)' \
-      'force — ⚡ Overwrite existing output (--force)' | fzf -m --prompt="Celluloid & audio extras ([Tab] multi-select) > " --height=55% --layout=reverse --border || true)
+      'force — ⚡ Overwrite existing output (--force)' | fzf --no-mouse -m --prompt="Celluloid & audio extras ([Tab] multi-select) > " --height=55% --layout=reverse --border=horizontal || true)
     if [ -n "$cell_extras" ]; then
       while IFS= read -r line; do
         case "${line%% *}" in

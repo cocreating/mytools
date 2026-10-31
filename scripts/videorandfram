@@ -82,14 +82,14 @@ interactive_wizard() {
       'chaos — 💥 Maximum non-linear temporal collision (cache: 300+ frames)' \
       'flicker — 👁️ Alternating adjacent frame swaps (50/60fps cinema flicker)' \
       'reverse — ⏪ Periodic reversed 8-frame chunks (rewind glitch pulses)' \
-      'burst — ⚡ Intermittent frame scramble bursts during normal playback' | fzf --prompt="Select randomization preset > " --height=45% --layout=reverse --border || true)
+      'burst — ⚡ Intermittent frame scramble bursts during normal playback' | fzf --no-mouse --prompt="Select randomization preset > " --height=45% --layout=reverse --border=horizontal || true)
     [ -n "$p_choice" ] && PRESET="${p_choice%% *}"
 
     # Step 3: Frame Rate & Window fine-tuning
     local w_choice
     w_choice=$(printf '%s\n' \
       'default — 🎯 Use preset window cache size' \
-      'custom — ✍️ Enter custom frame window size (2 to 512)' | fzf --prompt="Window cache size > " --height=25% --layout=reverse --border || true)
+      'custom — ✍️ Enter custom frame window size (2 to 512)' | fzf --no-mouse --prompt="Window cache size > " --height=25% --layout=reverse --border=horizontal || true)
     if [ "${w_choice%% *}" = "custom" ]; then
       printf "Enter window size (2-512): "
       read -r WINDOW || true
@@ -101,7 +101,7 @@ interactive_wizard() {
       'keep — 🎵 Preserve continuous original audio (default)' \
       'stutter — 🎛️ Choppy tremolo audio synced to frame jitter' \
       'crush — 👾 Lo-fi 8-bit chiptune bitcrush distortion' \
-      'mute — 🔇 Discard audio track' | fzf --prompt="Audio handling > " --height=30% --layout=reverse --border || true)
+      'mute — 🔇 Discard audio track' | fzf --no-mouse --prompt="Audio handling > " --height=30% --layout=reverse --border=horizontal || true)
     [ -n "$a_choice" ] && AUDIO_MODE="${a_choice%% *}"
 
     # Step 5: Visual Extras
@@ -111,7 +111,7 @@ interactive_wizard() {
       'rgb-split — 🌈 Chromatic aberration channel shift (8px)' \
       'flash — ⚡ White splice tape flashes on frame jumps' \
       'grain — 🎞️ 16mm/35mm analog film grain' \
-      'super8 — 🎥 Dark vintage Super-8 frame border & vignette' | fzf -m --prompt="Visual extras ([Tab] multi-select) > " --height=35% --layout=reverse --border || true)
+      'super8 — 🎥 Dark vintage Super-8 frame border & vignette' | fzf --no-mouse -m --prompt="Visual extras ([Tab] multi-select) > " --height=35% --layout=reverse --border=horizontal || true)
     if [ -n "$v_extras" ]; then
       while IFS= read -r line; do
         case "${line%% *}" in

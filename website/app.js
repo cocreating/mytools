@@ -728,6 +728,34 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
       return;
     }
 
+    // Handle 'help <tool>', 'mytools help <tool>', or '<tool> --help' / '-h'
+    let helpTarget = "";
+    if (main === "help" && sub) helpTarget = sub;
+    else if (main === "mytools" && (sub === "help" || sub === "guide") && parts[2]) helpTarget = parts[2];
+    else if (parts.includes("--help") || parts.includes("-h")) helpTarget = (main === "mytools" && sub) ? sub : main;
+
+    if (helpTarget) {
+      const targetTool = TOOLS_DATA.find(t => t.id === helpTarget || t.name === helpTarget);
+      if (targetTool) {
+        const flagsText = (targetTool.flags || []).map(f => `  ${f.flag.padEnd(28)} ${f.desc}`).join("\n");
+        const exText = (targetTool.examples || []).map(e => `  ${e.cmd}   # ${e.note}`).join("\n");
+        this.appendLine(`📖 ${targetTool.name} — ${targetTool.summary}
+Usage:
+  ${targetTool.signature}
+
+Description:
+  ${targetTool.details}
+
+Flags & Options:
+${flagsText}
+
+Short Code Sheet:
+${exText}
+💡 Highlight any text above to copy-paste (⌘C) or click COPY in the terminal header!`, "color: var(--text-code-on-terminal);");
+        return;
+      }
+    }
+
     // Handle 'mytools <tool> ...' or 'img2web' typo with helpful hints
     let effectiveCmd = cmdText;
     if (main === "mytools" && sub && sub !== "help" && sub !== "config") {
@@ -3200,6 +3228,14 @@ document.addEventListener("DOMContentLoaded", () => {
         window.terminalSim.execute(cmd);
       }
     });
+  });
+
+  // Terminal Copy button
+  document.getElementById("termCopyBtn")?.addEventListener("click", () => {
+    const logs = document.getElementById("terminalLogs");
+    if (logs && logs.innerText.trim()) {
+      copyToClipboard(logs.innerText.trim(), "Terminal explanation & output copied!");
+    }
   });
 
   // Terminal Clear button

@@ -85,7 +85,7 @@ interactive_wizard() {
       'nightvision — 🟢 Tactical green phosphor, high-ISO grain & scanlines' \
       'gameboy — 🟩 4-shade handheld LCD green pixel matrix' \
       'matrix — 💻 Digital green code phosphor & vertical glitch' \
-      'custom — 🛠️ Build custom glitch combination (RGB + scanlines + noise + pixelate + tear)' | fzf --prompt="Select glitch preset > " --height=60% --layout=reverse --border || true)
+      'custom — 🛠️ Build custom glitch combination (RGB + scanlines + noise + pixelate + tear)' | fzf --no-mouse --prompt="Select glitch preset > " --height=60% --layout=reverse --border=horizontal || true)
     local p_key="${p_choice%% *}"
     if [ "$p_key" = "custom" ]; then
       HAS_CUSTOM=1
@@ -96,7 +96,7 @@ interactive_wizard() {
         'scanlines — 📺 CRT scanline raster overlay' \
         'noise-18 — 📻 Analog tape static noise (18)' \
         'pixelate-10 — 🕹️ Mosaic block pixelation (10px)' \
-        'tear — ⚡ Horizontal pixel block tearing' | fzf -m --prompt="Custom blocks ([Tab] multi-select) > " --height=45% --layout=reverse --border || true)
+        'tear — ⚡ Horizontal pixel block tearing' | fzf --no-mouse -m --prompt="Custom blocks ([Tab] multi-select) > " --height=45% --layout=reverse --border=horizontal || true)
       if [ -n "$c_blocks" ]; then
         while IFS= read -r cb; do
           case "${cb%% *}" in
@@ -137,7 +137,7 @@ interactive_wizard() {
       'med — ⚖️ Medium balanced intensity (50%, default)' \
       'low — 🌱 Subtle analog/digital touch (30%)' \
       'high — 🔥 Extreme hardware corruption (85%)' \
-      'custom — 🔢 Enter custom numeric intensity (1-100)' | fzf --prompt="Select glitch intensity > " --height=35% --layout=reverse --border || true)
+      'custom — 🔢 Enter custom numeric intensity (1-100)' | fzf --no-mouse --prompt="Select glitch intensity > " --height=35% --layout=reverse --border=horizontal || true)
     case "${i_choice%% *}" in
       low|med|high) INTENSITY="${i_choice%% *}" ;;
       custom)
@@ -154,7 +154,7 @@ interactive_wizard() {
     b_choice=$(printf '%s\n' \
       'constant — 🌊 Continuous effect (always on)' \
       'organic-burst — ⚡ Erratic organic glitch bursts (recommended for realism)' \
-      'burst — 💓 Periodic pulse every 2 seconds' | fzf --prompt="Select glitch timing > " --height=35% --layout=reverse --border || true)
+      'burst — 💓 Periodic pulse every 2 seconds' | fzf --no-mouse --prompt="Select glitch timing > " --height=35% --layout=reverse --border=horizontal || true)
     case "${b_choice%% *}" in
       burst) BURST=1 ;;
       organic-burst) BURST=1; BURST_ORGANIC=1 ;;
@@ -171,7 +171,7 @@ interactive_wizard() {
       'tracking — 📼 Scrolling VHS tracking distortion bar' \
       'mute — 🔇 Discard audio track (--mute)' \
       'trim — ✂️ Trim start/end timestamps (--from / --to)' \
-      'force — ⚡ Overwrite existing output (--force)' | fzf -m --prompt="Extra modifiers ([Tab] multi-select) > " --height=45% --layout=reverse --border || true)
+      'force — ⚡ Overwrite existing output (--force)' | fzf --no-mouse -m --prompt="Extra modifiers ([Tab] multi-select) > " --height=45% --layout=reverse --border=horizontal || true)
     if [ -n "$ex_choice" ]; then
       while IFS= read -r line; do
         case "${line%% *}" in

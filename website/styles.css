@@ -639,11 +639,16 @@ body {
   flex-direction: column;
   gap: 0.8rem;
   max-height: 380px;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
 }
 
 .terminal-log {
   white-space: pre-wrap;
   word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .terminal-prompt-line {
@@ -655,6 +660,8 @@ body {
 .prompt-symbol {
   color: var(--color-terminal-green);
   font-weight: 700;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .terminal-input {

@@ -129,7 +129,7 @@ interactive_wizard() {
                     fi
                     local selected=""
                     if [ -n "$cand_files" ]; then
-                        selected=$(printf '%s\n' "$cand_files" | fzf -m --prompt="img2webp files > " --height=50% --layout=reverse --border || true)
+                        selected=$(printf '%s\n' "$cand_files" | fzf --no-mouse -m --prompt="img2webp files > " --height=50% --layout=reverse --border=horizontal || true)
                     fi
                     if [ -z "$selected" ]; then
                         echo "No files selected. Defaulting to all images in current directory."

@@ -92,13 +92,16 @@ OPTION=$(printf '%s\n' \
   'guide — 📖 Interactive guide, recipe copier & cheat-sheets' \
   'doctor — 🩺 Dependency health check & auto-installer' \
   'config — ⚙️ User presets & configuration' | fzf \
+  --no-mouse \
   --prompt='mytools > ' \
-  --header='🎯 Select a tool ([Enter] launch wizard / file picker • [Esc] exit)' \
+  --header='🎯 [Enter] launch • Drag mouse to select & copy text (⌘C) • [Ctrl-Y] copy full guide • [?] toggle layout • [Esc] exit' \
   --height=~100% \
   --layout=reverse \
-  --border \
+  --border=horizontal \
+  --bind="?:change-preview-window(right:54%:wrap:border-left|down:58%:wrap:border-top)" \
+  --bind="ctrl-y:execute-silent(bash \"$SCRIPT_DIR/mytools-guide\" preview {1} | pbcopy)" \
   --preview="bash \"$SCRIPT_DIR/mytools-guide\" preview {1}" \
-  --preview-window=right:54%:wrap)
+  --preview-window=down:58%:wrap:border-top)
 [ -n "$OPTION" ] || exit 0
 TOOL="${OPTION%% *}"
 case "$TOOL" in
@@ -133,13 +136,14 @@ if [ -z "$CAND_FILES" ]; then
 fi
 
 FILES=$(printf '%s\n' "$CAND_FILES" | fzf -m \
+  --no-mouse \
   --prompt="${TOOL} files > " \
-  --header='💡 Press [Tab] to mark multiple files, then press [Enter] to confirm' \
+  --header='💡 Press [Tab] to mark multiple files, then press [Enter] to confirm (mouse select enabled)' \
   --height=65% \
   --layout=reverse \
-  --border \
+  --border=horizontal \
   --preview="bash \"$SCRIPT_DIR/lib/common.sh\" --preview {}" \
-  --preview-window=right:48%:wrap)
+  --preview-window=down:48%:wrap:border-top)
 [ -n "$FILES" ] || { echo 'Canceled.'; exit 0; }
 FILE_ARRAY=(); while IFS= read -r file; do [ -n "$file" ] && FILE_ARRAY+=("$file"); done <<< "$FILES"
 
@@ -149,7 +153,7 @@ case "$TOOL" in
     FMT_CHOICE=$(printf '%s\n' \
       'wav — 🎵 Lossless 16-bit PCM WAV (default)' \
       'mp3 — 🎧 MP3 192kbps (-m)' \
-      'mp3-320 — 💎 MP3 320kbps (-m -b 320)' | fzf --prompt="${TOOL} output format > " --height=30% --layout=reverse --border || true)
+      'mp3-320 — 💎 MP3 320kbps (-m -b 320)' | fzf --no-mouse --prompt="${TOOL} output format > " --height=30% --layout=reverse --border=horizontal || true)
     case "${FMT_CHOICE%% *}" in
       mp3) AUDIO_FMT_FLAGS=(-m) ;;
       mp3-320) AUDIO_FMT_FLAGS=(-m -b 320) ;;
@@ -162,7 +166,7 @@ case "$TOOL" in
     P_CHOICE=$(printf '%s\n' \
       'web — 🌐 H.264, CRF 23, max 1080p (default)' \
       'social — 📱 H.264, CRF 25, max 720p' \
-      'archive — 📦 H.265/HEVC, CRF 26, native resolution' | fzf --prompt='vidoptim preset > ' --height=35% --layout=reverse --border || true)
+      'archive — 📦 H.265/HEVC, CRF 26, native resolution' | fzf --no-mouse --prompt='vidoptim preset > ' --height=35% --layout=reverse --border=horizontal || true)
     [ -n "$P_CHOICE" ] && exec "$SCRIPT_DIR/vidoptim" --preset "${P_CHOICE%% *}" "${FILE_ARRAY[@]}"
     ;;
   wavfx)
@@ -171,7 +175,7 @@ case "$TOOL" in
       'hall — 🏛️ Spacious concert hall reverb' \
       'space — 🌌 Deep cosmic space reverb' \
       'delay-250 — 🔁 250ms slapback echo delay' \
-      'lofi-800 — 📻 Warm 800Hz low-pass filter' | fzf --prompt='wavfx preset > ' --height=40% --layout=reverse --border || true)
+      'lofi-800 — 📻 Warm 800Hz low-pass filter' | fzf --no-mouse --prompt='wavfx preset > ' --height=40% --layout=reverse --border=horizontal || true)
     case "${FX_CHOICE%% *}" in
       room|hall|space) exec "$SCRIPT_DIR/wavfx" "${AUDIO_FMT_FLAGS[@]}" --reverb "${FX_CHOICE%% *}" "${FILE_ARRAY[@]}" ;;
       delay-250) exec "$SCRIPT_DIR/wavfx" "${AUDIO_FMT_FLAGS[@]}" --delay 250 "${FILE_ARRAY[@]}" ;;
@@ -184,7 +188,7 @@ case "$TOOL" in
       '+5 — ⬆️ Up 5 semitones (fourth up)' \
       '-2 — ⬇️ Down 2 semitones (tempo preserved)' \
       '-5 — ⬇️ Down 5 semitones (deep vocal)' \
-      'tape — 📼 -4 semitones Varispeed (slow tape drop)' | fzf --prompt='wavpitch shift > ' --height=40% --layout=reverse --border || true)
+      'tape — 📼 -4 semitones Varispeed (slow tape drop)' | fzf --no-mouse --prompt='wavpitch shift > ' --height=40% --layout=reverse --border=horizontal || true)
     case "${SEMI_CHOICE%% *}" in
       tape) exec "$SCRIPT_DIR/wavpitch" "${AUDIO_FMT_FLAGS[@]}" --varispeed -s -4 "${FILE_ARRAY[@]}" ;;
       +2|+5|-2|-5) exec "$SCRIPT_DIR/wavpitch" "${AUDIO_FMT_FLAGS[@]}" -s "${SEMI_CHOICE%% *}" "${FILE_ARRAY[@]}" ;;
@@ -194,7 +198,7 @@ case "$TOOL" in
     FADE_CHOICE=$(printf '%s\n' \
       'micro — ⚡ 0.1s in / 0.2s out (de-click sample boundaries)' \
       'smooth — 🌊 0.5s in / 1.0s out (musical pad envelope)' \
-      'long — 🌅 1.5s in / 2.0s out (cinematic swell)' | fzf --prompt='wavfade envelope > ' --height=35% --layout=reverse --border || true)
+      'long — 🌅 1.5s in / 2.0s out (cinematic swell)' | fzf --no-mouse --prompt='wavfade envelope > ' --height=35% --layout=reverse --border=horizontal || true)
     case "${FADE_CHOICE%% *}" in
       smooth) exec "$SCRIPT_DIR/wavfade" "${AUDIO_FMT_FLAGS[@]}" -i 0.5 -o 1.0 "${FILE_ARRAY[@]}" ;;
       long) exec "$SCRIPT_DIR/wavfade" "${AUDIO_FMT_FLAGS[@]}" -i 1.5 -o 2.0 "${FILE_ARRAY[@]}" ;;

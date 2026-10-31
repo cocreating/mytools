@@ -112,13 +112,14 @@ wizard_select_files() {
         fi
         if [ -n "$cand_files" ]; then
             selected=$(printf '%s\n' "$cand_files" | fzf -m \
+                --no-mouse \
                 --prompt="${tool_name} files > " \
                 --header="$header_msg" \
                 --height=65% \
                 --layout=reverse \
-                --border \
+                --border=horizontal \
                 --preview="bash \"$common_path\" --preview {}" \
-                --preview-window=right:48%:wrap || true)
+                --preview-window=down:48%:wrap:border-top || true)
         fi
         if [ -n "$selected" ]; then
             while IFS= read -r f; do
@@ -175,11 +176,12 @@ wizard_confirm_and_run() {
             'dry-run — 📝 Dry-run preview only (do not encode)' \
             'copy-only — 📋 Copy command to clipboard & exit without running' \
             'cancel — ❌ Cancel and exit' | fzf \
+            --no-mouse \
             --prompt="${tool_name} > " \
-            --header="Confirm execution or copy the generated CLI command" \
+            --header="Confirm execution or copy the generated CLI command (mouse text select enabled)" \
             --height=35% \
             --layout=reverse \
-            --border || true)
+            --border=horizontal || true)
         case "${action%% *}" in
             run)
                 return 0
