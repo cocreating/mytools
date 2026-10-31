@@ -19,16 +19,52 @@ mytools doctor
 ## Start here
 
 ```bash
-mytools                 # interactive launcher (shows complete tool list without scrolling)
+mytools                 # interactive fzf launcher (pick files + WAV/MP3 output)
+mytools cs              # print the complete Short Code Sheet in terminal
+mytools cs audio        # print only Audio / WAV & MP3 one-liners (also: video, image, recipes)
+mytools guide           # interactive help browser, 1-click recipe copier & wizard launcher
 mytools help            # categorized command overview
-mytools help <tool>     # detailed guide for a specific tool (e.g. mytools help vidglue)
-mytools guide           # interactive help browser & cheat-sheets
+mytools help <tool>     # detailed guide & Short Code Sheet for a specific tool
 mytools doctor          # dependency and PATH check
 mytools config          # create/show ~/.config/mytools/config
 ```
 
 All conversion tools avoid overwriting an existing output by default. Use `--force` only when replacing it is intentional, and `--dry-run` to preview batch operations.
 `mytools config` creates editable overrides for the built-in `vidoptim` presets; change `codec`, `crf`, or `width` within a named preset section.
+
+### Universal Flags & Audio Output Shortcuts
+
+| Flag | Applies To | Description |
+| :--- | :--- | :--- |
+| `-i, --interactive` | Major video/image tools | Step-by-step interactive wizard + command generator |
+| `-a, --all` | Batch media tools | Process all matching media files in current folder |
+| `-o, --output-dir <dir>` | All media tools (`-d` on `wavfade`) | Save outputs into a dedicated folder |
+| `-m, --mp3` | **All 7 `wav*` tools** | Output directly as **MP3** (`libmp3lame`) instead of WAV |
+| `--format <wav\|mp3>` | **All 7 `wav*` tools** & `vid2audio` | Explicitly choose `wav` or `mp3` output format |
+| `-b, --bitrate <kbps>` | **All 7 `wav*` tools**, `wav2mp3`, `vid2audio` | Set MP3 bitrate in kbps (default `192`, e.g. `-b 320`) |
+| `-n, --dry-run` | All media tools | Preview exact output paths and FFmpeg settings safely |
+| `-f, --force` | All media tools | Overwrite existing output files |
+
+### ⚡ Quick Reference Short Code Sheet
+
+| Goal / Workflow | One-Liner Command |
+| :--- | :--- |
+| **Cinematic Teal & Orange + 2.35:1 bars** | `videoeffects --preset cinema --letterbox 2.35 clip.mp4` |
+| **Cyberpunk glitch + organic burst + audio FX** | `vidglitch --preset cyberpunk --organic-burst --audio-glitch clip.mp4` |
+| **Auto-remove dead air / silent pauses** | `vidcuts --mode silence vlog.mp4` |
+| **Freeze-hold jump cuts (preserves song sync)** | `vidcuts -p 20 --mode freeze --film-burn --super8 mv.mp4` |
+| **Crossfade two videos (0.8s smooth fade)** | `vidglue -t fade -d 0.8 part1.mp4 part2.mp4` |
+| **2x2 Split-Screen Video Grid** | `vidglue --layout 2x2 a.mp4 b.mp4 c.mp4 d.mp4` |
+| **Normalize podcast to -16 LUFS MP3** | `wavnorm -m -l -16 podcast.wav` |
+| **Retime drum loop to 128 BPM (320kbps MP3)** | `wav2tempo -t 128 -m -b 320 drumloop.wav` |
+| **Shift vocal +3 semitones to MP3** | `wavpitch -s +3 -m vocal.wav` |
+| **Strip leading/trailing silence to MP3** | `wavtrim -m --threshold -45dB recording.wav` |
+| **De-pop sample edges (100ms in / 250ms out)** | `wavfade -i 0.1 -o 0.25 -m sample.wav` |
+| **Concert hall reverb + 300ms delay to MP3** | `wavfx --reverb hall --delay 300 -m vocal.wav` |
+| **Reverse audio to MP3** | `wavreverse -m cymbal.wav` |
+| **Batch folder to WebP (q=82, max 1600px)** | `img2webp -a -q 82 --width 1600` |
+| **Download clipboard URL as 320k MP3** | `ytdl --format mp3` |
+| **Full Podcast Mastering Pipeline** | `vid2audio talk.mp4 && wavtrim talk.wav && wavnorm -m -b 320 -l -16 talk-trimmed.wav` |
 
 ### Step-by-Step: How to Use Any Tool with Custom Commands
 
@@ -218,30 +254,35 @@ wav2mp3 -n -o ./mp3 *.wav                   # preview first
 
 Converts heavy WAV audio into compact, high-quality MP3 files.
 
+All WAV processing tools (`wav2tempo`, `wavreverse`, `wavpitch`, `wavnorm`, `wavfade`, `wavtrim`, `wavfx`) output uncompressed WAV by default, and also support `-m, --mp3` (or `--format mp3`) and `-b, --bitrate <kbps>` to output high-quality MP3 directly!
+
 ### Retime a WAV by BPM: `wav2tempo`
 
 ```bash
 wav2tempo drum-loop.wav                       # detects BPM, then asks for a target
 wav2tempo --target-bpm 128 drum-loop.wav
+wav2tempo -m -t 128 drum-loop.wav             # retime and output directly to MP3
 wav2tempo --bpm 92 -t 120 -o ./retimed song.wav
 ```
 
-`wav2tempo` uses `aubio` to estimate the source BPM and FFmpeg’s pitch-preserving tempo filter to create a new WAV. Detection works best with a rhythmic loop or a track with a clear, steady beat. If detection is uncertain, use `--bpm` to enter the known source BPM yourself. Both period (`.`) and comma (`,`) decimal separators are supported regardless of system locale.
+`wav2tempo` uses `aubio` to estimate the source BPM and FFmpeg’s pitch-preserving tempo filter to create a new WAV or MP3. Detection works best with a rhythmic loop or a track with a clear, steady beat. If detection is uncertain, use `--bpm` to enter the known source BPM yourself. Both period (`.`) and comma (`,`) decimal separators are supported regardless of system locale.
 
 ### Reverse a WAV: `wavreverse`
 
 ```bash
 wavreverse riser.wav
+wavreverse -m riser.wav                       # output reversed MP3
 wavreverse -o ./reversed *.wav
 wavreverse --dry-run samples/*.wav
 ```
 
-Creates a full, sample-accurate reverse of each WAV and writes `<name>-reversed.wav` without modifying the original.
+Creates a full, sample-accurate reverse of each WAV and writes `<name>-reversed.wav` (or `<name>-reversed.mp3` with `-m/--mp3`) without modifying the original.
 
 ### Shift pitch: `wavpitch`
 
 ```bash
 wavpitch -s +2 vocal.wav                     # shift up 2 semitones
+wavpitch -m -s +2 vocal.wav                  # shift up 2 semitones to MP3
 wavpitch --semitones -3 drumloop.wav         # shift down 3 semitones
 wavpitch --varispeed -s -5 track.wav         # tape speed effect (pitch + playback speed)
 ```
@@ -252,6 +293,7 @@ wavpitch --varispeed -s -5 track.wav         # tape speed effect (pitch + playba
 
 ```bash
 wavnorm podcast.wav                          # default: -14 LUFS integrated loudness
+wavnorm -m --lufs -16 podcast.wav            # normalize to -16 LUFS and save as MP3
 wavnorm --lufs -16 interview.wav
 wavnorm --peak 0 master.wav                  # peak normalize to 0 dBFS
 ```
@@ -262,6 +304,7 @@ wavnorm --peak 0 master.wav                  # peak normalize to 0 dBFS
 
 ```bash
 wavfade -i 0.1 -o 0.2 sample.wav             # 100ms fade-in, 200ms fade-out
+wavfade -m -i 0.5 -o 1.0 synth-pad.wav       # smooth fade and output MP3
 wavfade --in 0.5 --out 1.0 synth-pad.wav
 wavfade -i 0.2 -o 0.5 --curve qsin *.wav
 ```
@@ -272,6 +315,7 @@ wavfade -i 0.2 -o 0.5 --curve qsin *.wav
 
 ```bash
 wavtrim sample.wav                           # strip silence below -50dB
+wavtrim -m sample.wav                        # strip silence and save as MP3
 wavtrim --threshold -40dB vocal.wav
 wavtrim --start-only kick.wav                # trim leading silence only
 ```
@@ -282,6 +326,7 @@ wavtrim --start-only kick.wav                # trim leading silence only
 
 ```bash
 wavfx --reverb room loop.wav                 # room, hall, or space reverb
+wavfx -m --reverb hall vocal.wav             # hall reverb to MP3
 wavfx --delay 250 guitar.wav                 # echo delay in ms
 wavfx --lowpass 800 synth-pad.wav            # warm low-pass filter
 wavfx --highpass 150 --reverb hall vocal.wav # cut sub rumble + hall reverb

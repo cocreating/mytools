@@ -3,6 +3,9 @@ _arguments \
   '(-t --threshold)'{-t,--threshold}'[silence threshold in dB]:dB' \
   '(-s --start-only)'{-s,--start-only}'[trim leading silence only]' \
   '(-e --end-only)'{-e,--end-only}'[trim trailing silence only]' \
+  '(-m --mp3)'{-m,--mp3}'[output as MP3 instead of WAV]' \
+  '--format[output format (wav or mp3)]:format:(wav mp3)' \
+  '(-b --bitrate)'{-b,--bitrate}'[MP3 bitrate in kbps]:kbps' \
   '(-o --output-dir)'{-o,--output-dir}'[output directory]:directory:_files -/' \
   '(-f --force)'{-f,--force}'[overwrite existing output]' '(-n --dry-run)'{-n,--dry-run}'[show planned output]' \
   '*:WAV file:_files -g "*.wav(-.)"'

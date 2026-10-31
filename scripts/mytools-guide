@@ -4,76 +4,383 @@ SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(c
 
 show_overview() {
   cat <<'EOF'
-🧰 MYTOOLS - YOUR TERMINAL MEDIA SWISS ARMY KNIFE 🛠️
+🧰 MYTOOLS — YOUR TERMINAL MEDIA SWISS ARMY KNIFE 🛠️
+
+⚡ QUICK ACCESS COMMANDS
+  mytools                Open interactive fzf launcher (with live ffprobe preview) 🎯
+  mytools guide          Interactive guide browser, recipe copier & wizard launcher 📖
+  mytools cs [topic]     Print short code sheets (all | video | audio | image | recipes) 📋
+  mytools help <tool>    Show detailed flag reference & examples for any tool 🔍
+  <tool> -i              Launch step-by-step interactive wizard for a tool 🧙
 
 📸 IMAGE TOOLS 🪄
-  img2webp       Convert JPEG, PNG, GIF, HEIC to WebP (shrink size without losing quality) ⚡
+  img2webp          Convert JPEG, PNG, GIF, HEIC to WebP (shrink size, keep quality) ⚡
 
 📥 WEB DOWNLOADS 🌐
-  ytdl           Grab video/audio from web URLs via yt-dlp 🌐
+  ytdl              Grab video/audio from web URLs via yt-dlp (auto-reads clipboard) 🌐
 
 🎞️ VIDEO TOOLS 🎬
-  vidglue        Glue, crossfade & collage MP4 files (copy, normalize, xfade, 🪃 --bounce, --layout)
-  vid2webm       Convert video to modern VP9/Opus WebM 🌐
-  vid2gif        Convert video clips to high-quality animated GIFs 👾
-  videoWithoutAudio  Create a muted video (optionally preserve audio tracks) 🔇
-  vidoptim       Re-encode videos for web, social, or archive presets 🚀
-  vidglitch      Apply glitch, CRT, VHS, datamosh, nightvision & audio glitch FX ⚡
-  vidcuts        Cut film, BPM beat cuts, freeze-cuts & auto-silence jump-cuts ✂️
-  videoeffects   Cinematic color grading, speed/slow-mo, optics, mirror & framing FX (alias: vidfx) 🎬
-  videorandfram  Randomize frame order, temporal stutter & micro-jitter (alias: vidrandfram) 🎲
+  vidglue           Glue, crossfade & collage MP4 files (copy, --fit blur, xfade, --bounce, --layout)
+  vid2webm          Convert video to modern VP9/Opus WebM 🌐
+  vid2gif           Convert video clips to palette-optimized animated GIFs 👾
+  videoWithoutAudio Create a muted video (optionally preserve audio tracks as .mka) 🔇
+  vidoptim          Re-encode videos for web, social, or archive presets 🚀
+  vidglitch         Apply 11 glitch, CRT, VHS, datamosh, nightvision & audio glitch FX ⚡
+  vidcuts           Cut film, BPM beat cuts, freeze-cuts & auto-silence jump-cuts ✂️
+  videoeffects      Cinematic color grading, speed/slow-mo, optics, mirror & framing FX (alias: vidfx) 🎬
+  videorandfram     Randomize frame order, temporal stutter & micro-jitter (alias: vidrandfram) 🎲
 
-🎵 AUDIO TOOLS 🎧
-  vid2audio      Extract crisp audio streams from video (WAV / MP3) 🔊
-  wav2mp3        Convert heavy WAV audio to lightweight MP3 🎶
-  wav2tempo      Retime WAV tempo to a target BPM using aubio 🥁
-  wavreverse     Reverse WAV audio sample-accurately 🔄
-  wavpitch       Shift WAV pitch by semitones (preserve tempo or varispeed) 🎼
-  wavnorm        Normalize WAV volume (EBU R128 LUFS or Peak dBFS) 🎚️
-  wavfade        Apply smooth fade-in and fade-out volume envelopes 📈
-  wavtrim        Strip leading and trailing silence from WAV audio ✂️
-  wavfx          Apply DSP audio effects (reverb, delay, low/high pass filters) 🎛️
+🎵 AUDIO & WAV/MP3 TOOLS 🎧  (All wav* tools support -m/--mp3 & -b <kbps>!)
+  vid2audio         Extract crisp audio streams from video (WAV / MP3) 🔊
+  wav2mp3           Convert heavy WAV audio to lightweight MP3 🎶
+  wav2tempo         Retime WAV tempo to a target BPM using aubio (WAV / MP3) 🥁
+  wavreverse        Reverse WAV audio sample-accurately (WAV / MP3) 🔄
+  wavpitch          Shift WAV pitch by semitones or tape varispeed (WAV / MP3) 🎼
+  wavnorm           Normalize WAV volume (-14 LUFS or Peak dBFS, WAV / MP3) 🎚️
+  wavfade           Apply smooth fade-in and fade-out volume envelopes (WAV / MP3) 📈
+  wavtrim           Strip leading and trailing silence from WAV audio (WAV / MP3) ✂️
+  wavfx             Apply DSP audio effects: reverb, delay, low/high-pass EQ (WAV / MP3) 🎛️
 
-🕵️ MEDIA INSPECTION 🔍
-  media-info     Inspect video/audio codecs, duration, bitrate, resolution 🔍
-
-📂 FINDER & BOOKMARKS 📑
-  thumloc        Generate Finder thumbnail previews for .webloc files 🖼️
-  webloc2md      Create a structured Markdown index of bookmark URLs 📝
+🕵️ MEDIA INSPECTION & FINDER BOOKMARKS 🔍
+  media-info        Inspect video/audio codecs, duration, bitrate, resolution 🔍
+  thumloc           Generate Finder thumbnail previews for .webloc files 🖼️
+  webloc2md         Create a structured Markdown index of bookmark URLs 📝
 
 ⚙️ HEALTH & CONFIGURATION 🩺
-  doctor         Check & auto-install missing dependencies (ffmpeg, webp, aubio...) 🩺
-  config         Show/edit user configuration presets (~/.config/mytools/config) 🛠️
-  guide          Interactive help browser & cheat-sheets 📖
+  doctor            Check & auto-install missing dependencies (mytools doctor --install) 🩺
+  config            Show/edit user configuration presets (~/.config/mytools/config) 🛠️
 
-🧭 STEP-BY-STEP: HOW TO USE TOOLS WITH CUSTOM COMMANDS
-  ⚠️  Two Common Gotchas:
-      1. No 'mytools' prefix needed — each tool is a standalone command (run 'img2webp -a',
-         not 'mytools img2web -a'; though 'mytools <tool> [args]' also forwards for convenience).
-      2. Watch the exact tool name — the image tool ends with a 'p': 'img2webp' (not 'img2web').
+🔑 UNIVERSAL FLAGS CHEAT-SHEET
+  -i, --interactive Launch guided step-by-step wizard (prints Equivalent Command + copies to clipboard)
+  -n, --dry-run     Preview planned output filenames & settings safely without modifying disk
+  -f, --force       Overwrite existing output files (all tools are non-destructive by default)
+  -o, --output-dir  Write output files into a dedicated directory (e.g. -o ./out)
+  -m, --mp3         Output directly as MP3 instead of WAV (supported on all wav* tools + -b <kbps>)
 
-  Step 1: Go to the folder with your files in Terminal
-          cd ~/Pictures/MyPhotos   (Tip: type 'cd ' and drag-and-drop a folder from Finder)
-  Step 2: Run the tool directly with custom flags
-          img2webp -a                              # all images in current folder
-          img2webp --width 1200 -q 90 -a           # resize to 1200px & 90% quality
-          img2webp -q 80 photo.jpg                 # single file
-          img2webp --width 1200 -q 90 -a -n        # preview safely first (-n / --dry-run)
-  Step 3: Or use Interactive Wizard Mode (-i) to build commands step-by-step
-          img2webp -i   |   vidglitch -i   |   vidcuts -i
-          (Walks you through every option and prints the exact custom command for next time!)
-
-💡 PRO TIPS 🚀
-  • Run 'mytools' for the interactive launcher menu 🎯
-  • In launcher file selection: Press [Tab] to mark multiple files, then [Enter] to confirm! 📌
-  • Run 'mytools help <tool>' (e.g., 'mytools help img2webp') for a detailed guide 📖
-  • Run 'mytools guide' (or 'mytools g') to interactively browse help & cheat-sheets 🔍
+🧭 3-STEP QUICK START
+  1. cd ~/Pictures/MyMedia          # Go to your media folder (Tip: type 'cd ' + drag folder from Finder)
+  2. img2webp --width 1200 -q 90 -a # Run any tool directly by name (no 'mytools' prefix needed!)
+  3. videoeffects -i                # Or use '-i' wizard mode to build commands interactively
 EOF
+}
+
+show_cheatsheet() {
+  local section="${1:-all}"
+  case "$section" in
+    video|cheatsheet-video)
+      cat <<'EOF'
+🎬 SHORT CODE SHEET — VIDEO EDITING, FX & TRANSCODING
+═══════════════════════════════════════════════════════════════════════════════
+TOOL / ALIAS         ONE-LINER COMMAND                                  WHAT IT DOES
+───────────────────────────────────────────────────────────────────────────────
+vidglue              vidglue part1.mp4 part2.mp4                        Lossless instant merge (-c copy)
+vidglue              vidglue -t fade --transition-duration 0.8 a.mp4 b.mp4  Smooth 0.8s crossfade merge
+vidglue              vidglue --reencode --fit blur horiz.mp4 vert.mp4   Join mixed aspect ratios w/ blur pad
+vidglue              vidglue --bounce -l 3 clip.mp4                     Boomerang forward+reverse loop (3x)
+vidglue              vidglue --layout hstack left.mp4 right.mp4         Side-by-side split-screen (or 2x2)
+videoeffects (vidfx) vidfx -p cinema --letterbox 2.35 clip.mp4          Teal & orange + 2.35:1 CinemaScope
+videoeffects (vidfx) vidfx --speed 0.5 --smooth-slowmo action.mp4       Silky 2x optical-flow slow motion
+videoeffects (vidfx) vidfx --mirror quad -p synthwave dance.mp4         4-way neon kaleidoscope mirror
+videoeffects (vidfx) vidfx --reverse --bloom --trails 6 clip.mp4        Reversed dreamy phosphor trails
+vidglitch            vidglitch -p vhs -A --osd clip.mp4                 VHS tape + audio flutter + REC HUD
+vidglitch            vidglitch -p cyberpunk --organic-burst clip.mp4    Erratic neon glitch bursts
+vidglitch            vidglitch -p datamosh -I high dance.mp4            Heavy motion pixel smear trails
+vidcuts              vidcuts --mode silence interview.mp4               Auto-cut silent pauses (vlog editor)
+vidcuts              vidcuts --mode beat --bpm 128 --flash dance.mp4    Cut rhythmically on 128 BPM beats
+vidcuts              vidcuts -p 35 --mode freeze --film-burn clip.mp4   Freeze-cuts (keeps original audio!)
+videorandfram        vidrandfram -p jitter --rgb-split 8 clip.mp4       4-frame shutter tremor + RGB split
+videorandfram        vidrandfram -p stutter --fps 12 dance.mp4          12fps stop-motion breakbeat skip
+videorandfram        vidrandfram -p vortex --trails 5 promo.mp4         120-frame surreal time-warp loop
+vidoptim             vidoptim -p social *.mov                           Optimize for social (H.264, 720p)
+vid2webm             vid2webm -q 24 -w 1280 --from 00:05 --to 00:20 a.mp4  Trim & encode 720p VP9 WebM
+vid2gif              vid2gif -w 540 -r 15 --from 2 --to 7 demo.mov      2-pass palette-optimized 15fps GIF
+videoWithoutAudio    videoWithoutAudio --extract-audio clip.mp4         Mute video & save audio as .mka
+EOF
+      ;;
+    audio|cheatsheet-audio)
+      cat <<'EOF'
+🎧 SHORT CODE SHEET — AUDIO, WAV DSP & MP3 WORKFLOWS
+═══════════════════════════════════════════════════════════════════════════════
+💡 Every wav* tool outputs WAV by default, or MP3 with '-m' / '--mp3' and '-b <kbps>'!
+
+TOOL                 ONE-LINER COMMAND                                  WHAT IT DOES
+───────────────────────────────────────────────────────────────────────────────
+vid2audio            vid2audio -f mp3 -b 256 video.mp4                  Extract 256kbps MP3 from video
+vid2audio            vid2audio video.mov                                Extract lossless 16-bit PCM WAV
+wav2mp3              wav2mp3 -b 320 *.wav                               Batch convert WAVs to 320kbps MP3
+wavnorm              wavnorm podcast.wav                                Normalize loudness to -14 LUFS
+wavnorm              wavnorm -m -l -16 interview.wav                    Normalize to -16 LUFS & save MP3
+wavnorm              wavnorm --peak -1 master.wav                       Sample-peak normalize to -1 dBFS
+wavtrim              wavtrim recording.wav                              Strip start & end silence (<-50dB)
+wavtrim              wavtrim -m -t -40 --start-only kick.wav            Trim leading silence & output MP3
+wavfade              wavfade -i 0.1 -o 0.2 sample.wav                   De-click sample edges (100ms/200ms)
+wavfade              wavfade -m -i 0.5 -o 1.5 -c qsin pad.wav           Smooth quarter-sine fade to MP3
+wavpitch             wavpitch -s +2 vocal.wav                           Shift up 2 semitones (keeps tempo)
+wavpitch             wavpitch -m --varispeed -s -4 loop.wav             Slow tape-drop pitch+speed to MP3
+wav2tempo            wav2tempo -t 128 drumloop.wav                      Auto-detect BPM & retime to 128 BPM
+wav2tempo            wav2tempo -m --bpm 95 -t 120 loop.wav              Retime 95->120 BPM & save as MP3
+wavreverse           wavreverse riser.wav                               Sample-accurate backwards WAV
+wavreverse           wavreverse -m -b 256 cymbal.wav                    Reverse audio directly to MP3
+wavfx                wavfx --reverb hall vocal.wav                      Spacious concert hall reverb
+wavfx                wavfx -m --lowpass 800 --delay 250 loop.wav        Lo-fi 800Hz filter + echo to MP3
+EOF
+      ;;
+    image|web|cheatsheet-image)
+      cat <<'EOF'
+📸 SHORT CODE SHEET — IMAGE, WEB DOWNLOADS, INSPECT & FINDER
+═══════════════════════════════════════════════════════════════════════════════
+TOOL                 ONE-LINER COMMAND                                  WHAT IT DOES
+───────────────────────────────────────────────────────────────────────────────
+img2webp             img2webp -a                                        Convert all images in current folder
+img2webp             img2webp --width 1200 -q 90 -a                     Resize to max 1200px & 90% quality
+img2webp             img2webp -l diagram.png                            Lossless pixel-perfect WebP
+img2webp             img2webp -R -j 4 -o ./webp ~/Pictures              Recursive 4-thread batch conversion
+img2webp             img2webp -i                                        Interactive guided WebP wizard
+ytdl                 ytdl                                               Download URL from macOS clipboard
+ytdl                 ytdl -f mp3 'https://youtu.be/...'                 Download audio directly as MP3
+ytdl                 ytdl -f mp4 --subtitles 'https://...'              Download MP4 with embedded subs
+media-info           media-info *.mp4 *.wav                             Inspect codecs, bitrate, duration
+thumloc              thumloc ~/Downloads/Bookmarks                      Render Finder icons for .webloc
+webloc2md            webloc2md ~/Downloads/Bookmarks links.md           Export .webloc folder to Markdown
+mytools doctor       mytools doctor --install                           Check & install missing brew deps
+mytools config       mytools config --init                              Create ~/.config/mytools/config
+EOF
+      ;;
+    recipes|pipelines)
+      cat <<'EOF'
+🧪 SHORT CODE SHEET — POWER RECIPES & MULTI-STEP PIPELINES
+═══════════════════════════════════════════════════════════════════════════════
+1. 🎙️ Podcast / Voiceover Polish Pipeline (Trim Silence → Normalize -16 LUFS → MP3)
+   wavtrim -t -45 raw-voice.wav && wavnorm -m -b 192 -l -16 raw-voice-trimmed.wav
+
+2. 🎬 Hollywood Trailer Look (Cinema Grade + 2.35:1 Bars + Smooth Fade In/Out)
+   vidfx -p cinema --letterbox 2.35 --fade-in 0.8 --fade-out 1.2 raw-cut.mp4
+
+3. 📼 Authentic 90s Camcorder Found-Footage (VHS Glitch + Audio Flutter + Super-8 Cuts)
+   vidglitch -p vhs -A --osd --tracking clip.mp4 && vidcuts -p 15 --super8 --scratches clip-glitched.mp4
+
+4. 📱 Social Vertical Collage from Mixed Clips (Blurred Backdrop + Crossfade)
+   vidglue --reencode --fit blur --resolution vertical -t fade clip1.mp4 clip2.mp4
+
+5. 🌐 Full Website Media Diet (Batch 1200px WebP Images + 720p VP9 WebM Videos)
+   img2webp --width 1200 -q 85 -a -o ./web-assets && vid2webm -q 28 -w 1280 -o ./web-assets *.mp4
+
+6. 🥁 Sample Pack Prep (De-click Fade + Normalize Peak 0dB + Retime to 128 BPM)
+   wavfade -i 0.05 -o 0.1 loop.wav && wavnorm --peak 0 loop-faded.wav && wav2tempo -t 128 loop-faded-norm-0dB-peak.wav
+EOF
+      ;;
+    *)
+      show_cheatsheet video
+      echo ""
+      show_cheatsheet audio
+      echo ""
+      show_cheatsheet image
+      echo ""
+      show_cheatsheet recipes
+      ;;
+  esac
+}
+
+get_tool_recipes() {
+  local tool="$1"
+  case "$tool" in
+    img2webp|img2web)
+      cat <<'EOF'
+img2webp -a	Convert all images in current folder (default q85)
+img2webp --width 1200 -q 90 -a	Resize all images in folder to 1200px wide at 90% quality
+img2webp -l artwork.png	Lossless WebP conversion for graphics/screenshots
+img2webp -R -j 4 -o ./webp .	Recursive 4-core parallel conversion into ./webp
+img2webp --width 1200 -q 85 -a -n	Dry-run preview without creating files
+img2webp -i	Launch interactive step-by-step wizard
+EOF
+      ;;
+    vidglue|videoglue)
+      cat <<'EOF'
+vidglue clip1.mp4 clip2.mp4	Fast lossless stream-copy merge
+vidglue -t fade --transition-duration 0.8 a.mp4 b.mp4	Smooth 0.8s crossfade transition between clips
+vidglue --reencode --fit blur horiz.mp4 vert.mp4	Join mixed aspect ratios with blurred background fill
+vidglue --bounce -l 3 clip.mp4	Boomerang forward + reverse loop repeated 3 times
+vidglue --layout hstack left.mp4 right.mp4	Side-by-side split-screen collage
+vidglue --layout 2x2 a.mp4 b.mp4 c.mp4 d.mp4	2x2 quad video wall grid
+vidglue -i	Launch interactive vidglue wizard
+EOF
+      ;;
+    vidglitch|videoglitch)
+      cat <<'EOF'
+vidglitch --preset vhs --audio-glitch --osd clip.mp4	VHS tape look + audio wow/flutter + camcorder REC HUD
+vidglitch --preset cyberpunk --organic-burst clip.mp4	Cyberpunk neon split with erratic hardware bursts
+vidglitch --preset datamosh -I high dance.mp4	High-intensity motion pixel smear & ghosting
+vidglitch --preset crt --scanlines clip.mp4	Retro arcade CRT monitor scanlines
+vidglitch --preset nightvision --osd clip.mp4	Tactical green phosphor nightvision + HUD
+vidglitch -i	Launch interactive vidglitch wizard
+EOF
+      ;;
+    vidcuts|videocuts)
+      cat <<'EOF'
+vidcuts --mode silence interview.mp4	Auto-remove silent pauses from talking-head video
+vidcuts --mode beat --bpm 128 --flash dance.mp4	Cut rhythmically on 128 BPM beats with white flashes
+vidcuts -p 35 --mode freeze --film-burn musicvideo.mp4	Freeze-cuts keeping original duration & song intact
+vidcuts -p 25 --mode jumps clip.mp4	Excise 25% of video as kinetic ~0.2s jump cuts
+vidcuts -p 20 --jitter --grain --scratches --super8 clip.mp4	Damaged 16mm/Super-8 archival film projector look
+vidcuts -i	Launch interactive vidcuts wizard
+EOF
+      ;;
+    videoeffects|vidfx)
+      cat <<'EOF'
+videoeffects --preset cinema --letterbox 2.35 clip.mp4	Blockbuster teal & orange grade + 2.35:1 CinemaScope bars
+videoeffects --speed 0.5 --smooth-slowmo action.mp4	Silky 2x slow-motion using optical flow interpolation
+videoeffects --mirror quad --preset synthwave dance.mp4	4-way neon synthwave kaleidoscope mirror
+videoeffects --reverse --bloom --trails 6 dream.mov	Reversed playback with highlight glow & phosphor trails
+videoeffects --preset noir --vignette --grain scene.mp4	Classic high-contrast B&W film noir look
+videoeffects -i	Launch interactive videoeffects wizard
+EOF
+      ;;
+    videorandfram|vidrandfram)
+      cat <<'EOF'
+videorandfram -p jitter --rgb-split 8 clip.mp4	Micro-window shutter tremor + chromatic aberration
+videorandfram -p stutter --fps 12 dance.mp4	12fps stop-motion breakbeat frame skip
+videorandfram -p vortex --trails 5 promo.mp4	Surreal 120-frame time-warp loop with ghost trails
+videorandfram -p burst --audio stutter action.mp4	Intermittent scramble bursts with stuttered audio
+videorandfram -i	Launch interactive videorandfram wizard
+EOF
+      ;;
+    vidoptim)
+      cat <<'EOF'
+vidoptim video.mov	Optimize for web (H.264, CRF 23, max 1080p)
+vidoptim --preset social -o ./social *.mov	Batch optimize for social media (H.264, CRF 25, max 720p)
+vidoptim --preset archive master.mp4	Archival HEVC H.265 compression at native resolution
+EOF
+      ;;
+    vid2webm)
+      cat <<'EOF'
+vid2webm clip.mov	Convert video to VP9/Opus WebM (default CRF 30)
+vid2webm -q 24 -w 1280 clip.mp4	High-quality 720p WebM encoding
+vid2webm --from 00:00:05 --to 00:00:20 recording.mp4	Trim 15s clip and encode to WebM
+EOF
+      ;;
+    vid2gif)
+      cat <<'EOF'
+vid2gif demo.mov	Convert video to 480px 12fps palette-optimized GIF
+vid2gif -w 600 -r 15 --from 2 --to 7 demo.mp4	Smooth 600px 15fps GIF from 2s to 7s
+EOF
+      ;;
+    videoWithoutAudio)
+      cat <<'EOF'
+videoWithoutAudio clip.mp4	Create muted video copy (stream copy, zero quality loss)
+videoWithoutAudio --extract-audio recording.mov	Mute video and save original audio streams as .mka
+EOF
+      ;;
+    vid2audio)
+      cat <<'EOF'
+vid2audio video.mp4	Extract uncompressed 16-bit PCM WAV from video
+vid2audio -f mp3 -b 256 video.mp4	Extract high-quality 256kbps MP3 from video
+vid2audio -f mp3 -o ./audio *.mp4	Batch extract MP3 audio from all MP4s into ./audio
+EOF
+      ;;
+    wav2mp3)
+      cat <<'EOF'
+wav2mp3 track.wav	Convert WAV to 192kbps MP3
+wav2mp3 -b 320 *.wav	Batch convert all WAVs in folder to 320kbps MP3
+wav2mp3 -b 256 -o ./mp3 *.wav	Convert all WAVs into ./mp3 folder at 256kbps
+EOF
+      ;;
+    wav2tempo)
+      cat <<'EOF'
+wav2tempo -t 128 loop.wav	Auto-detect BPM and retime WAV to 128 BPM
+wav2tempo -m -t 128 loop.wav	Retime WAV to 128 BPM and save directly as MP3
+wav2tempo --bpm 92 -t 120 -m -b 256 song.wav	Retime known 92 BPM WAV to 120 BPM as 256kbps MP3
+EOF
+      ;;
+    wavreverse)
+      cat <<'EOF'
+wavreverse riser.wav	Create sample-accurate reversed WAV (riser-reversed.wav)
+wavreverse -m riser.wav	Reverse WAV and output directly as MP3 (riser-reversed.mp3)
+wavreverse -m -b 320 -o ./reversed *.wav	Batch reverse all WAVs into ./reversed as 320kbps MP3s
+EOF
+      ;;
+    wavpitch)
+      cat <<'EOF'
+wavpitch -s +2 vocal.wav	Shift pitch up 2 semitones while preserving tempo
+wavpitch -m -s -3 vocal.wav	Shift pitch down 3 semitones and output as MP3
+wavpitch --varispeed -s -4 track.wav	Analog tape slowdown effect (links pitch & playback speed)
+wavpitch -m -b 256 --varispeed -s -5 loop.wav	Tape slowdown effect exported directly as 256kbps MP3
+EOF
+      ;;
+    wavnorm)
+      cat <<'EOF'
+wavnorm podcast.wav	Normalize loudness to broadcast standard -14 LUFS
+wavnorm -m -l -16 interview.wav	Normalize to -16 LUFS (podcast standard) & output MP3
+wavnorm --peak 0 master.wav	Peak-normalize sample ceiling to 0 dBFS
+wavnorm -m -b 320 --peak -1 *.wav	Batch peak-normalize to -1 dBFS and save as 320kbps MP3
+EOF
+      ;;
+    wavfade)
+      cat <<'EOF'
+wavfade -i 0.1 -o 0.2 sample.wav	Fast 100ms fade-in & 200ms fade-out to eliminate clicks
+wavfade -m -i 0.5 -o 1.5 -c qsin pad.wav	Smooth quarter-sine fade envelope exported as MP3
+wavfade -i 1.5 -o 2.0 -c esin -d ./faded *.wav	Cinematic swell fade on all WAVs into ./faded
+EOF
+      ;;
+    wavtrim)
+      cat <<'EOF'
+wavtrim recording.wav	Strip leading & trailing silence below -50dB
+wavtrim -m -t -40 vocal.wav	Trim silence below -40dB and save directly as MP3
+wavtrim --start-only kick.wav	Strip leading silence only for tight transient start
+EOF
+      ;;
+    wavfx)
+      cat <<'EOF'
+wavfx --reverb room loop.wav	Apply warm studio room reverb
+wavfx -m --reverb hall vocal.wav	Apply spacious concert hall reverb and output as MP3
+wavfx --delay 250 guitar.wav	Add 250ms slapback echo delay
+wavfx -m --lowpass 800 --reverb space pad.wav	Underwater lo-fi filter + cosmic reverb exported to MP3
+EOF
+      ;;
+    ytdl)
+      cat <<'EOF'
+ytdl	Download video URL currently in macOS clipboard
+ytdl -f mp3	Extract audio as MP3 from clipboard URL
+ytdl -f mp4 --subtitles 'https://...'	Download MP4 video with embedded subtitles
+EOF
+      ;;
+    media-info)
+      cat <<'EOF'
+media-info clip.mp4	Inspect codec, resolution, frame rate, bitrate & duration
+media-info *.mp4 *.wav *.mp3	Batch inspect all media files in current directory
+EOF
+      ;;
+    *)
+      cat <<'EOF'
+img2webp --width 1200 -q 90 -a	Resize & convert all images in folder to WebP
+vidglue -t fade a.mp4 b.mp4	Crossfade two videos seamlessly
+videoeffects --preset cinema --letterbox 2.35 clip.mp4	Cinema grade + 2.35:1 widescreen bars
+vidglitch --preset vhs --audio-glitch --osd clip.mp4	VHS glitch + tape flutter + camcorder HUD
+vidcuts --mode silence interview.mp4	Auto-strip silent pauses from video
+wavnorm -m -l -16 podcast.wav	Normalize WAV to -16 LUFS and output MP3
+wavtrim -m -t -45 recording.wav	Trim silence from WAV and output MP3
+EOF
+      ;;
+  esac
 }
 
 show_tool_help() {
   local tool="$1"
   case "$tool" in
+    cheatsheet|cs|sheets)
+      show_cheatsheet "${2:-all}"
+      ;;
+    cheatsheet-video|video-sheet)
+      show_cheatsheet video
+      ;;
+    cheatsheet-audio|audio-sheet)
+      show_cheatsheet audio
+      ;;
+    cheatsheet-image|image-sheet)
+      show_cheatsheet image
+      ;;
+    recipes|pipelines)
+      show_cheatsheet recipes
+      ;;
     vidglue|videoglue|mp4glue)
       cat <<'EOF'
 🎞️ vidglue — Glue, Crossfade & Collage MP4 Video Files 🧲
@@ -104,7 +411,7 @@ Options:
   -f, --force                  Overwrite existing output file ⚡
   -n, --dry-run                Preview planned output without running FFmpeg 📝
 
-Examples:
+Short Code Sheet:
   vidglue -i                                         # launch interactive wizard
   vidglue clip1.mp4 clip2.mp4                        # fast stream copy
   vidglue --bounce -l 3 clip.mp4                     # 🪃 bounce loop repeated 3x
@@ -139,19 +446,12 @@ Options:
   -d, --delete-original  Delete original after conversion 🗑️
   -n, --dry-run          Preview conversions without running 📝
 
-Step-by-Step How to Apply:
-  1. Move to your images folder:  cd ~/Pictures/MyPhotos
-  2. Run with custom flags:       img2webp --width 1200 -q 90 -a
-  3. Or launch guided wizard:     img2webp -i  (prints equivalent command at the end!)
-
-Examples:
+Short Code Sheet:
   img2webp -i                             # launch interactive wizard
   img2webp -a                             # convert all images in current folder
   img2webp --width 1200 -q 90 -a          # convert all images in current folder (1200px, q90)
-  img2webp -width 1200 -q 90 .            # single-dash flags supported
-  img2webp photo.jpg
-  img2webp -q 80 --width 1200 photo.png
-  img2webp -R -j 4 -o ./webp ~/Pictures
+  img2webp -l diagram.png                 # lossless WebP conversion
+  img2webp -R -j 4 -o ./webp ~/Pictures   # recursive 4-thread parallel batch
 EOF
       ;;
     vid2webm)
@@ -173,7 +473,7 @@ Options:
   -f, --force           Overwrite existing file ⚡
   -n, --dry-run         Preview output path 📝
 
-Examples:
+Short Code Sheet:
   vid2webm clip.mov
   vid2webm -q 25 -w 1280 --from 00:00:10 --to 00:00:25 recording.mp4
 EOF
@@ -186,16 +486,18 @@ Usage:
   vid2gif [options] <video...>
 
 Description:
-  Transforms video clips into buttery smooth, palette-optimized animated GIFs! ✨
+  Transforms video clips into buttery smooth, 2-pass palette-optimized animated GIFs! ✨
 
 Options:
   -w, --width <px>      GIF max width (default: 480) 📐
   -r, --fps <N>         Frames per second (default: 12) ⏱️
-  --from <time>         Start time ✂️
-  --to <time>           End time ✂️
+  --from <time>         Start time (HH:MM:SS or seconds) ✂️
+  --to <time>           End time (HH:MM:SS or seconds) ✂️
   -o, --output-dir <d>  Output directory 📂
+  -f, --force           Overwrite existing output ⚡
+  -n, --dry-run         Preview output path 📝
 
-Examples:
+Short Code Sheet:
   vid2gif demo.mov
   vid2gif -w 600 -r 15 --from 00:00:02 --to 00:00:06 demo.mp4
 EOF
@@ -221,9 +523,10 @@ Options:
   -f, --force          Overwrite existing output ⚡
   -n, --dry-run        Preview output path 📝
 
-Examples:
+Short Code Sheet:
   vidoptim video.mov
   vidoptim --preset social -o ./social *.mov
+  vidoptim --preset archive master.mp4
 EOF
       ;;
     vidglitch|videoglitch)
@@ -271,9 +574,8 @@ Options:
   -f, --force             Overwrite existing output ⚡
   -n, --dry-run           Preview output without running FFmpeg 📝
 
-Examples:
+Short Code Sheet:
   vidglitch -i                                              # interactive guided wizard
-  vidglitch clip.mp4
   vidglitch --preset vhs --audio-glitch --osd recording.mov # VHS + tape flutter + camcorder HUD
   vidglitch --preset cyberpunk --organic-burst promo.mp4
   vidglitch --preset datamosh -I high dance.mp4
@@ -318,12 +620,11 @@ Options:
   -f, --force          Overwrite existing output ⚡
   -n, --dry-run        Preview output without running FFmpeg 📝
 
-Examples:
-  vidcuts clip.mp4                                         # 20% random frame drops
-  vidcuts -p 35 --mode jumps recording.mov                 # 35% shorter with chunk jump cuts
-  vidcuts -p 40 --mode freeze --film-burn musicvideo.mp4   # freeze-cuts keeping original song intact
-  vidcuts --mode beat --bpm 128 --flash dance.mp4          # rhythmic cuts synced to 128 BPM
-  vidcuts --mode silence interview.mp4                     # auto-remove dead air from talking head video
+Short Code Sheet:
+  vidcuts -i                                                # interactive guided wizard
+  vidcuts --mode silence interview.mp4                      # auto-remove dead air from talking head video
+  vidcuts -p 40 --mode freeze --film-burn musicvideo.mp4    # freeze-cuts keeping original song intact
+  vidcuts --mode beat --bpm 128 --flash dance.mp4           # rhythmic cuts synced to 128 BPM
   vidcuts -p 20 --jitter --grain --scratches --super8 v.mp4 # full 16mm/Super-8 damaged film look
 EOF
       ;;
@@ -370,7 +671,7 @@ Time, Optics & Framing Options:
   --rotate <90|180|270>       Rotate clockwise in degrees 🔄
   --flip <h|v>                Flip horizontally or vertically 🔃
 
-Examples:
+Short Code Sheet:
   videoeffects -i                                           # interactive guided wizard
   videoeffects --preset cinema --letterbox 2.35 clip.mp4    # widescreen blockbuster look
   videoeffects --speed 0.5 --smooth-slowmo action.mp4       # silky 2x slow-motion
@@ -418,139 +719,275 @@ Options:
   -n, --dry-run               Preview output without running FFmpeg 📝
   -i, --interactive           Interactive wizard (prompts for settings & files) 🧙
 
-Examples:
-  videorandfram clip.mp4                                         # 30-frame temporal shuffle
-  videorandfram -p jitter recording.mov                          # high-speed micro-jitter shutter
-  videorandfram -p stutter --fps 12 dance.mp4                    # stop-motion 12fps breakbeat stutter
-  videorandfram -p vortex --trails 5 --audio keep promo.mp4      # dreamlike surreal time warp + trails
-  videorandfram -p chaos -w 450 -s 42 visual.mp4                 # reproducible deep temporal explosion
-  videorandfram -p flicker --rgb-split 12 music.mp4              # kinetic 60fps frame alternation + chromatic shift
-  videorandfram -p burst --audio stutter action.mp4              # periodic frantic scramble bursts + choppy audio
-  videorandfram -i                                               # interactive guided wizard
+Short Code Sheet:
+  videorandfram -i                                          # interactive guided wizard
+  videorandfram -p jitter --rgb-split 8 recording.mov       # high-speed micro-jitter + RGB shift
+  videorandfram -p stutter --fps 12 dance.mp4               # stop-motion 12fps breakbeat stutter
+  videorandfram -p vortex --trails 5 --audio keep promo.mp4 # dreamlike surreal time warp + trails
+  videorandfram -p burst --audio stutter action.mp4         # periodic scramble bursts + choppy audio
 EOF
       ;;
-    vid2audio|videoWithoutAudio|wav2mp3|wav2tempo|wavreverse|wavpitch|wavnorm|wavfade|wavtrim|wavfx)
-      case "$tool" in
-        vid2audio)
-          cat <<'EOF'
-🔊 vid2audio — Extract Video Audio 🎧
+    vid2audio)
+      cat <<'EOF'
+🔊 vid2audio — Extract Video Audio to WAV or MP3 🎧
 
 Usage:
-  vid2audio [--format wav|mp3] [--bitrate <kbps>] <video...>
+  vid2audio [options] <video...>
 
 Description:
-  Rips crystal-clear audio streams out of video files into WAV or MP3! 🎶
+  Rips crystal-clear audio streams out of video files into uncompressed PCM WAV or MP3! 🎶
+
+Options:
+  -f, --format <wav|mp3>  Output audio format (default: wav) 🎵
+  -b, --bitrate <kbps>    MP3 bitrate in kbps (default: 192, used with --format mp3) 🎚️
+  -o, --output-dir <dir>  Destination directory 📂
+  -F, --force             Overwrite existing output file ⚡
+  -n, --dry-run           Preview planned output paths 📝
+
+Short Code Sheet:
+  vid2audio movie.mov                           # extract lossless movie.wav
+  vid2audio -f mp3 -b 256 interview.mp4         # extract 256kbps MP3
+  vid2audio -f mp3 -o ./audio *.mp4             # batch extract MP3s from all MP4s
 EOF
-          ;;
-        videoWithoutAudio)
-          cat <<'EOF'
+      ;;
+    videoWithoutAudio)
+      cat <<'EOF'
 🔇 videoWithoutAudio — Create a Video Without Audio 🎬
 
 Usage:
   videoWithoutAudio [options] <video...>
 
 Description:
-  Creates a video copy with no audio and discards the source audio by default.
-  Pass --extract-audio to preserve every original audio stream as its own
-  lossless-copy .mka file. The source video is never modified.
+  Creates a video copy with no audio (zero-reencode stream copy) and discards source audio by default.
+  Pass --extract-audio to preserve every original audio stream as its own lossless .mka file.
 
-Examples:
+Options:
+  --extract-audio         Save each audio stream as <name>-audio-track-NN.mka 🔊
+  -o, --output-dir <dir>  Write output files to directory 📂
+  -f, --force             Overwrite existing output files ⚡
+  -n, --dry-run           Show planned outputs without modifying files 📝
+
+Short Code Sheet:
   videoWithoutAudio interview.mp4
   videoWithoutAudio --extract-audio -o ./separated recording.mov
   videoWithoutAudio --dry-run *.mp4
 EOF
-          ;;
-        wav2mp3)
-          cat <<'EOF'
-🎧 wav2mp3 — WAV to MP3 Shrinker 🎶
+      ;;
+    wav2mp3)
+      cat <<'EOF'
+🎧 wav2mp3 — WAV to MP3 Audio Converter 🎶
 
 Usage:
-  wav2mp3 [--bitrate <kbps>] <wav...>
+  wav2mp3 [options] <audio...>
 
 Description:
-  Converts heavy uncompressed WAV audio into compact, high-quality MP3 files! 📦
+  Converts heavy uncompressed WAV (or AIFF/FLAC/M4A) audio into compact, high-quality MP3 files! 📦
+
+Options:
+  -b, --bitrate <kbps>    MP3 bitrate in kbps (default: 192; e.g. 128, 192, 256, 320) 🎚️
+  -o, --output-dir <dir>  Write MP3 files to this directory 📂
+  -f, --force             Overwrite existing MP3 files ⚡
+  -n, --dry-run           Preview planned outputs only 📝
+
+Short Code Sheet:
+  wav2mp3 interview.wav                         # convert to 192kbps MP3
+  wav2mp3 -b 320 master.wav                     # maximum fidelity 320kbps MP3
+  wav2mp3 -b 256 -o ./mp3 *.wav                 # batch convert all WAVs into ./mp3
 EOF
-          ;;
-        wav2tempo)
-          cat <<'EOF'
-🥁 wav2tempo — Retime WAV Audio by BPM ⏱️
+      ;;
+    wav2tempo)
+      cat <<'EOF'
+🥁 wav2tempo — Retime WAV Audio by BPM (WAV or MP3 Output) ⏱️
 
 Usage:
-  wav2tempo [--target-bpm <BPM>] [--bpm <sourceBPM>] <wav...>
+  wav2tempo [options] <file.wav>
 
 Description:
-  Detects audio BPM using aubio, then retimes audio pitch-preservingly via FFmpeg magic! 🪄
+  Detects a WAV file's BPM using aubio, then creates a pitch-preserving retimed WAV or MP3! 🪄
+  Supports both period (.) and comma (,) decimals regardless of system locale.
+
+Options:
+  -t, --target-bpm <n>    Target BPM (prompts interactively when omitted) 🎯
+  --bpm <number>          Skip BPM detection and specify known source BPM 🥁
+  -m, --mp3               Output directly as MP3 instead of WAV 🎧
+  --format <wav|mp3>      Explicit output format (default: wav) 🎵
+  -b, --bitrate <kbps>    MP3 bitrate in kbps (default: 192; implies MP3 output) 🎚️
+  -o, --output-dir <dir>  Write output to this directory 📂
+  -f, --force             Overwrite existing output ⚡
+  -n, --dry-run           Show planned output & tempo factor only 📝
+
+Short Code Sheet:
+  wav2tempo loop.wav                            # detect BPM & prompt for target BPM
+  wav2tempo -t 128 loop.wav                     # retime to 128 BPM (outputs .wav)
+  wav2tempo -m -t 128 loop.wav                  # retime to 128 BPM and save as .mp3
+  wav2tempo --bpm 95 -t 120 -b 320 -o ./out a.wav # 95->120 BPM as 320kbps MP3
 EOF
-          ;;
-        wavreverse)
-          cat <<'EOF'
-🔄 wavreverse — Reverse WAV Audio 🪃
+      ;;
+    wavreverse)
+      cat <<'EOF'
+🔄 wavreverse — Reverse WAV Audio Sample-Accurately (WAV or MP3 Output) 🪃
 
 Usage:
-  wavreverse <wav...>
+  wavreverse [options] <file.wav> [file.wav ...]
 
 Description:
-  Reverses sample audio upside down to create <name>-reversed.wav! 🎶
+  Creates a full, sample-accurate backwards reverse of one or more WAV files into WAV or MP3! 🎶
+
+Options:
+  -m, --mp3               Output as MP3 instead of WAV 🎧
+  --format <wav|mp3>      Explicit output format (default: wav) 🎵
+  -b, --bitrate <kbps>    MP3 bitrate in kbps (default: 192; implies MP3 output) 🎚️
+  -o, --output-dir <dir>  Write output files to this directory 📂
+  -f, --force             Overwrite existing reversed files ⚡
+  -n, --dry-run           Show planned outputs only 📝
+
+Short Code Sheet:
+  wavreverse riser.wav                          # creates riser-reversed.wav
+  wavreverse -m riser.wav                       # creates riser-reversed.mp3
+  wavreverse -m -b 256 -o ./reversed *.wav      # batch reverse all WAVs to 256kbps MP3
 EOF
-          ;;
-        wavpitch)
-          cat <<'EOF'
-🎼 wavpitch — WAV Pitch Shifter 🎵
+      ;;
+    wavpitch)
+      cat <<'EOF'
+🎼 wavpitch — Shift WAV Pitch by Semitones (WAV or MP3 Output) 🎵
 
 Usage:
-  wavpitch [--semitones <n>] [--varispeed] <wav...>
+  wavpitch [options] <file.wav> [file.wav ...]
 
 Description:
-  Shifts WAV audio pitch by semitones while preserving tempo!
-  Pass --varispeed to link pitch and playback speed (tape/vinyl speed drop effect).
+  Shifts WAV audio pitch by musical semitones while preserving tempo by default!
+  Pass -v / --varispeed to link pitch and playback speed for analog tape/vinyl drop effects.
+
+Options:
+  -s, --semitones <n>     Semitones to shift (e.g. +2, -3.5, 7; range -48 to +48) 🎼
+  -v, --varispeed         Link pitch and speed (tape/turntable slowdown or speedup) 📼
+  -m, --mp3               Output as MP3 instead of WAV 🎧
+  --format <wav|mp3>      Explicit output format (default: wav) 🎵
+  -b, --bitrate <kbps>    MP3 bitrate in kbps (default: 192; implies MP3 output) 🎚️
+  -o, --output-dir <dir>  Write output files to this directory 📂
+  -f, --force             Overwrite existing output files ⚡
+  -n, --dry-run           Show planned output files only 📝
+
+Short Code Sheet:
+  wavpitch -s +2 vocal.wav                      # shift up 2 semitones (tempo preserved)
+  wavpitch -m -s -3 vocal.wav                   # shift down 3 semitones & save as MP3
+  wavpitch --varispeed -s -4 track.wav          # slow tape drop effect
+  wavpitch -m -b 320 -s +5 -o ./pitched *.wav   # batch shift +5 semitones to 320kbps MP3
 EOF
-          ;;
-        wavnorm)
-          cat <<'EOF'
-🎚️ wavnorm — Volume Normalizer 🔊
+      ;;
+    wavnorm)
+      cat <<'EOF'
+🎚️ wavnorm — Loudness & Peak Volume Normalizer (WAV or MP3 Output) 🔊
 
 Usage:
-  wavnorm [--lufs <n>] [--peak <dB>] <wav...>
+  wavnorm [options] <file.wav> [file.wav ...]
 
 Description:
-  Normalizes audio volume to target integrated LUFS (EBU R128 standard)
-  or sample-accurate peak dBFS level!
+  Normalizes WAV volume to broadcast EBU R128 integrated LUFS (default: -14 LUFS)
+  or sample-accurate peak dBFS ceiling! Outputs WAV or MP3.
+
+Options:
+  -l, --lufs <n>          Target integrated LUFS (default: -14; e.g. -14 streaming, -16 podcast) 📻
+  -p, --peak <n>          Peak normalize to dBFS ceiling instead of LUFS (e.g. 0, -1) 📈
+  -m, --mp3               Output as MP3 instead of WAV 🎧
+  --format <wav|mp3>      Explicit output format (default: wav) 🎵
+  -b, --bitrate <kbps>    MP3 bitrate in kbps (default: 192; implies MP3 output) 🎚️
+  -o, --output-dir <dir>  Write output files to this directory 📂
+  -f, --force             Overwrite existing output files ⚡
+  -n, --dry-run           Show planned output files only 📝
+
+Short Code Sheet:
+  wavnorm podcast.wav                           # normalize to -14 LUFS (.wav)
+  wavnorm -m -l -16 interview.wav               # normalize to -16 LUFS & save as .mp3
+  wavnorm --peak -1 master.wav                  # peak normalize to -1 dBFS ceiling
+  wavnorm -m -b 256 -o ./norm *.wav             # batch normalize all WAVs to 256kbps MP3
 EOF
-          ;;
-        wavfade)
-          cat <<'EOF'
-📈 wavfade — Fade In/Out Envelopes 🎶
+      ;;
+    wavfade)
+      cat <<'EOF'
+📈 wavfade — Smooth Fade-In & Fade-Out Envelopes (WAV or MP3 Output) 🎶
 
 Usage:
-  wavfade [--in <sec>] [--out <sec>] [--curve <type>] <wav...>
+  wavfade [options] <file.wav> [file.wav ...]
 
 Description:
-  Applies smooth volume fade-in and fade-out curves to eliminate pops and clicks!
+  Applies smooth fade-in and fade-out volume envelopes to eliminate boundary clicks
+  or create cinematic swells! Automatically measures file duration for tail fade-out.
+
+Options:
+  -i, --in <seconds>      Fade-in duration in seconds (e.g. 0.1, 0.5, 1.5) 🌅
+  -o, --out <seconds>     Fade-out duration in seconds (e.g. 0.2, 1.0, 2.0) 🌇
+  -c, --curve <type>      Curve shape: tri, qsin, esin, hsin, log, exp (default: tri) 📐
+  -m, --mp3               Output as MP3 instead of WAV 🎧
+  --format <wav|mp3>      Explicit output format (default: wav) 🎵
+  -b, --bitrate <kbps>    MP3 bitrate in kbps (default: 192; implies MP3 output) 🎚️
+  -d, --output-dir <dir>  Write output files to this directory 📂
+  -f, --force             Overwrite existing output files ⚡
+  -n, --dry-run           Show planned output files only 📝
+
+Short Code Sheet:
+  wavfade -i 0.1 -o 0.2 sample.wav              # de-click sample start & end
+  wavfade -m -i 0.5 -o 1.5 -c qsin pad.wav      # smooth quarter-sine fade to MP3
+  wavfade -i 1.5 -o 2.0 -c esin -d ./faded *.wav # batch cinematic swell fade
 EOF
-          ;;
-        wavtrim)
-          cat <<'EOF'
-✂️ wavtrim — Silence Stripper 🔇
+      ;;
+    wavtrim)
+      cat <<'EOF'
+✂️ wavtrim — Automatic Silence Stripper (WAV or MP3 Output) 🔇
 
 Usage:
-  wavtrim [--threshold <dB>] [--start-only] [--end-only] <wav...>
+  wavtrim [options] <file.wav> [file.wav ...]
 
 Description:
-  Automatically detects and strips silence from the start and end of WAV audio!
+  Automatically detects and crops leading and/or trailing silence below a dB threshold!
+
+Options:
+  -t, --threshold <dB>    Silence threshold in dB (default: -50; e.g. -40dB, -45) 🎙️
+  -s, --start-only        Trim leading silence only (preserve natural reverb tail) ⏮️
+  -e, --end-only          Trim trailing silence only ⏭️
+  -m, --mp3               Output as MP3 instead of WAV 🎧
+  --format <wav|mp3>      Explicit output format (default: wav) 🎵
+  -b, --bitrate <kbps>    MP3 bitrate in kbps (default: 192; implies MP3 output) 🎚️
+  -o, --output-dir <dir>  Write output files to this directory 📂
+  -f, --force             Overwrite existing output files ⚡
+  -n, --dry-run           Show planned output files only 📝
+
+Short Code Sheet:
+  wavtrim sample.wav                            # strip start & end silence (<-50dB)
+  wavtrim -m -t -40 vocal.wav                   # strip silence (<-40dB) & output MP3
+  wavtrim --start-only kick.wav                 # tight transient start, keep decay tail
+  wavtrim -m -b 256 -o ./trimmed *.wav          # batch trim all WAVs to 256kbps MP3
 EOF
-          ;;
-        wavfx)
-          cat <<'EOF'
-🎛️ wavfx — Audio DSP Effects 🌌
+      ;;
+    wavfx)
+      cat <<'EOF'
+🎛️ wavfx — Studio Audio DSP Effects & EQ Filters (WAV or MP3 Output) 🌌
 
 Usage:
-  wavfx [--reverb room|hall|space] [--delay <ms>] [--lowpass <Hz>] [--highpass <Hz>] <wav...>
+  wavfx [options] <file.wav> [file.wav ...]
 
 Description:
-  Applies DSP audio effects: room/hall/space reverb presets, echo delays, low-pass and high-pass filters!
+  Applies spatial reverb presets, slapback/echo delays, and low-pass / high-pass EQ filters!
+  Combine multiple DSP flags in a single pass and export to WAV or MP3.
+
+Options:
+  --reverb <preset>       Spatial reverb: room, hall, or space (default: room) 🏛️
+  --delay <ms>            Echo delay time in milliseconds (e.g. 250) 🔁
+  --lowpass <Hz>          Low-pass filter cutoff frequency in Hz (e.g. 800 for warm lo-fi) 📻
+  --highpass <Hz>         High-pass filter cutoff frequency in Hz (e.g. 120 to cut rumble) 🎙️
+  -m, --mp3               Output as MP3 instead of WAV 🎧
+  --format <wav|mp3>      Explicit output format (default: wav) 🎵
+  -b, --bitrate <kbps>    MP3 bitrate in kbps (default: 192; implies MP3 output) 🎚️
+  -o, --output-dir <dir>  Write output files to this directory 📂
+  -f, --force             Overwrite existing output files ⚡
+  -n, --dry-run           Show planned output files only 📝
+
+Short Code Sheet:
+  wavfx --reverb room loop.wav                  # warm studio room reverb (.wav)
+  wavfx -m --reverb hall vocal.wav              # spacious hall reverb saved as .mp3
+  wavfx --delay 250 guitar.wav                  # 250ms echo delay
+  wavfx -m --lowpass 800 --reverb space pad.wav # lo-fi filter + cosmic reverb to MP3
 EOF
-          ;;
-      esac
       ;;
     media-info)
       cat <<'EOF'
@@ -560,27 +997,53 @@ Usage:
   media-info <file...>
 
 Description:
-  Inspects video/audio codecs, resolution, duration, bitrate, and size down to the byte! 📊
+  Inspects video/audio codecs, resolution, frame rate, duration, bitrate, and size via ffprobe! 📊
+
+Short Code Sheet:
+  media-info recording.mov song.mp3
+  media-info *.mp4 *.wav
 EOF
       ;;
     ytdl)
       cat <<'EOF'
-📥 ytdl — Media Grabber 🌐
+📥 ytdl — Web Media Grabber (yt-dlp + Clipboard) 🌐
 
 Usage:
-  ytdl [--format mp4|mp3] [--playlist] [URL]
+  ytdl [options] [URL]
 
 Description:
-  Downloads media from web links using yt-dlp. Automatically checks your clipboard for URLs! 📋
+  Downloads video or audio from web links using yt-dlp.
+  If URL is omitted, automatically checks your macOS clipboard (pbpaste)! 📋
+
+Options:
+  -f, --format <mp4|webm|mp3|wav>  Select output format without prompt 🎬
+  -o, --output-dir <dir>           Destination folder (default: ~/Downloads) 📂
+  --playlist                       Download entire playlist 📚
+  --subtitles                      Embed subtitles into video 💬
+  -n, --dry-run                    Simulate download only 📝
+
+Short Code Sheet:
+  ytdl                                          # grab URL from clipboard & pick format
+  ytdl -f mp3 'https://youtu.be/...'            # download audio directly as MP3
+  ytdl -f mp4 --subtitles 'https://...'         # download MP4 with embedded subtitles
 EOF
       ;;
     thumloc|webloc2md)
       cat <<'EOF'
-📂 Finder & Bookmarks Tools 📑
+📂 Finder & Bookmarks Tools (thumloc & webloc2md) 📑
 
-Commands:
-  🖼️ thumloc    Generate Finder thumbnail previews for .webloc bookmark files
-  📝 webloc2md  Create a structured Markdown index of bookmark URLs
+Usage:
+  thumloc [--force] [--dry-run] <directory>
+  webloc2md [--force] [--dry-run] <directory> [output.md]
+
+Description:
+  🖼️ thumloc    Fetches website previews and sets custom Finder icons on .webloc files
+  📝 webloc2md  Scans a folder of .webloc files and builds a clean Markdown index
+
+Short Code Sheet:
+  thumloc ~/Downloads/Bookmarks
+  thumloc --force ~/Downloads/Bookmarks
+  webloc2md ~/Downloads/Bookmarks bookmarks.md
 EOF
       ;;
     doctor|config)
@@ -593,8 +1056,12 @@ Usage:
   mytools doctor [--install]
 
 Description:
-  Checks required Homebrew packages (ffmpeg, webp, aubio, yt-dlp, fzf...).
-  Pass --install to automatically prescribe and install missing packages! 💊
+  Checks required Homebrew packages (ffmpeg, webp, aubio, yt-dlp, fzf, setweblocthumb).
+  Pass --install to automatically install any missing packages via Homebrew! 💊
+
+Short Code Sheet:
+  mytools doctor
+  mytools doctor --install
 EOF
           ;;
         config)
@@ -605,57 +1072,73 @@ Usage:
   mytools config [--init|--path|--list]
 
 Description:
-  Manages your editable configuration file (~/.config/mytools/config). 📝
+  Manages your user configuration file (~/.config/mytools/config) for vidoptim presets. 📝
+
+Short Code Sheet:
+  mytools config --init
+  mytools config --list
+  mytools config --path
 EOF
           ;;
       esac
       ;;
     custom-commands|how-to-apply|launcher-tips)
       cat <<'EOF'
-🧭 Step-by-Step: Custom Commands & Launcher Tips 🎯
+🧭 Step-by-Step: Custom Commands, Short Code Recipes & Launcher Tips 🎯
 
-⚠️ Two Important Observations When Running Custom Commands:
-  1. You do NOT need 'mytools' in front of individual tool commands!
-     • 'mytools' is the interactive menu launcher.
-     • Each tool ('img2webp', 'vidglue', 'vid2webm', 'wav2mp3', etc.) is run directly by its own name.
-       (Though 'mytools <tool> [options]' also works and forwards automatically.)
+⚠️ Two Golden Rules When Running Commands:
+  1. No 'mytools' prefix needed for individual tools!
+     • Each tool ('img2webp', 'vidglue', 'vidfx', 'wavnorm', etc.) runs directly by its own name.
+     • ('mytools <tool> [options]' also forwards automatically if you type it by habit.)
   2. Watch the exact tool name:
      • The image converter ends with a 'p': 'img2webp' (not 'img2web').
 
-Step-by-Step Workflow in Terminal:
-  Step 1: Go to the folder where your files are
-          cd ~/Pictures/MyPhotos
-          (Tip: Type 'cd ' with a space, drag-and-drop your folder from Finder into Terminal, and press Enter.)
-
-  Step 2: Run the tool directly with your flags
-          img2webp -a                                # convert all images in current folder
-          img2webp --width 1200 -q 90 -a             # resize to 1200px wide at 90% quality
-          img2webp -q 80 photo.jpg                   # convert one specific file
-          img2webp -q 90 -o ./webp-output -a         # save into a separate subfolder
-          img2webp --width 1200 -q 90 -a -n          # preview safely first (-n / --dry-run)
-
-  Step 3: Easiest Way to Learn Custom Commands — Use Wizard Mode (-i)
-          img2webp -i   |   vidglitch -i   |   vidcuts -i
-          Walks you through every setting step by step and prints the exact 'Equivalent command'
-          before running so you can copy it for next time!
-
-Multi-file Selection in 'mytools' Interactive Launcher:
-  1. Run 'mytools' and pick a tool.
-  2. Use ↑ / ↓ arrow keys to navigate your files. 🎯
-  3. Press [Tab] to mark each file you want to include (a '>' indicator appears). 📌
-  4. Press [Enter] to confirm and execute! 🚀
+⚡ 3 Ways to Use Any Tool:
+  1. Direct One-Liner (Fastest once you know flags):
+     cd ~/Pictures/MyPhotos && img2webp --width 1200 -q 90 -a
+  2. Guided Wizard Mode (-i) (Builds the command for you & copies to clipboard):
+     img2webp -i  |  vidglue -i  |  vidglitch -i  |  vidcuts -i  |  videoeffects -i  |  videorandfram -i
+  3. Interactive Launcher & Recipe Copier:
+     mytools          # pick tool -> mark multiple files with [Tab] -> press [Enter]
+     mytools guide    # browse docs, pick any one-liner recipe & copy to clipboard!
+     mytools cs       # print instant short code sheets in terminal (video, audio, image, recipes)
 EOF
       ;;
     *)
       if [ -f "$SCRIPT_DIR/$tool" ]; then
         bash "$SCRIPT_DIR/$tool" --help
       else
-        echo "❓ Unknown tool: $tool" >&2
-        echo "💡 Run 'mytools help' for a list of available commands." >&2
+        echo "❓ Unknown tool or topic: $tool" >&2
+        echo "💡 Run 'mytools help' or 'mytools cs' for available commands and code sheets." >&2
         exit 1
       fi
       ;;
   esac
+}
+
+copy_recipe_menu() {
+  local tool="$1"
+  local recipes
+  recipes="$(get_tool_recipes "$tool")"
+  [ -n "$recipes" ] || return 0
+
+  local picked
+  picked=$(printf '%s\n' "$recipes" | awk -F'\t' '{ printf "%-52s  # %s\n", $1, $2 }' | fzf \
+    --prompt="copy $tool recipe > " \
+    --header="📋 Press [Enter] to copy command to clipboard (pbcopy) • [Esc] cancel" \
+    --height=50% \
+    --layout=reverse \
+    --border || true)
+
+  [ -n "$picked" ] || return 0
+  local cmd="${picked%%  # *}"
+  cmd="$(printf '%s' "$cmd" | sed 's/[[:space:]]*$//')"
+  if command -v pbcopy >/dev/null 2>&1; then
+    printf '%s' "$cmd" | pbcopy
+    echo "✅ Copied to clipboard: $cmd"
+  else
+    echo "📋 Command: $cmd"
+  fi
 }
 
 interactive_guide() {
@@ -663,49 +1146,53 @@ interactive_guide() {
     show_overview
     exit 0
   }
-  
+
   local topics
   topics=$(printf '%s\n' \
-    'custom-commands — 🧭 Step-by-step: How to apply tools with custom flags' \
+    'cheatsheet — ⚡ Complete Short Code Sheet (All tools & one-liners)' \
+    'cheatsheet-video — 🎬 Video FX, Cuts, Glitch & Merging Code Sheet' \
+    'cheatsheet-audio — 🎧 Audio WAV/MP3 DSP & Mastering Code Sheet' \
+    'cheatsheet-image — 📸 Image WebP, Web Downloads & Finder Code Sheet' \
+    'recipes — 🧪 Multi-Step Production Pipelines & Power Recipes' \
+    'custom-commands — 🧭 Step-by-step: How to apply tools & golden rules' \
     'img2webp — 📸 Convert images to WebP (wizard: img2webp -i)' \
-    'ytdl — 📥 Download web media' \
     'vidglue — 🎞️ Glue, crossfade & collage MP4 videos (wizard: vidglue -i)' \
+    'videoeffects — 🎬 Cinematic color grading, speed & optical FX (wizard: videoeffects -i)' \
     'vidglitch — ⚡ Glitch, CRT, VHS, datamosh & retro FX (wizard: vidglitch -i)' \
     'vidcuts — ✂️ Cut film, BPM beat cuts & silence remover (wizard: vidcuts -i)' \
-    'videoeffects — 🎬 Cinematic color grading, speed & optical FX (wizard: videoeffects -i)' \
     'videorandfram — 🎲 Randomize frame order & temporal glitch (wizard: videorandfram -i)' \
     'vidoptim — 🚀 Web/social/archive video optimization' \
-    'vid2webm — 🌐 Convert videos to WebM' \
-    'vid2gif — 👾 Create animated GIFs' \
+    'vid2webm — 🌐 Convert videos to VP9/Opus WebM' \
+    'vid2gif — 👾 Create palette-optimized animated GIFs' \
     'videoWithoutAudio — 🔇 Remove audio (optionally preserve tracks)' \
-    'vid2audio — 🔊 Extract audio from video' \
-    'wav2mp3 — 🎧 Convert WAV to MP3' \
-    'wav2tempo — 🥁 Retime WAV by BPM' \
-    'wavreverse — 🔄 Reverse WAV audio' \
-    'wavpitch — 🎼 Shift WAV pitch by semitones' \
-    'wavnorm — 🎚️ Normalize WAV loudness or peak volume' \
-    'wavfade — 📈 Apply fade in and fade out envelopes' \
-    'wavtrim — ✂️ Strip leading and trailing silence' \
-    'wavfx — 🎛️ Apply reverb, delay, and EQ filters' \
+    'vid2audio — 🔊 Extract WAV or MP3 audio from video' \
+    'wav2mp3 — 🎧 Convert WAV audio to MP3' \
+    'wav2tempo — 🥁 Retime WAV by BPM (outputs WAV or MP3)' \
+    'wavreverse — 🔄 Reverse WAV audio (outputs WAV or MP3)' \
+    'wavpitch — 🎼 Shift WAV pitch / varispeed (outputs WAV or MP3)' \
+    'wavnorm — 🎚️ Normalize WAV loudness or peak (outputs WAV or MP3)' \
+    'wavfade — 📈 Apply fade-in & fade-out envelopes (outputs WAV or MP3)' \
+    'wavtrim — ✂️ Strip leading & trailing silence (outputs WAV or MP3)' \
+    'wavfx — 🎛️ Apply reverb, delay & EQ filters (outputs WAV or MP3)' \
+    'ytdl — 📥 Download web media (yt-dlp + clipboard)' \
     'media-info — 🕵️ Inspect media codec & details' \
     'thumloc — 🖼️ Finder bookmark thumbnails' \
-    'webloc2md — 📑 Bookmark markdown index' \
-    'doctor — 🩺 Dependency check & installer' \
+    'webloc2md — 📑 Bookmark Markdown index' \
+    'doctor — 🩺 Dependency check & auto-installer' \
     'config — ⚙️ User settings & presets' \
-    'launcher-tips — 💡 Multi-file selection & keybindings' \
   )
 
   while true; do
     local choice
     choice=$(echo "$topics" | fzf \
       --prompt='mytools guide > ' \
-      --header='💡 Select a tool or topic to view detailed guide & launch wizard ([Esc] exit)' \
-      --height=85% \
+      --header='📖 Browse guides & short code sheets • [Enter] actions & recipe copier • [Esc] exit' \
+      --height=90% \
       --layout=reverse \
       --border \
       --preview="bash \"$SOURCE_PATH\" preview {1}" \
-      --preview-window=right:60%:wrap || true)
-    
+      --preview-window=right:62%:wrap || true)
+
     [ -n "$choice" ] || exit 0
     local tool="${choice%% *}"
     show_tool_help "$tool"
@@ -717,10 +1204,12 @@ interactive_guide() {
           local next_act
           next_act=$(printf '%s\n' \
             "wizard — 🧙 Launch '$tool -i' interactive wizard right now" \
+            "copy — 📋 Pick & copy a ready-made '$tool' one-liner to clipboard" \
             "back — 🔙 Back to guide browser" \
-            "exit — 👋 Exit guide" | fzf --prompt="$tool > " --height=30% --layout=reverse --border || true)
+            "exit — 👋 Exit guide" | fzf --prompt="$tool > " --height=35% --layout=reverse --border || true)
           case "${next_act%% *}" in
             wizard) exec "$SCRIPT_DIR/$tool" -i ;;
+            copy) copy_recipe_menu "$tool" ;;
             back) continue ;;
             *) exit 0 ;;
           esac
@@ -740,10 +1229,12 @@ interactive_guide() {
         *)
           local next_act
           next_act=$(printf '%s\n' \
+            "copy — 📋 Pick & copy a ready-made command recipe to clipboard" \
             "back — 🔙 Back to guide browser" \
-            "launcher — 🧰 Open 'mytools' interactive launcher" \
-            "exit — 👋 Exit guide" | fzf --prompt="guide > " --height=30% --layout=reverse --border || true)
+            "launcher — 🧰 Open 'mytools' interactive file launcher" \
+            "exit — 👋 Exit guide" | fzf --prompt="$tool > " --height=35% --layout=reverse --border || true)
           case "${next_act%% *}" in
+            copy) copy_recipe_menu "$tool" ;;
             back) continue ;;
             launcher) exec "$SCRIPT_DIR/mytools" ;;
             *) exit 0 ;;
@@ -760,6 +1251,9 @@ case "${1:-}" in
   preview)
     show_tool_help "${2:-overview}"
     ;;
+  cheatsheet|cs|sheets)
+    show_cheatsheet "${2:-all}"
+    ;;
   -i|--interactive|guide)
     interactive_guide
     ;;
@@ -770,6 +1264,6 @@ case "${1:-}" in
     show_overview
     ;;
   *)
-    show_tool_help "$1"
+    show_tool_help "$1" "${2:-}"
     ;;
 esac

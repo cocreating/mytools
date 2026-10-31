@@ -11,6 +11,17 @@ TEMP_CONFIG="$(mktemp -d)/config"
 MYTOOLS_CONFIG_DIR="$(dirname "$TEMP_CONFIG")" MYTOOLS_CONFIG_FILE="$TEMP_CONFIG" bash "$ROOT/scripts/mytools-config" --init >/dev/null
 [ -f "$TEMP_CONFIG" ]
 
+# Test Short Code Sheets (mytools cs / cheatsheet) and guide output
+CS_ALL="$(bash "$ROOT/scripts/mytools" cs)"
+echo "$CS_ALL" | grep -q "SHORT CODE SHEET"
+echo "$CS_ALL" | grep -q "wavnorm -m"
+
+CS_AUDIO="$(bash "$ROOT/scripts/mytools-guide" cheatsheet audio)"
+echo "$CS_AUDIO" | grep -q "AUDIO, WAV DSP & MP3 WORKFLOWS"
+
+GUIDE_WAVNORM="$(bash "$ROOT/scripts/mytools" help wavnorm)"
+echo "$GUIDE_WAVNORM" | grep -q "\-\-mp3"
+
 if command -v ffmpeg >/dev/null 2>&1; then
   # Test locale decimal formatting in wav2tempo
   TEST_WAV="$(mktemp "${TMPDIR:-/tmp}/test_smoke_XXXXXX.wav")"
@@ -39,6 +50,35 @@ if command -v ffmpeg >/dev/null 2>&1; then
 
   FX_OUT="$(bash "$ROOT/scripts/wavfx" --reverb room -n "$TEST_WAV")"
   echo "$FX_OUT" | grep -q "Would create:"
+
+  # Dry-run and execution tests for mp3 output option across wav tools
+  TEMPO_MP3="$(bash "$ROOT/scripts/wav2tempo" --bpm 120 -t 128 -m -n "$TEST_WAV")"
+  echo "$TEMPO_MP3" | grep -q "\.mp3"
+
+  REV_MP3="$(bash "$ROOT/scripts/wavreverse" -m -n "$TEST_WAV")"
+  echo "$REV_MP3" | grep -q "\.mp3"
+
+  PITCH_MP3="$(bash "$ROOT/scripts/wavpitch" -s +2 -m -n "$TEST_WAV")"
+  echo "$PITCH_MP3" | grep -q "\.mp3"
+
+  NORM_MP3="$(bash "$ROOT/scripts/wavnorm" -l -14 -m -n "$TEST_WAV")"
+  echo "$NORM_MP3" | grep -q "\.mp3"
+
+  FADE_MP3="$(bash "$ROOT/scripts/wavfade" -i 0.1 -o 0.2 -m -n "$TEST_WAV")"
+  echo "$FADE_MP3" | grep -q "\.mp3"
+
+  TRIM_MP3="$(bash "$ROOT/scripts/wavtrim" -t -50 -m -n "$TEST_WAV")"
+  echo "$TRIM_MP3" | grep -q "\.mp3"
+
+  FX_MP3="$(bash "$ROOT/scripts/wavfx" --reverb room -m -n "$TEST_WAV")"
+  echo "$FX_MP3" | grep -q "\.mp3"
+
+  # Actual execution test for MP3 creation with bitrate flag
+  bash "$ROOT/scripts/wavpitch" -s +2 -m -b 256 -o "$TEST_OUT_DIR" "$TEST_WAV" >/dev/null
+  [ -f "$TEST_OUT_DIR/$(basename "${TEST_WAV%.*}")-pitch+2semi.mp3" ]
+
+  bash "$ROOT/scripts/wavreverse" --format mp3 -o "$TEST_OUT_DIR" "$TEST_WAV" >/dev/null
+  [ -f "$TEST_OUT_DIR/$(basename "${TEST_WAV%.*}")-reversed.mp3" ]
 
   if command -v cwebp >/dev/null 2>&1; then
     # Dry-run smoke test for img2webp with -width, -q, and -a

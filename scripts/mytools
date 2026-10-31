@@ -9,10 +9,11 @@ Usage:
   mytools <tool> [options]    Convenience wrapper that forwards to <tool>
 
 Built-in commands:
-  help [tool]  Print overview or detailed guide for a tool
-  guide        Interactive help browser & cheat-sheets (with wizard launcher)
-  doctor       Check dependencies
-  config       Show/create the presets configuration
+  help [tool]       Print overview or detailed guide for a tool
+  guide             Interactive help browser, recipe copier & cheat-sheets
+  cs [topic]        Print short code sheets (all | video | audio | image | recipes)
+  doctor            Check & auto-install dependencies
+  config            Show/create the presets configuration
 
 Step-by-Step Custom Command Usage:
   1. Go to your files folder:   cd ~/Pictures/MyPhotos
@@ -30,6 +31,8 @@ SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(c
 case "${1:-}" in
   -h|--help|help|h) exec "$SCRIPT_DIR/mytools-guide" "${2:-}";;
   guide|g) exec "$SCRIPT_DIR/mytools-guide" --interactive;;
+  cheatsheet|cs|sheets) exec "$SCRIPT_DIR/mytools-guide" cheatsheet "${2:-all}";;
+  recipes|pipelines) exec "$SCRIPT_DIR/mytools-guide" cheatsheet recipes;;
   doctor) exec "$SCRIPT_DIR/mytools-doctor" "${@:2}";;
   config) exec "$SCRIPT_DIR/mytools-config" "${@:2}";;
   img2web)
@@ -75,17 +78,18 @@ OPTION=$(printf '%s\n' \
   'videoWithoutAudio — 🔇 Remove video audio (optional preserve tracks)' \
   'vid2audio — 🔊 Extract video audio to WAV / MP3' \
   'wav2mp3 — 🎧 Convert WAV audio to MP3' \
-  'wav2tempo — 🥁 Retime WAV by BPM (aubio)' \
-  'wavreverse — 🔄 Reverse WAV audio sample-accurately' \
-  'wavpitch — 🎼 Shift WAV pitch by semitones / varispeed' \
-  'wavnorm — 🎚️ Normalize WAV loudness (-14 LUFS / Peak)' \
-  'wavfade — 📈 Apply smooth fade-in & fade-out envelopes' \
-  'wavtrim — ✂️ Strip leading & trailing WAV silence' \
-  'wavfx — 🎛️ WAV audio DSP effects (reverb, delay, EQ)' \
+  'wav2tempo — 🥁 Retime WAV by BPM (outputs WAV or MP3)' \
+  'wavreverse — 🔄 Reverse WAV audio (outputs WAV or MP3)' \
+  'wavpitch — 🎼 Shift WAV pitch / varispeed (outputs WAV or MP3)' \
+  'wavnorm — 🎚️ Normalize WAV loudness (outputs WAV or MP3)' \
+  'wavfade — 📈 Apply smooth fade envelopes (outputs WAV or MP3)' \
+  'wavtrim — ✂️ Strip leading & trailing silence (outputs WAV or MP3)' \
+  'wavfx — 🎛️ WAV audio DSP effects (outputs WAV or MP3)' \
   'media-info — 🕵️ Inspect media file codecs & metadata' \
   'thumloc — 🖼️ Finder bookmark thumbnails' \
   'webloc2md — 📑 Bookmark Markdown index' \
-  'guide — 📖 Interactive guide & cheat-sheets' \
+  'cheatsheet — ⚡ Short Code Sheets & One-Liner Recipes' \
+  'guide — 📖 Interactive guide, recipe copier & cheat-sheets' \
   'doctor — 🩺 Dependency health check & auto-installer' \
   'config — ⚙️ User presets & configuration' | fzf \
   --prompt='mytools > ' \
@@ -98,6 +102,7 @@ OPTION=$(printf '%s\n' \
 [ -n "$OPTION" ] || exit 0
 TOOL="${OPTION%% *}"
 case "$TOOL" in
+  cheatsheet) exec "$SCRIPT_DIR/mytools-guide" --interactive;;
   guide) exec "$SCRIPT_DIR/mytools-guide" --interactive;;
   doctor) exec "$SCRIPT_DIR/mytools-doctor";;
   config) exec "$SCRIPT_DIR/mytools-config";;
@@ -138,6 +143,20 @@ FILES=$(printf '%s\n' "$CAND_FILES" | fzf -m \
 [ -n "$FILES" ] || { echo 'Canceled.'; exit 0; }
 FILE_ARRAY=(); while IFS= read -r file; do [ -n "$file" ] && FILE_ARRAY+=("$file"); done <<< "$FILES"
 
+AUDIO_FMT_FLAGS=()
+case "$TOOL" in
+  wav2tempo|wavreverse|wavpitch|wavnorm|wavfade|wavtrim|wavfx)
+    FMT_CHOICE=$(printf '%s\n' \
+      'wav — 🎵 Lossless 16-bit PCM WAV (default)' \
+      'mp3 — 🎧 MP3 192kbps (-m)' \
+      'mp3-320 — 💎 MP3 320kbps (-m -b 320)' | fzf --prompt="${TOOL} output format > " --height=30% --layout=reverse --border || true)
+    case "${FMT_CHOICE%% *}" in
+      mp3) AUDIO_FMT_FLAGS=(-m) ;;
+      mp3-320) AUDIO_FMT_FLAGS=(-m -b 320) ;;
+    esac
+    ;;
+esac
+
 case "$TOOL" in
   vidoptim)
     P_CHOICE=$(printf '%s\n' \
@@ -154,9 +173,9 @@ case "$TOOL" in
       'delay-250 — 🔁 250ms slapback echo delay' \
       'lofi-800 — 📻 Warm 800Hz low-pass filter' | fzf --prompt='wavfx preset > ' --height=40% --layout=reverse --border || true)
     case "${FX_CHOICE%% *}" in
-      room|hall|space) exec "$SCRIPT_DIR/wavfx" --reverb "${FX_CHOICE%% *}" "${FILE_ARRAY[@]}" ;;
-      delay-250) exec "$SCRIPT_DIR/wavfx" --delay 250 "${FILE_ARRAY[@]}" ;;
-      lofi-800) exec "$SCRIPT_DIR/wavfx" --lowpass 800 "${FILE_ARRAY[@]}" ;;
+      room|hall|space) exec "$SCRIPT_DIR/wavfx" "${AUDIO_FMT_FLAGS[@]}" --reverb "${FX_CHOICE%% *}" "${FILE_ARRAY[@]}" ;;
+      delay-250) exec "$SCRIPT_DIR/wavfx" "${AUDIO_FMT_FLAGS[@]}" --delay 250 "${FILE_ARRAY[@]}" ;;
+      lofi-800) exec "$SCRIPT_DIR/wavfx" "${AUDIO_FMT_FLAGS[@]}" --lowpass 800 "${FILE_ARRAY[@]}" ;;
     esac
     ;;
   wavpitch)
@@ -167,8 +186,8 @@ case "$TOOL" in
       '-5 — ⬇️ Down 5 semitones (deep vocal)' \
       'tape — 📼 -4 semitones Varispeed (slow tape drop)' | fzf --prompt='wavpitch shift > ' --height=40% --layout=reverse --border || true)
     case "${SEMI_CHOICE%% *}" in
-      tape) exec "$SCRIPT_DIR/wavpitch" --varispeed -s -4 "${FILE_ARRAY[@]}" ;;
-      +2|+5|-2|-5) exec "$SCRIPT_DIR/wavpitch" -s "${SEMI_CHOICE%% *}" "${FILE_ARRAY[@]}" ;;
+      tape) exec "$SCRIPT_DIR/wavpitch" "${AUDIO_FMT_FLAGS[@]}" --varispeed -s -4 "${FILE_ARRAY[@]}" ;;
+      +2|+5|-2|-5) exec "$SCRIPT_DIR/wavpitch" "${AUDIO_FMT_FLAGS[@]}" -s "${SEMI_CHOICE%% *}" "${FILE_ARRAY[@]}" ;;
     esac
     ;;
   wavfade)
@@ -177,11 +196,11 @@ case "$TOOL" in
       'smooth — 🌊 0.5s in / 1.0s out (musical pad envelope)' \
       'long — 🌅 1.5s in / 2.0s out (cinematic swell)' | fzf --prompt='wavfade envelope > ' --height=35% --layout=reverse --border || true)
     case "${FADE_CHOICE%% *}" in
-      smooth) exec "$SCRIPT_DIR/wavfade" -i 0.5 -o 1.0 "${FILE_ARRAY[@]}" ;;
-      long) exec "$SCRIPT_DIR/wavfade" -i 1.5 -o 2.0 "${FILE_ARRAY[@]}" ;;
-      *) exec "$SCRIPT_DIR/wavfade" -i 0.1 -o 0.2 "${FILE_ARRAY[@]}" ;;
+      smooth) exec "$SCRIPT_DIR/wavfade" "${AUDIO_FMT_FLAGS[@]}" -i 0.5 -o 1.0 "${FILE_ARRAY[@]}" ;;
+      long) exec "$SCRIPT_DIR/wavfade" "${AUDIO_FMT_FLAGS[@]}" -i 1.5 -o 2.0 "${FILE_ARRAY[@]}" ;;
+      *) exec "$SCRIPT_DIR/wavfade" "${AUDIO_FMT_FLAGS[@]}" -i 0.1 -o 0.2 "${FILE_ARRAY[@]}" ;;
     esac
     ;;
 esac
 
-exec "$SCRIPT_DIR/$TOOL" "${FILE_ARRAY[@]}"
+exec "$SCRIPT_DIR/$TOOL" "${AUDIO_FMT_FLAGS[@]}" "${FILE_ARRAY[@]}"

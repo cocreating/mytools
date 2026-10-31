@@ -63,6 +63,7 @@
         <ul class="nav-links">
           <li><a href="#overview" class="nav-link">Manifesto</a></li>
           <li><a href="#studio" class="nav-link">Studio</a></li>
+          <li><a href="#cheatsheets" class="nav-link">Code Sheets</a></li>
           <li><a href="#visual-labs" class="nav-link">Labs</a></li>
           <li><a href="#catalog" class="nav-link">Catalog</a></li>
           <li><a href="#install" class="nav-link">Install</a></li>
@@ -118,12 +119,15 @@
         </div>
 
         <div class="hero-cta-group">
-          <a href="#catalog" class="btn-primary">
-            <span>Browse 27 Tools</span>
+          <a href="#studio" class="btn-primary">
+            <span>Interactive Command Studio</span>
             <span>→</span>
           </a>
-          <a href="#studio" class="btn-secondary">
-            <span>Interactive Command Studio</span>
+          <a href="#cheatsheets" class="btn-secondary">
+            <span>Short Code Sheets</span>
+          </a>
+          <a href="#catalog" class="btn-secondary">
+            <span>Browse 27 Tools</span>
           </a>
         </div>
       </div>
@@ -150,17 +154,18 @@
 
         <div class="terminal-prompt-line" style="padding: 0 1.25rem 1rem;">
           <span class="prompt-symbol">❯</span>
-          <input type="text" class="terminal-input" id="terminalInput" placeholder="Try typing: mytools, doctor, vidglitch, or help..." autocomplete="off" spellcheck="false">
+          <input type="text" class="terminal-input" id="terminalInput" placeholder="Try typing: mytools, cs, doctor, vidglitch, wavnorm -m, or help..." autocomplete="off" spellcheck="false">
         </div>
 
         <div class="terminal-quick-chips">
           <span>Run sample:</span>
           <button class="chip-btn" data-cmd="mytools">mytools</button>
+          <button class="chip-btn" data-cmd="mytools cs">code-sheets</button>
           <button class="chip-btn" data-cmd="mytools doctor">doctor</button>
           <button class="chip-btn" data-cmd="videoeffects --preset cinema --letterbox 2.35 clip.mp4">videoeffects</button>
           <button class="chip-btn" data-cmd="vidglitch --preset cyberpunk --organic-burst demo.mp4">vidglitch</button>
           <button class="chip-btn" data-cmd="vidcuts --mode freeze --film-burn clip.mp4">vidcuts</button>
-          <button class="chip-btn" data-cmd="videorandfram -p jitter --rgb-split 8 clip.mp4">videorandfram</button>
+          <button class="chip-btn" data-cmd="wavnorm -m -l -16 podcast.wav">wavnorm -m</button>
           <button class="chip-btn" data-cmd="vidglue -t fade part1.mp4 part2.mp4">vidglue</button>
         </div>
       </div>
@@ -243,13 +248,18 @@
             <div class="studio-cmd-text" id="studioCmdOutput">
               <span class="prompt-symbol">❯</span> img2webp -q 85 --width 1200 photo.jpg
             </div>
-            <button class="studio-copy-btn" id="studioCopyBtn" title="Copy generated command">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-              COPY COMMAND
-            </button>
+            <div class="studio-action-btns">
+              <button class="studio-sim-btn" id="studioSimBtn" title="Test-run this command in the Hero Terminal Simulator">
+                ▶ RUN IN SIMULATOR
+              </button>
+              <button class="studio-copy-btn" id="studioCopyBtn" title="Copy generated command">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                COPY COMMAND
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -299,17 +309,81 @@
           <div class="step-card">
             <div>
               <div class="step-number">STEP 03</div>
-              <div class="step-title">Or Use Wizard Mode (<code>-i</code>)</div>
+              <div class="step-title">Or Use Wizard Mode (<code>-i</code>) &amp; Code Sheets</div>
               <p class="step-desc">
-                Don't want to memorize flags? Run <code>img2webp -i</code>, <code>vidglue -i</code>, <code>vidglitch -i</code>, <code>vidcuts -i</code>, <code>videoeffects -i</code>, or <code>videorandfram -i</code>. It previews file metadata, walks you through every setting, prints the exact <strong>Equivalent command</strong>, and lets you copy it to clipboard!
+                Don't want to memorize flags? Run <code>&lt;tool&gt; -i</code> for a step-by-step wizard that prints the exact <strong>Equivalent command</strong>, or run <code>mytools cs</code> for instant terminal code sheets!
               </p>
             </div>
             <div class="code-box">
-              <div class="code-content"><span class="code-prompt">❯</span>videoeffects -i</div>
-              <button class="copy-mini-btn" data-copy="videoeffects -i">COPY</button>
+              <div class="code-content"><span class="code-prompt">❯</span>mytools cs</div>
+              <button class="copy-mini-btn" data-copy="mytools cs">COPY</button>
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Short Code Sheets & One-Liner Recipes Hub -->
+    <section class="cheatsheet-section" id="cheatsheets">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="8" y1="13" x2="16" y2="13"/>
+              <line x1="8" y1="17" x2="16" y2="17"/>
+            </svg>
+            Short Code Sheets &amp; One-Liner Recipes
+          </h2>
+          <p class="section-desc">
+            Copy-ready terminal one-liners and multi-step pipelines. Filter by task, click <strong>COPY</strong> to grab any recipe, or click <strong>STUDIO</strong> to customize its parameters visually. (In Terminal, run <code>mytools cs</code> anytime!)
+          </p>
+        </div>
+        <button class="btn-secondary" id="copyAllRecipesBtn" title="Copy all currently visible one-liners">
+          <span>📋 Copy Visible Sheet</span>
+        </button>
+      </div>
+
+      <!-- Universal Flags Strip -->
+      <div class="universal-flags-strip" aria-label="Universal CLI Flags">
+        <span class="uf-badge">UNIVERSAL FLAGS:</span>
+        <span class="uf-item"><code>-i</code> Guided Wizard</span>
+        <span class="uf-item"><code>-n</code> Dry-Run Preview</span>
+        <span class="uf-item"><code>-f</code> Force Overwrite</span>
+        <span class="uf-item"><code>-o &lt;dir&gt;</code> Output Folder</span>
+        <span class="uf-item"><code>-m / --mp3</code> Direct MP3 Output (all <code>wav*</code> tools)</span>
+        <span class="uf-item"><code>-b &lt;kbps&gt;</code> MP3 Bitrate (192 / 256 / 320)</span>
+        <span class="uf-item"><code>-a</code> All Images in Folder (<code>img2webp</code>)</span>
+      </div>
+
+      <!-- Filter Toolbar for Code Sheets -->
+      <div class="filter-toolbar" style="margin-bottom: 1.25rem;">
+        <div class="search-box">
+          <input type="text" class="search-input" id="cheatsheetSearchInput" placeholder="Search recipes (e.g. mp3, slowmo, crossfade, silence, VHS, webp)..." autocomplete="off">
+          <button class="search-clear-btn" id="cheatsheetSearchClearBtn" aria-label="Clear recipe search" title="Clear search">✕</button>
+        </div>
+        <div class="category-tabs" id="cheatsheetCategoryTabs">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Accessible Responsive Data Table with Sticky Headers & Container Query Stacking -->
+      <div tabindex="0" role="region" aria-labelledby="cheatsheet-table-caption" class="table-wrapper cheatsheet-table-wrapper">
+        <table class="cheatsheet-table">
+          <caption id="cheatsheet-table-caption" class="sr-only">mytools Short Code Sheets and One-Liner Terminal Recipes</caption>
+          <thead>
+            <tr>
+              <th scope="col">Tool</th>
+              <th scope="col">Task / Recipe Goal</th>
+              <th scope="col">Short Code One-Liner</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="cheatsheetTableBody">
+            <!-- Injected via JS -->
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -603,6 +677,7 @@
       <div class="footer-links">
         <a href="#overview" class="footer-link">Top</a>
         <a href="#studio" class="footer-link">Studio</a>
+        <a href="#cheatsheets" class="footer-link">Code Sheets</a>
         <a href="#visual-labs" class="footer-link">Labs</a>
         <a href="#catalog" class="footer-link">All 27 Tools</a>
         <a href="https://github.com/cocreating/mytools" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub Repository</a>

@@ -3,13 +3,17 @@ set -euo pipefail
 SOURCE_PATH="${BASH_SOURCE[0]}"; while [ -h "$SOURCE_PATH" ]; do SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; SOURCE_LINK="$(readlink "$SOURCE_PATH")"; case "$SOURCE_LINK" in /*) SOURCE_PATH="$SOURCE_LINK";; *) SOURCE_PATH="$SOURCE_DIR/$SOURCE_LINK";; esac; done; SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"; source "$SCRIPT_DIR/lib/common.sh"
 
 SOURCE_BPM=""; TARGET_BPM=""; OUTPUT_DIR=""; FORCE=0; DRY_RUN=0; INPUT_FILE=""
+FORMAT="wav"; BITRATE=192; FORMAT_SET=0
 usage() { cat <<'EOF'
 Usage: wav2tempo [options] <file.wav>
 
-Detect a WAV file’s BPM, then create a pitch-preserving retimed WAV.
+Detect a WAV file’s BPM, then create a pitch-preserving retimed WAV or MP3.
 
   --bpm <number>          Skip BPM detection; set the source BPM
   -t, --target-bpm <n>    Target BPM; prompts when omitted
+  -m, --mp3               Output as MP3 instead of WAV
+  --format <wav|mp3>      Output format (default: wav)
+  -b, --bitrate <kbps>    MP3 bitrate in kbps (default: 192)
   -o, --output-dir <dir>  Write output to this directory
   -f, --force             Overwrite an existing output
   -n, --dry-run           Show the planned output only
@@ -18,12 +22,16 @@ Detect a WAV file’s BPM, then create a pitch-preserving retimed WAV.
 Examples:
   wav2tempo loop.wav
   wav2tempo -t 128 loop.wav
+  wav2tempo -m -t 128 loop.wav
   wav2tempo --bpm 95 --target-bpm 120 -o ./retimed loop.wav
 EOF
 }
 while [ "$#" -gt 0 ]; do case "$1" in
   --bpm) SOURCE_BPM="${2:?--bpm requires a value}"; shift 2;;
   -t|--target-bpm) TARGET_BPM="${2:?$1 requires a value}"; shift 2;;
+  -m|--mp3) FORMAT="mp3"; FORMAT_SET=1; shift;;
+  --format) FORMAT="${2:?$1 requires a value}"; FORMAT_SET=1; shift 2;;
+  -b|--bitrate) BITRATE="${2:?$1 requires a value}"; [ "$FORMAT_SET" -eq 0 ] && FORMAT="mp3"; shift 2;;
   -o|--output-dir) OUTPUT_DIR="${2:?$1 requires a value}"; shift 2;;
   -f|--force) FORCE=1; shift;; -n|--dry-run) DRY_RUN=1; shift;;
   -h|--help) usage; exit 0;; -*) echo "Unknown option: $1" >&2; usage >&2; exit 1;;
@@ -31,6 +39,8 @@ while [ "$#" -gt 0 ]; do case "$1" in
 esac; done
 [ -n "$INPUT_FILE" ] && [ -f "$INPUT_FILE" ] || { echo 'Provide an existing WAV file.' >&2; usage >&2; exit 1; }
 [[ "${INPUT_FILE##*.}" =~ ^([Ww][Aa][Vv])$ ]] || { echo 'Input must be a .wav file.' >&2; exit 1; }
+[[ "$FORMAT" =~ ^(wav|mp3)$ ]] || { echo "Format must be wav or mp3." >&2; exit 1; }
+[[ "$BITRATE" =~ ^[0-9]+$ ]] || { echo "Bitrate must be numeric." >&2; exit 1; }
 require_commands ffmpeg
 is_bpm() { awk -v value="$1" 'BEGIN { exit !(value > 0 && value < 1000) }'; }
 if [ -z "$SOURCE_BPM" ]; then
@@ -54,10 +64,14 @@ while awk -v value="$REMAINING" 'BEGIN { exit !(value > 2) }'; do FILTERS="${FIL
 while awk -v value="$REMAINING" 'BEGIN { exit !(value < 0.5) }'; do FILTERS="${FILTERS:+$FILTERS,}atempo=0.5"; REMAINING="$(awk -v value="$REMAINING" 'BEGIN { printf "%.8f", value / 0.5 }')"; done
 FILTERS="${FILTERS:+$FILTERS,}atempo=$REMAINING"
 [ -z "$OUTPUT_DIR" ] || OUTPUT_DIR="$(ensure_output_dir "$OUTPUT_DIR")"
-OUTPUT_FILE="${OUTPUT_DIR:-$(dirname "$INPUT_FILE")}/$(basename "${INPUT_FILE%.*}")-${SOURCE_BPM}to${TARGET_BPM}bpm.wav"
+OUTPUT_FILE="${OUTPUT_DIR:-$(dirname "$INPUT_FILE")}/$(basename "${INPUT_FILE%.*}")-${SOURCE_BPM}to${TARGET_BPM}bpm.$FORMAT"
 if [ "$DRY_RUN" -eq 1 ]; then echo "📝 Would create: $OUTPUT_FILE (tempo factor: $SPEED)"; exit 0; fi
 output_is_safe "$OUTPUT_FILE" "$FORCE" || exit 0
 echo "▶️  Retiming $SOURCE_BPM BPM → $TARGET_BPM BPM (factor: $SPEED)"
-ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -filter:a "$FILTERS" -c:a pcm_s16le "$OUTPUT_FILE"
+if [ "$FORMAT" = "mp3" ]; then
+  ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -filter:a "$FILTERS" -c:a libmp3lame -b:a "${BITRATE}k" "$OUTPUT_FILE"
+else
+  ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" -filter:a "$FILTERS" -c:a pcm_s16le "$OUTPUT_FILE"
+fi
 echo "✅ Created: $OUTPUT_FILE"
 notify "Retimed to ${TARGET_BPM} BPM." 'wav2tempo'

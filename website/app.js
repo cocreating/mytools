@@ -324,6 +324,7 @@ const TOOLS_DATA = [
     flags: [
       { flag: "--target-bpm <BPM>", desc: "Desired target tempo in BPM" },
       { flag: "--bpm <sourceBPM>", desc: "Manually specify source BPM if aubio detection is ambiguous" },
+      { flag: "-m, --mp3", desc: "Output as MP3 instead of WAV (supports -b <kbps>)" },
       { flag: "-o, --output-dir <d>", desc: "Output folder" }
     ],
     examples: [
@@ -340,6 +341,7 @@ const TOOLS_DATA = [
     signature: "wavreverse [options] <wav...>",
     summary: "Creates a sample-accurate backwards reverse of each WAV file.",
     flags: [
+      { flag: "-m, --mp3", desc: "Output as MP3 instead of WAV (supports -b <kbps>)" },
       { flag: "-o, --output-dir <d>", desc: "Output directory" },
       { flag: "-n, --dry-run", desc: "Preview output paths" }
     ],
@@ -358,6 +360,7 @@ const TOOLS_DATA = [
     flags: [
       { flag: "-s, --semitones <N>", desc: "Semitone offset: positive (+2) or negative (-3)" },
       { flag: "--varispeed", desc: "Link pitch and playback speed (tape/vinyl speed drop effect)" },
+      { flag: "-m, --mp3", desc: "Output as MP3 instead of WAV (supports -b <kbps>)" },
       { flag: "-o, --output-dir <d>", desc: "Output directory" }
     ],
     examples: [
@@ -376,6 +379,7 @@ const TOOLS_DATA = [
     flags: [
       { flag: "--lufs <n>", desc: "Integrated loudness target in LUFS (default: -14)" },
       { flag: "--peak <dB>", desc: "Peak volume normalization in dBFS (e.g. 0 or -1)" },
+      { flag: "-m, --mp3", desc: "Output as MP3 instead of WAV (supports -b <kbps>)" },
       { flag: "-o, --output-dir <d>", desc: "Output directory" }
     ],
     examples: [
@@ -394,7 +398,8 @@ const TOOLS_DATA = [
     flags: [
       { flag: "-i, --in <sec>", desc: "Fade-in duration in seconds (e.g. 0.1 for 100ms)" },
       { flag: "-o, --out <sec>", desc: "Fade-out duration in seconds" },
-      { flag: "--curve <type>", desc: "Fade curve: qsin (quarter sine) | tri | esin | log | hsin" }
+      { flag: "--curve <type>", desc: "Fade curve: qsin (quarter sine) | tri | esin | log | hsin" },
+      { flag: "-m, --mp3", desc: "Output as MP3 instead of WAV (supports -b <kbps>)" }
     ],
     examples: [
       { cmd: "wavfade -i 0.1 -o 0.2 sample.wav", note: "100ms fade-in, 200ms fade-out" },
@@ -412,7 +417,8 @@ const TOOLS_DATA = [
     flags: [
       { flag: "--threshold <dB>", desc: "Silence threshold in decibels (default: -50dB)" },
       { flag: "--start-only", desc: "Strip leading silence only, keep trailing tail" },
-      { flag: "--end-only", desc: "Strip trailing silence only" }
+      { flag: "--end-only", desc: "Strip trailing silence only" },
+      { flag: "-m, --mp3", desc: "Output as MP3 instead of WAV (supports -b <kbps>)" }
     ],
     examples: [
       { cmd: "wavtrim vocal-take.wav", note: "Strip dead air before and after recording" },
@@ -431,7 +437,8 @@ const TOOLS_DATA = [
       { flag: "--reverb <room|hall|space>", desc: "Spatial reverberation preset" },
       { flag: "--delay <ms>", desc: "Echo feedback delay in milliseconds (e.g. 250)" },
       { flag: "--lowpass <Hz>", desc: "Low-pass filter cutoff frequency (e.g. 800)" },
-      { flag: "--highpass <Hz>", desc: "High-pass filter cutoff frequency (e.g. 150)" }
+      { flag: "--highpass <Hz>", desc: "High-pass filter cutoff frequency (e.g. 150)" },
+      { flag: "-m, --mp3", desc: "Output as MP3 instead of WAV (supports -b <kbps>)" }
     ],
     examples: [
       { cmd: "wavfx --reverb room loop.wav", note: "Warm studio room ambiance" },
@@ -623,8 +630,9 @@ class TerminalSimulator {
     if (cmdText === "help") {
       this.appendLine(`Available commands:
   mytools         - Interactive fzf media launcher with live preview
+  mytools cs      - Short Code Sheets & one-liner recipes (all|video|audio|image|recipes)
+  mytools guide   - Interactive help browser, recipe copier & wizard launcher
   mytools doctor  - Dependency diagnostic health check
-  mytools guide   - Interactive help browser & wizard launcher
   mytools config  - View/edit presets (~/.config/mytools/config)
   img2webp        - Batch image to WebP converter (supports -i wizard)
   vidglue         - Glue, crossfade (-t), collage (--layout) or --bounce (alias: videoglue)
@@ -632,16 +640,41 @@ class TerminalSimulator {
   vidcuts         - Frame, BPM beat, freeze & silence jump-cut generator (alias: videocuts)
   videoeffects    - Cinematic color grading, speed, optics & mirrors (alias: vidfx)
   videorandfram   - Randomize frame order & temporal glitch (alias: vidrandfram)
-  wav2tempo       - Aubio BPM retiming
-  wavnorm         - EBU R128 LUFS volume normalizer
-  wavpitch        - Pitch shifter & varispeed tape drop
-  wavfade         - De-popping fade-in/out envelopes
-  wavtrim         - Automatic silence cropper
-  wavfx           - DSP reverb, delay, EQ filters
+  wav2tempo       - Aubio BPM retiming (supports -m / --mp3 output)
+  wavreverse      - Reverse audio playback (supports -m / --mp3 output)
+  wavnorm         - EBU R128 LUFS volume normalizer (supports -m / --mp3 output)
+  wavpitch        - Pitch shifter & varispeed tape drop (supports -m / --mp3 output)
+  wavfade         - De-popping fade-in/out envelopes (supports -m / --mp3 output)
+  wavtrim         - Automatic silence cropper (supports -m / --mp3 output)
+  wavfx           - DSP reverb, delay, EQ filters (supports -m / --mp3 output)
   ytdl            - Video/audio clipboard grabber
   media-info      - Quick FFprobe inspector
   thumloc         - Finder .webloc thumbnailer
   theme [dark|light|amber] - Switch terminal theme`, "color: var(--text-code-on-terminal);");
+      return;
+    }
+
+    if (cmdText.startsWith("mytools cs") || cmdText.startsWith("mytools cheatsheet") || cmdText === "cheatsheet" || cmdText === "cs") {
+      this.appendLine(`⚡ MYTOOLS — SHORT CODE SHEETS & ONE-LINER RECIPES
+────────────────────────────────────────────────────────────────────────
+Universal Flags:  -i (Wizard)  -n (Dry-Run)  -f (Force)  -d DIR (Out Dir)
+WAV/MP3 Flags:    -m, --mp3    --format mp3  -b 320 (Bitrate kbps)
+────────────────────────────────────────────────────────────────────────
+🎬 VIDEO
+  videoeffects --preset cinema --letterbox 2.35 clip.mp4
+  vidglitch --preset cyberpunk --organic-burst --audio-glitch clip.mp4
+  vidcuts --mode silence clip.mp4
+  vidglue -t fade -d 0.8 part1.mp4 part2.mp4
+🎵 AUDIO (WAV & MP3)
+  wavnorm -m -l -16 podcast.wav             # Podcast LUFS -> MP3
+  wav2tempo -t 128 -m -b 320 drumloop.wav   # BPM sync -> 320k MP3
+  wavtrim -m --threshold -45dB voice.wav    # Trim silence -> MP3
+  wavfx --reverb hall --delay 300 -m vox.wav # Hall reverb -> MP3
+🖼️ IMAGE & WEB
+  img2webp -a -q 82 --width 1600            # Folder to WebP
+  ytdl --format mp3                         # Clipboard URL -> MP3
+────────────────────────────────────────────────────────────────────────
+💡 Scroll down to the Short Code Sheets section for 1-click copy!`, "color: var(--color-terminal-green);");
       return;
     }
 
@@ -772,23 +805,34 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
       return;
     }
 
+    const isMp3Out = /(?:^|\s)(-m|--mp3|--format\s+mp3)(?:\s|$)/.test(effectiveCmd);
+    const outExt = isMp3Out ? "mp3" : "wav";
+
     if (effectiveCmd.startsWith("wav2tempo")) {
       this.appendLine(`🥁 [wav2tempo] Running aubio tempo detector...
   - Estimated source tempo: 112.4 BPM
   - Target requested tempo: 128.0 BPM
   - Speed multiplier: 1.1387x
   - Applying pitch-preserving tempo filter (rubberband)...
-  ✅ Output saved: drum-loop-128bpm.wav
+  ✅ Output saved: drum-loop-128bpm.${outExt}
   🎶 Timing synchronized to grid!`, "color: var(--color-bauhaus-yellow);");
+      return;
+    }
+
+    if (effectiveCmd.startsWith("wavreverse")) {
+      this.appendLine(`⏪ [wavreverse] Reversing audio waveform...
+  - Filter: areverse
+  ✅ Output saved: sample-reversed.${outExt}
+  🔄 Reverse playback exported!`, "color: var(--color-terminal-cyan);");
       return;
     }
 
     if (effectiveCmd.startsWith("wavnorm")) {
       this.appendLine(`🎚️ [wavnorm] Analyzing integrated loudness...
   - Measured: -21.4 LUFS (LRA 8.2 LU)
-  - Target: -14.0 LUFS (EBU R128)
+  - Target: ${effectiveCmd.includes("-16") ? "-16.0" : "-14.0"} LUFS (EBU R128)
   - Applied gain: +7.4 dB
-  ✅ Output saved: track-norm.wav
+  ✅ Output saved: track-norm.${outExt}
   🔊 Volume balanced for streaming!`, "color: var(--color-terminal-green);");
       return;
     }
@@ -797,7 +841,7 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
       this.appendLine(`🎼 [wavpitch] Applying semitone shift...
   - Shift: +2 semitones
   - Mode: Pitch-shift (tempo preserved)
-  ✅ Output saved: vocal-pitch+2.wav`, "color: var(--color-terminal-cyan);");
+  ✅ Output saved: vocal-pitch+2.${outExt}`, "color: var(--color-terminal-cyan);");
       return;
     }
 
@@ -805,7 +849,7 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
       this.appendLine(`📈 [wavfade] Applying fade envelopes...
   - Fade-in: 0.10s (qsin curve)
   - Fade-out: 0.20s (qsin curve)
-  ✅ Output saved: sample-faded.wav
+  ✅ Output saved: sample-faded.${outExt}
   🔇 Pops and clicks eradicated!`, "color: var(--color-terminal-green);");
       return;
     }
@@ -815,7 +859,14 @@ Ready for production media workflows! 🚀`, "color: var(--color-terminal-green)
   - Threshold: -50dB
   - Trimmed leading: 0.45s
   - Trimmed trailing: 1.12s
-  ✅ Output saved: vocal-trimmed.wav`, "color: var(--color-terminal-green);");
+  ✅ Output saved: vocal-trimmed.${outExt}`, "color: var(--color-terminal-green);");
+      return;
+    }
+
+    if (effectiveCmd.startsWith("wavfx")) {
+      this.appendLine(`🎛️ [wavfx] Applying multi-effect DSP filter chain...
+  - Reverb: hall + Delay: 250ms
+  ✅ Output saved: loop-fx.${outExt}`, "color: var(--color-terminal-magenta);");
       return;
     }
 
@@ -1497,10 +1548,27 @@ class CommandStudio {
         copyToClipboard(cmd, "Command copied to clipboard!");
       });
     }
+
+    const simBtn = document.getElementById("studioSimBtn");
+    if (simBtn) {
+      simBtn.addEventListener("click", () => {
+        const cmd = this.outputBox.textContent.replace("❯ ", "").trim();
+        if (window.terminalSim) {
+          window.terminalSim.execute(cmd);
+          document.getElementById("overview")?.scrollIntoView({ behavior: "smooth" });
+          showToast(`Simulated: ${cmd}`);
+        }
+      });
+    }
   }
 
   renderToolSelector() {
-    const featured = ["img2webp", "vidglue", "vidglitch", "vidcuts", "videoeffects", "videorandfram", "vidoptim", "wav2tempo", "wavpitch", "wavnorm", "wavfade", "wavtrim", "wavfx", "ytdl"];
+    const featured = [
+      "img2webp", "vidglue", "vidglitch", "vidcuts", "videoeffects", "videorandfram",
+      "vidoptim", "vid2webm", "vid2gif", "vid2audio", "videoWithoutAudio",
+      "wav2tempo", "wavreverse", "wavpitch", "wavnorm", "wavfade", "wavtrim", "wavfx", "wav2mp3",
+      "ytdl", "media-info"
+    ];
     this.selectContainer.innerHTML = "";
 
     featured.forEach(id => {
@@ -1598,7 +1666,41 @@ class CommandStudio {
     }
   }
 
+  renderWavOutputControls() {
+    return `
+      <div class="control-group">
+        <label class="control-label">Output Format (-m / -b):</label>
+        <select class="control-select" id="c_wav_outfmt">
+          <option value="wav">WAV (Lossless 16-bit PCM)</option>
+          <option value="mp3">MP3 192kbps (-m)</option>
+          <option value="mp3_320">MP3 320kbps (-m -b 320)</option>
+          <option value="mp3_128">MP3 128kbps (-m -b 128)</option>
+        </select>
+      </div>
+    `;
+  }
+
+  appendWavOutputFlags(cmd) {
+    const outFmt = document.getElementById("c_wav_outfmt")?.value || "wav";
+    if (outFmt === "mp3") cmd += " -m";
+    else if (outFmt === "mp3_320") cmd += " -m -b 320";
+    else if (outFmt === "mp3_128") cmd += " -m -b 128";
+    return cmd;
+  }
+
   renderControls(tool) {
+    const quickRecipesHtml = (tool.examples && tool.examples.length > 0) ? `
+      <div class="studio-quick-recipes">
+        <span class="studio-quick-recipes-label">⚡ Quick Recipes:</span>
+        ${tool.examples.map(ex => `
+          <button type="button" class="studio-recipe-pill" data-recipe-cmd="${ex.cmd.replace(/"/g, '&quot;')}" title="${ex.cmd}">
+            <span>${ex.note}</span>
+            <code>${ex.cmd.split(" ").slice(0, 3).join(" ")}…</code>
+          </button>
+        `).join("")}
+      </div>
+    ` : "";
+
     let html = `
       <div class="studio-tool-header">
         <div class="studio-tool-title">
@@ -1609,6 +1711,8 @@ class CommandStudio {
         </div>
         <div class="studio-tool-summary">${tool.summary}</div>
       </div>
+
+      ${quickRecipesHtml}
 
       <!-- Live Visual Reference Monitor -->
       <div class="studio-visual-monitor" id="studioVisualMonitor">
@@ -1833,6 +1937,46 @@ class CommandStudio {
           <input type="text" class="control-input" id="c_input" value="clip.mp4">
         </div>
       `;
+    } else if (tool.id === "vidoptim" || tool.id === "vid2webm" || tool.id === "vid2gif") {
+      html += `
+        <div class="control-group">
+          <label class="control-label">CRF Quality (Lower = Better): <span class="val-badge" id="c_crf_val">23</span></label>
+          <input type="range" class="control-input" id="c_crf" min="16" max="36" value="23">
+        </div>
+        <div class="control-group">
+          <label class="control-label">Max Width (px, optional):</label>
+          <input type="number" class="control-input" id="c_width" placeholder="1920">
+        </div>
+        <div class="control-group">
+          <label class="control-label">Video Input:</label>
+          <input type="text" class="control-input" id="c_input" value="clip.mp4">
+        </div>
+        <div class="control-group" style="justify-content: center;">
+          <label class="control-checkbox-label">
+            <input type="checkbox" id="c_all"> All videos in folder (-a)
+          </label>
+        </div>
+      `;
+    } else if (tool.id === "vid2audio") {
+      html += `
+        <div class="control-group">
+          <label class="control-label">Output Audio Format:</label>
+          <select class="control-select" id="c_v2a_fmt">
+            <option value="wav">WAV (Lossless PCM)</option>
+            <option value="mp3">MP3 192kbps (--format mp3)</option>
+            <option value="mp3_320">MP3 320kbps (--format mp3 -b 320)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Video Input:</label>
+          <input type="text" class="control-input" id="c_input" value="interview.mp4">
+        </div>
+        <div class="control-group" style="justify-content: center;">
+          <label class="control-checkbox-label">
+            <input type="checkbox" id="c_all"> All videos in folder (-a)
+          </label>
+        </div>
+      `;
     } else if (tool.id === "wav2tempo") {
       html += `
         <div class="control-group">
@@ -1843,9 +1987,23 @@ class CommandStudio {
           <label class="control-label">Known Source BPM (optional):</label>
           <input type="number" class="control-input" id="c_source_bpm" placeholder="auto-detect">
         </div>
+        ${this.renderWavOutputControls()}
         <div class="control-group">
           <label class="control-label">Input WAV:</label>
           <input type="text" class="control-input" id="c_input" value="drumloop.wav">
+        </div>
+      `;
+    } else if (tool.id === "wavreverse") {
+      html += `
+        ${this.renderWavOutputControls()}
+        <div class="control-group">
+          <label class="control-label">Input WAV:</label>
+          <input type="text" class="control-input" id="c_input" value="cymbal.wav">
+        </div>
+        <div class="control-group" style="justify-content: center;">
+          <label class="control-checkbox-label">
+            <input type="checkbox" id="c_all"> All WAVs in folder (-a)
+          </label>
         </div>
       `;
     } else if (tool.id === "wavpitch") {
@@ -1854,6 +2012,7 @@ class CommandStudio {
           <label class="control-label">Semitones: <span class="val-badge" id="c_semi_val">+2</span></label>
           <input type="range" class="control-input" id="c_semitones" min="-12" max="12" value="2">
         </div>
+        ${this.renderWavOutputControls()}
         <div class="control-group">
           <label class="control-label">Audio File:</label>
           <input type="text" class="control-input" id="c_input" value="vocal.wav">
@@ -1878,6 +2037,7 @@ class CommandStudio {
           <label class="control-label">Target Value:</label>
           <input type="number" class="control-input" id="c_target_val" value="-14">
         </div>
+        ${this.renderWavOutputControls()}
         <div class="control-group">
           <label class="control-label">Input Audio:</label>
           <input type="text" class="control-input" id="c_input" value="podcast.wav">
@@ -1903,6 +2063,7 @@ class CommandStudio {
             <option value="log">Logarithmic (log)</option>
           </select>
         </div>
+        ${this.renderWavOutputControls()}
         <div class="control-group">
           <label class="control-label">Input Audio:</label>
           <input type="text" class="control-input" id="c_input" value="sample.wav">
@@ -1922,6 +2083,7 @@ class CommandStudio {
             <option value="end">End Only (--end-only)</option>
           </select>
         </div>
+        ${this.renderWavOutputControls()}
         <div class="control-group">
           <label class="control-label">Input Audio:</label>
           <input type="text" class="control-input" id="c_input" value="recording.wav">
@@ -1947,9 +2109,30 @@ class CommandStudio {
           <label class="control-label">Lowpass Filter (Hz):</label>
           <input type="number" class="control-input" id="c_lowpass" placeholder="e.g. 800">
         </div>
+        ${this.renderWavOutputControls()}
         <div class="control-group">
           <label class="control-label">Input Audio:</label>
           <input type="text" class="control-input" id="c_input" value="loop.wav">
+        </div>
+      `;
+    } else if (tool.id === "wav2mp3") {
+      html += `
+        <div class="control-group">
+          <label class="control-label">MP3 Bitrate (kbps):</label>
+          <select class="control-select" id="c_w2m_bitrate">
+            <option value="192">192 kbps (Standard)</option>
+            <option value="320" selected>320 kbps (Mastering / Archival)</option>
+            <option value="128">128 kbps (Compact Voice)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Input WAV:</label>
+          <input type="text" class="control-input" id="c_input" value="master.wav">
+        </div>
+        <div class="control-group" style="justify-content: center;">
+          <label class="control-checkbox-label">
+            <input type="checkbox" id="c_all"> All WAVs in folder (-a)
+          </label>
         </div>
       `;
     } else if (tool.id === "ytdl") {
@@ -1987,6 +2170,17 @@ class CommandStudio {
 
     html += `</div>`;
     this.controlsContainer.innerHTML = html;
+
+    // Bind quick recipe pills
+    this.controlsContainer.querySelectorAll(".studio-recipe-pill").forEach(pill => {
+      pill.addEventListener("click", () => {
+        const recipeCmd = pill.dataset.recipeCmd;
+        if (recipeCmd && this.outputBox) {
+          this.outputBox.innerHTML = `<span class="prompt-symbol">❯</span> ${recipeCmd}`;
+          copyToClipboard(recipeCmd, "Preset recipe loaded & copied!");
+        }
+      });
+    });
 
     // Connect visual effect card grids to select dropdowns
     if (tool.id === "videoeffects") this.bindEffectCards("c_fx_preset");
@@ -2182,6 +2376,27 @@ class CommandStudio {
       if (rgb) cmd += " --rgb-split 8";
       if (grain) cmd += " --grain";
       if (inp) cmd += ` ${inp}`;
+    } else if (this.currentTool === "vidoptim" || this.currentTool === "vid2webm" || this.currentTool === "vid2gif") {
+      const crf = document.getElementById("c_crf")?.value || "23";
+      const crfBadge = document.getElementById("c_crf_val");
+      if (crfBadge) crfBadge.textContent = crf;
+      const w = document.getElementById("c_width")?.value;
+      const all = document.getElementById("c_all")?.checked;
+      const inp = document.getElementById("c_input")?.value || "clip.mp4";
+
+      if (this.currentTool !== "vid2gif" && crf !== "23") cmd += ` --crf ${crf}`;
+      if (w) cmd += ` --width ${w}`;
+      if (all) cmd += " -a";
+      if (!all && inp) cmd += ` ${inp}`;
+    } else if (this.currentTool === "vid2audio") {
+      const fmt = document.getElementById("c_v2a_fmt")?.value || "wav";
+      const all = document.getElementById("c_all")?.checked;
+      const inp = document.getElementById("c_input")?.value || "interview.mp4";
+
+      if (fmt === "mp3") cmd += " --format mp3";
+      else if (fmt === "mp3_320") cmd += " --format mp3 -b 320";
+      if (all) cmd += " -a";
+      if (!all && inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "wav2tempo") {
       const tbpm = document.getElementById("c_target_bpm")?.value;
       const sbpm = document.getElementById("c_source_bpm")?.value;
@@ -2189,7 +2404,15 @@ class CommandStudio {
 
       if (tbpm) cmd += ` --target-bpm ${tbpm}`;
       if (sbpm) cmd += ` --bpm ${sbpm}`;
+      cmd = this.appendWavOutputFlags(cmd);
       if (inp) cmd += ` ${inp}`;
+    } else if (this.currentTool === "wavreverse") {
+      const all = document.getElementById("c_all")?.checked;
+      const inp = document.getElementById("c_input")?.value || "cymbal.wav";
+
+      cmd = this.appendWavOutputFlags(cmd);
+      if (all) cmd += " -a";
+      if (!all && inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "wavpitch") {
       const semi = document.getElementById("c_semitones")?.value || "2";
       const semiBadge = document.getElementById("c_semi_val");
@@ -2200,6 +2423,7 @@ class CommandStudio {
 
       if (varispeed) cmd += " --varispeed";
       cmd += ` -s ${semi > 0 ? `+${semi}` : semi}`;
+      cmd = this.appendWavOutputFlags(cmd);
       if (inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "wavnorm") {
       const mode = document.getElementById("c_norm_mode")?.value;
@@ -2208,6 +2432,7 @@ class CommandStudio {
 
       if (mode === "lufs") cmd += ` --lufs ${val}`;
       else cmd += ` --peak ${val}`;
+      cmd = this.appendWavOutputFlags(cmd);
       if (inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "wavfade") {
       const fi = document.getElementById("c_fade_in")?.value;
@@ -2218,6 +2443,7 @@ class CommandStudio {
       if (fi) cmd += ` -i ${fi}`;
       if (fo) cmd += ` -o ${fo}`;
       if (curve && curve !== "qsin") cmd += ` --curve ${curve}`;
+      cmd = this.appendWavOutputFlags(cmd);
       if (inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "wavtrim") {
       const th = document.getElementById("c_threshold")?.value;
@@ -2227,6 +2453,7 @@ class CommandStudio {
       if (th) cmd += ` --threshold ${th}`;
       if (scope === "start") cmd += " --start-only";
       if (scope === "end") cmd += " --end-only";
+      cmd = this.appendWavOutputFlags(cmd);
       if (inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "wavfx") {
       const rev = document.getElementById("c_reverb")?.value;
@@ -2237,7 +2464,16 @@ class CommandStudio {
       if (rev && rev !== "none") cmd += ` --reverb ${rev}`;
       if (del) cmd += ` --delay ${del}`;
       if (lp) cmd += ` --lowpass ${lp}`;
+      cmd = this.appendWavOutputFlags(cmd);
       if (inp) cmd += ` ${inp}`;
+    } else if (this.currentTool === "wav2mp3") {
+      const br = document.getElementById("c_w2m_bitrate")?.value || "320";
+      const all = document.getElementById("c_all")?.checked;
+      const inp = document.getElementById("c_input")?.value || "master.wav";
+
+      if (br !== "192") cmd += ` -b ${br}`;
+      if (all) cmd += " -a";
+      if (!all && inp) cmd += ` ${inp}`;
     } else if (this.currentTool === "ytdl") {
       const fmt = document.getElementById("c_format")?.value;
       const outdir = document.getElementById("c_outdir")?.value;
@@ -2601,6 +2837,207 @@ class CatalogController {
 }
 
 // ============================================================================
+// 6.5 Short Code Sheets & One-Liner Recipes Controller
+// ============================================================================
+const CHEATSHEET_DATA = [
+  // Video
+  { category: "video", tool: "videoeffects", alias: "vidfx", goal: "Cinematic Teal & Orange grade + 2.35:1 CinemaScope bars", cmd: "videoeffects --preset cinema --letterbox 2.35 clip.mp4" },
+  { category: "video", tool: "videoeffects", alias: "vidfx", goal: "Vintage 1970s Kodachrome + 4-way kaleidoscope mirror", cmd: "vidfx --preset vintage --mirror quad --fade-in 1.0 clip.mp4" },
+  { category: "video", tool: "videoeffects", alias: "vidfx", goal: "Half-speed dreamy slow-motion with highlight bloom", cmd: "vidfx --speed 0.5 --preset dream --vignette clip.mp4" },
+  { category: "video", tool: "vidglitch", alias: "videoglitch", goal: "Cyberpunk neon tearing + organic bursts + audio stutter", cmd: "vidglitch --preset cyberpunk --organic-burst --audio-glitch clip.mp4" },
+  { category: "video", tool: "vidglitch", alias: "videoglitch", goal: "1990s VHS tape tracking with camcorder HUD overlay", cmd: "vidglitch --preset vhs --osd -I high clip.mp4" },
+  { category: "video", tool: "vidcuts", alias: "videocuts", goal: "Auto-strip dead air / silence pauses from vlogs or lectures", cmd: "vidcuts --mode silence clip.mp4" },
+  { category: "video", tool: "vidcuts", alias: "videocuts", goal: "Freeze-hold 20% cuts with film burn & Super-8 gate (keeps audio sync)", cmd: "vidcuts -p 20 --mode freeze --film-burn --super8 clip.mp4" },
+  { category: "video", tool: "vidcuts", alias: "videocuts", goal: "BPM-synced rhythmic jump cuts using aubio beat detection", cmd: "vidcuts -p 30 --mode beat clip.mp4" },
+  { category: "video", tool: "vidglue", alias: "videoglue", goal: "Crossfade two clips with 0.8s smooth fade transition", cmd: "vidglue -t fade -d 0.8 part1.mp4 part2.mp4" },
+  { category: "video", tool: "vidglue", alias: "videoglue", goal: "Seamless forward + backward boomerang loop", cmd: "vidglue --bounce clip.mp4" },
+  { category: "video", tool: "vidglue", alias: "videoglue", goal: "2x2 Quad Split-Screen grid from 4 clips", cmd: "vidglue --layout 2x2 a.mp4 b.mp4 c.mp4 d.mp4" },
+  { category: "video", tool: "videorandfram", alias: "vidrandfram", goal: "Stutter stop-motion frame scramble with ghosting trails", cmd: "videorandfram -p stutter --trails 3 --rgb-split 8 clip.mp4" },
+  { category: "video", tool: "vidoptim", alias: "", goal: "Shrink MP4 size (H.264 CRF 23, max 1920px, web-ready)", cmd: "vidoptim --crf 23 --width 1920 clip.mp4" },
+  { category: "video", tool: "vid2gif", alias: "", goal: "High-color two-pass palette GIF (480px, 12fps)", cmd: "vid2gif --width 480 --fps 12 clip.mp4" },
+  { category: "video", tool: "vid2webm", alias: "", goal: "Convert MP4 to VP9/Opus WebM for modern browsers", cmd: "vid2webm -q 30 --width 1280 clip.mp4" },
+  { category: "video", tool: "videoWithoutAudio", alias: "", goal: "Instant lossless audio strip (stream copy, zero re-encoding)", cmd: "videoWithoutAudio -a" },
+
+  // Audio (WAV & MP3)
+  { category: "audio", tool: "wavnorm", alias: "", goal: "Normalize podcast to -16 LUFS and export directly as MP3", cmd: "wavnorm -m -l -16 podcast.wav" },
+  { category: "audio", tool: "wavnorm", alias: "", goal: "Batch normalize folder to -14 LUFS (Spotify/YouTube standard)", cmd: "wavnorm -a -l -14" },
+  { category: "audio", tool: "wav2tempo", alias: "", goal: "Time-stretch drum loop to 128 BPM and save as 320kbps MP3", cmd: "wav2tempo -t 128 -m -b 320 drumloop.wav" },
+  { category: "audio", tool: "wav2tempo", alias: "", goal: "Stretch loop from known 90 BPM to 120 BPM (lossless WAV)", cmd: "wav2tempo -b 90 -t 120 sample.wav" },
+  { category: "audio", tool: "wavpitch", alias: "", goal: "Shift vocal up +3 semitones (tempo preserved) and save as MP3", cmd: "wavpitch -s +3 -m vocal.wav" },
+  { category: "audio", tool: "wavpitch", alias: "", goal: "Analog tape varispeed drop (-5 semitones, slower & deeper)", cmd: "wavpitch -s -5 --varispeed -m synth.wav" },
+  { category: "audio", tool: "wavtrim", alias: "", goal: "Trim leading & trailing silence (-45dB) and export as MP3", cmd: "wavtrim -m --threshold -45dB recording.wav" },
+  { category: "audio", tool: "wavfade", alias: "", goal: "De-pop sample edges (100ms in / 250ms out) and export as MP3", cmd: "wavfade -i 0.1 -o 0.25 -m sample.wav" },
+  { category: "audio", tool: "wavfx", alias: "", goal: "Spacious concert hall reverb + 300ms slapback delay to MP3", cmd: "wavfx --reverb hall --delay 300 -m vocal.wav" },
+  { category: "audio", tool: "wavfx", alias: "", goal: "Lo-Fi underwater lowpass filter (900Hz) + bass boost", cmd: "wavfx --lowpass 900 --bass +5 -m loop.wav" },
+  { category: "audio", tool: "wavreverse", alias: "", goal: "Reverse cymbal/riser audio and export directly to MP3", cmd: "wavreverse -m cymbal.wav" },
+  { category: "audio", tool: "wav2mp3", alias: "", goal: "Batch convert all WAV files in folder to 320kbps MP3", cmd: "wav2mp3 -a -b 320" },
+  { category: "audio", tool: "vid2audio", alias: "", goal: "Extract video soundtrack directly to 320kbps MP3", cmd: "vid2audio --format mp3 -b 320 interview.mp4" },
+
+  // Image, Web & Core
+  { category: "image", tool: "img2webp", alias: "", goal: "Batch convert folder to responsive WebP (q=82, max 1600px)", cmd: "img2webp -a -q 82 --width 1600" },
+  { category: "image", tool: "img2webp", alias: "", goal: "Lossless pixel-perfect PNG to WebP conversion", cmd: "img2webp -l diagram.png" },
+  { category: "image", tool: "ytdl", alias: "", goal: "Download clipboard URL directly as 320kbps MP3 to ~/Downloads", cmd: "ytdl --format mp3" },
+  { category: "image", tool: "ytdl", alias: "", goal: "Download 1080p MP4 with embedded subtitles from clipboard", cmd: "ytdl --subtitles" },
+  { category: "image", tool: "media-info", alias: "", goal: "Compare codecs, bitrates, resolution & duration across files", cmd: "media-info *.mp4 *.wav" },
+  { category: "image", tool: "thumloc", alias: "", goal: "Apply custom Finder icon thumbnail to all .webloc bookmarks", cmd: "thumloc -a cover.png" },
+  { category: "image", tool: "mytools", alias: "", goal: "Print full CLI Short Code Sheet in terminal", cmd: "mytools cs" },
+
+  // Multi-Step Pipelines
+  { category: "pipelines", tool: "vid2audio", alias: "pipeline", goal: "Podcast Mastering: Extract audio -> Trim silence -> Normalize -16 LUFS MP3", cmd: "vid2audio talk.mp4 && wavtrim talk.wav && wavnorm -m -b 320 -l -16 talk-trimmed.wav" },
+  { category: "pipelines", tool: "wav2tempo", alias: "pipeline", goal: "Sample Pack Prep: Retime to 120 BPM -> Micro-fade edges -> Normalize -14 LUFS", cmd: "wav2tempo -t 120 loop.wav && wavfade -i 0.05 -o 0.1 loop-120bpm.wav && wavnorm -l -14 loop-120bpm-faded.wav" },
+  { category: "pipelines", tool: "vidcuts", alias: "pipeline", goal: "Social Clip Pipeline: Strip dead air -> Cinema grade -> Optimize MP4", cmd: "vidcuts --mode silence raw.mp4 && vidfx --preset cinema raw-silencecut.mp4 && vidoptim raw-silencecut-cinema.mp4" },
+  { category: "pipelines", tool: "wavreverse", alias: "pipeline", goal: "Reverse Riser FX: Reverse WAV -> Add Hall Reverb -> Export 320k MP3", cmd: "wavreverse hit.wav && wavfx --reverb hall --fade-in 0.2 -m -b 320 hit-reversed.wav" }
+];
+
+class CheatsheetController {
+  constructor(tbodyId, tabsId, searchInputId, clearBtnId, copyAllBtnId) {
+    this.tbody = document.getElementById(tbodyId);
+    this.tabsContainer = document.getElementById(tabsId);
+    this.searchInput = document.getElementById(searchInputId);
+    this.clearBtn = document.getElementById(clearBtnId);
+    this.copyAllBtn = document.getElementById(copyAllBtnId);
+    this.currentCategory = "all";
+    this.searchQuery = "";
+    this.init();
+  }
+
+  init() {
+    if (!this.tbody || !this.tabsContainer) return;
+    this.renderTabs();
+    this.renderRows();
+
+    const searchBox = this.searchInput?.closest(".search-box");
+    const updateSearch = () => {
+      this.searchQuery = this.searchInput?.value.toLowerCase().trim() || "";
+      if (searchBox) searchBox.classList.toggle("has-query", !!this.searchQuery);
+      this.renderRows();
+    };
+
+    this.searchInput?.addEventListener("input", updateSearch);
+    this.clearBtn?.addEventListener("click", () => {
+      if (this.searchInput) {
+        this.searchInput.value = "";
+        updateSearch();
+        this.searchInput.focus();
+      }
+    });
+
+    this.copyAllBtn?.addEventListener("click", () => {
+      const visible = this.getFilteredRows();
+      if (visible.length === 0) return;
+      const sheetText = visible
+        .map(r => `# ${r.tool}: ${r.goal}\n${r.cmd}`)
+        .join("\n\n");
+      copyToClipboard(sheetText, `Copied ${visible.length} recipes to clipboard!`);
+    });
+  }
+
+  getFilteredRows() {
+    return CHEATSHEET_DATA.filter(item => {
+      const matchesCat = this.currentCategory === "all" || item.category === this.currentCategory;
+      const matchesQuery = !this.searchQuery ||
+        item.tool.toLowerCase().includes(this.searchQuery) ||
+        item.alias.toLowerCase().includes(this.searchQuery) ||
+        item.goal.toLowerCase().includes(this.searchQuery) ||
+        item.cmd.toLowerCase().includes(this.searchQuery);
+      return matchesCat && matchesQuery;
+    });
+  }
+
+  renderTabs() {
+    const categories = [
+      { id: "all", name: "All Recipes" },
+      { id: "video", name: "🎬 Video" },
+      { id: "audio", name: "🎵 Audio (WAV & MP3)" },
+      { id: "image", name: "🖼️ Image, Web & Core" },
+      { id: "pipelines", name: "🔗 Multi-Step Pipelines" }
+    ];
+
+    this.tabsContainer.innerHTML = "";
+    categories.forEach(cat => {
+      const count = cat.id === "all"
+        ? CHEATSHEET_DATA.length
+        : CHEATSHEET_DATA.filter(r => r.category === cat.id).length;
+
+      const btn = document.createElement("button");
+      btn.className = `cat-tab ${cat.id === this.currentCategory ? "active" : ""}`;
+      btn.innerHTML = `${cat.name} <span class="tab-count">(${count})</span>`;
+      btn.addEventListener("click", () => {
+        this.currentCategory = cat.id;
+        this.tabsContainer.querySelectorAll(".cat-tab").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        this.renderRows();
+      });
+      this.tabsContainer.appendChild(btn);
+    });
+  }
+
+  renderRows() {
+    const rows = this.getFilteredRows();
+    this.tbody.innerHTML = "";
+
+    if (rows.length === 0) {
+      this.tbody.innerHTML = `
+        <tr>
+          <td colspan="4" style="text-align: center; padding: 2rem; font-family: var(--font-mono); color: var(--text-muted);">
+            No short-code recipes matching "${this.searchQuery}".
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    rows.forEach(item => {
+      const tr = document.createElement("tr");
+      let dotColor = "#2563eb";
+      if (item.category === "video") dotColor = "#ff3344";
+      else if (item.category === "audio") dotColor = "#00f59b";
+      else if (item.category === "pipelines") dotColor = "#ffb703";
+
+      tr.innerHTML = `
+        <td>
+          <div class="cs-tool-cell">
+            <span class="cs-cat-dot" style="background: ${dotColor};"></span>
+            <button type="button" class="cs-tool-name" data-tool="${item.tool}" style="background:none;border:none;padding:0;cursor:pointer;text-align:left;" title="Open ${item.tool} in Command Studio">
+              ${item.tool}
+            </button>
+            ${item.alias ? `<span style="font-size:0.7rem;color:var(--text-muted);font-family:var(--font-mono);">(${item.alias})</span>` : ""}
+          </div>
+        </td>
+        <td class="cs-goal-cell">${item.goal}</td>
+        <td><code class="cs-cmd-code">${item.cmd}</code></td>
+        <td>
+          <div class="cs-actions-wrap">
+            <button type="button" class="copy-mini-btn" data-copy="${item.cmd.replace(/"/g, '&quot;')}">COPY</button>
+            <button type="button" class="studio-load-btn" data-studio="${item.tool}" data-cmd="${item.cmd.replace(/"/g, '&quot;')}" title="Load into Command Studio">STUDIO</button>
+          </div>
+        </td>
+      `;
+
+      tr.querySelector(".copy-mini-btn")?.addEventListener("click", () => {
+        copyToClipboard(item.cmd, "Recipe copied to clipboard!");
+      });
+
+      const loadInStudio = () => {
+        if (window.commandStudio) {
+          window.commandStudio.selectTool(item.tool);
+          if (window.commandStudio.outputBox) {
+            window.commandStudio.outputBox.innerHTML = `<span class="prompt-symbol">❯</span> ${item.cmd}`;
+          }
+          document.getElementById("studio")?.scrollIntoView({ behavior: "smooth" });
+          showToast(`Loaded ${item.tool} recipe in Command Studio`);
+        }
+      };
+
+      tr.querySelector(".studio-load-btn")?.addEventListener("click", loadInStudio);
+      tr.querySelector(".cs-tool-name")?.addEventListener("click", loadInStudio);
+
+      this.tbody.appendChild(tr);
+    });
+  }
+}
+
+// ============================================================================
 // 7. Modal Dialog Handler
 // ============================================================================
 function openModal(tool) {
@@ -2629,13 +3066,18 @@ function openModal(tool) {
   `).join("");
 
   body.innerHTML = `
-    <div style="font-size: 0.95rem; color: var(--text-primary); line-height: 1.6;">
-      ${tool.details || tool.summary}
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+      <div style="font-size: 0.95rem; color: var(--text-primary); line-height: 1.6; flex: 1; min-width: 240px;">
+        ${tool.details || tool.summary}
+      </div>
+      <button type="button" class="studio-copy-btn" id="modalLoadStudioBtn" style="font-size: 0.78rem; padding: 0.5rem 0.9rem;">
+        ⚡ Open in Command Studio
+      </button>
     </div>
 
     <div>
       <div class="dialog-section-title">Command Flags & Options</div>
-      <div style="overflow-x: auto; margin-top: 0.5rem;">
+      <div style="overflow-x: auto; margin-top: 0.5rem;" tabindex="0" role="region" aria-label="${tool.name} command flags">
         <table class="options-table">
           <thead>
             <tr>
@@ -2651,12 +3093,18 @@ function openModal(tool) {
     </div>
 
     <div>
-      <div class="dialog-section-title">Production Examples</div>
+      <div class="dialog-section-title">Short Code Sheet & Production Examples</div>
       <div style="margin-top: 0.5rem;">
         ${examplesList}
       </div>
     </div>
   `;
+
+  body.querySelector("#modalLoadStudioBtn")?.addEventListener("click", () => {
+    closeModal();
+    window.commandStudio?.selectTool(tool.id);
+    document.getElementById("studio")?.scrollIntoView({ behavior: "smooth" });
+  });
 
   body.querySelectorAll(".copy-mini-btn").forEach(btn => {
     btn.addEventListener("click", (e) => {
@@ -2766,6 +3214,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize Visual Labs
   window.audioLab = new AudioWaveformLab("waveformCanvas");
   window.glitchLab = new GlitchLab("glitchScreenContent");
+
+  // Initialize Short Code Sheets & Recipes Hub
+  window.cheatsheet = new CheatsheetController(
+    "cheatsheetTableBody",
+    "cheatsheetCategoryTabs",
+    "cheatsheetSearchInput",
+    "cheatsheetSearchClearBtn",
+    "copyAllRecipesBtn"
+  );
 
   // Initialize Catalog
   window.catalog = new CatalogController("toolsGrid", "catalogSearchInput", "categoryTabs");
